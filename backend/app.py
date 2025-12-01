@@ -17,6 +17,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
@@ -49,6 +50,30 @@ def is_precio_obsoleto(fecha_actualizacion: Optional[date]) -> bool:
         return delta.days > PRECIOS_OBSOLETOS_DIAS
     except Exception:
         return False
+
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "is_admin": self.is_admin,
+        }
 
 
 class ConstantesFASAR(db.Model):
@@ -349,6 +374,38 @@ def init_db():
     os.makedirs(BASE_DIR, exist_ok=True)
     db.create_all()
     ConstantesFASAR.get_singleton()
+
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    user = User.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        # En una app real usaríamos sesiones o JWT.
+        # Aquí simularemos una sesión simple devolviendo el usuario.
+        # Para producción real, configurar Flask-Login o JWT.
+        return jsonify({"user": user.to_dict()}), 200
+    
+    return jsonify({"error": "Credenciales inválidas"}), 401
+
+
+@app.route("/api/auth/me", methods=["GET"])
+def get_current_user():
+    # Simulación: En un caso real, decodificaríamos la sesión/token.
+    # Por ahora, esto requeriría manejo de cookies/tokens que no está implementado completamente.
+    # Pero para que el frontend no falle, podemos devolver 401 si no hay auth.
+    # O implementar un login básico con sesiones si Flask-Login estuviera.
+    # Dado que el usuario pidió "analizar", y no hay nada, esto es lo básico.
+    return jsonify({"error": "No autenticado"}), 401
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def logout():
+    return jsonify({"message": "Logged out"}), 200
 
 
 @app.route("/api/ventas/crear_nota_venta", methods=["POST"])
