@@ -1,0 +1,252 @@
+# 📂 PROYECTO MAESTRO: AP CONSTRU (Versión Offline)
+
+### 1. CONTEXTO Y ROL
+Actúa como un **Desarrollador Senior Full-Stack experto en React y Mobile**. Tu objetivo es refactorizar y completar una aplicación existente siguiendo estrictamente las instrucciones a continuación.
+
+**¿Qué estamos construyendo?**
+Una herramienta móvil ("AP CONSTRU") para contratistas que permite crear presupuestos de obra completos, calcular áreas y exportar datos, todo 100% offline.
+
+### 2. REGLA DE ORO: BITÁCORA DE PROGRESO
+Antes de escribir cualquier código, debes crear (o mantener) un archivo llamado `PROGRESS_LOG.md`.
+* **Objetivo:** Permitir que tú u otro agente retomen el trabajo sin perder el contexto.
+* **Instrucción:** Cada vez que termines una "Fase" o un "Paso" importante de estas instrucciones, debes actualizar este archivo indicando qué se completó y qué sigue pendiente. Tú decides la frecuencia, pero el objetivo es no perder el hilo.
+
+---
+
+### 3. ESPECIFICACIONES TÉCNICAS
+* **Tipo:** Mobile App Nativa (APK) Offline-First.
+* **Stack:** Visual Studio Code + React (Vite) + Capacitor.
+* **Estilo:** Dark Mode (Fondo #000, Texto #FFF).
+* **Estructura de Datos:**
+    * `nombreProyecto`: String
+    * `dimensiones`: Objeto {largo, ancho, alto}
+    * `materiales`: Array de objetos {id, nombre, cantidad, precio}
+    * `ajustes`: Array de objetos {nombre, tipo, valor}
+
+---
+
+### 4. INSTRUCCIONES DE EJECUCIÓN (PASO A PASO)
+
+Sigue esta receta al pie de la letra. Si encuentras archivos existentes, tu trabajo es actualizarlos o reemplazarlos según se indique.
+
+#### FASE 1: PREPARACIÓN Y LIMPIEZA
+1.  Si es necesario, descarga las librerías del proyecto (`npm install`).
+2.  Verifica que el proyecto corra (`npm run dev`).
+3.  Espera la confirmación del **Usuario** con la frase "continua con el proyecto".
+
+#### FASE 2: EL MOTOR DE ALMACENAMIENTO
+Crea o actualiza el archivo `src/services/storage.js` para manejar la persistencia de datos en `localStorage`.
+**Código Requerido:**
+
+```javascript
+const CLAVE_MEMORIA = 'apu_data_v1';
+
+export const obtenerPresupuestos = () => {
+  const guardado = localStorage.getItem(CLAVE_MEMORIA);
+  return guardado ? JSON.parse(guardado) : [];
+};
+
+export const guardarPresupuesto = (nuevoItem) => {
+  const listaActual = obtenerPresupuestos();
+  const itemConId = { ...nuevoItem, id: Date.now().toString() };
+  const nuevaLista = [...listaActual, itemConId];
+  localStorage.setItem(CLAVE_MEMORIA, JSON.stringify(nuevaLista));
+  return itemConId;
+};
+
+export const borrarPresupuesto = (id) => {
+  const listaActual = obtenerPresupuestos();
+  const nuevaLista = listaActual.filter(item => item.id !== id);
+  localStorage.setItem(CLAVE_MEMORIA, JSON.stringify(nuevaLista));
+};
+FASE 3: ESTILOS (DARK MODE)
+Actualiza el archivo src/index.css. Borra todo su contenido y define las reglas para el Modo Oscuro:
+
+root: color-scheme dark, background-color #000000, color rgba(255, 255, 255, 0.87).
+
+input, button: border 1px solid #fff, background transparent, color white.
+
+table: width 100%, border-collapse collapse.
+
+th, td: border 1px solid white, text-align center.
+
+FASE 4: EL CEREBRO DE LA APLICACIÓN (REFÁCTOR FINAL)
+Debemos reemplazar por completo el archivo src/App.jsx. Atención: El código anterior (si existe) debe ser eliminado totalmente. Implementaremos la versión final que incluye:
+
+Calculadora de Áreas (Largo, Ancho, Alto).
+
+Tabla de Materiales Dinámica.
+
+Sistema de Ajustes (IVA/Extras).
+
+Exportación a CSV.
+
+Usa este Código Maestro para src/App.jsx:
+
+JavaScript
+
+import React, { useState, useEffect } from 'react';
+import { guardarPresupuesto } from './services/storage';
+
+function App() {
+  // --- 1. ESTADOS ---
+  const [nombreProyecto, setNombreProyecto] = useState('');
+  const [dimensiones, setDimensiones] = useState({ largo: '', ancho: '', alto: '' });
+  const [resultadoArea, setResultadoArea] = useState(0);
+  const [materiales, setMateriales] = useState([]);
+  const [nuevoMaterial, setNuevoMaterial] = useState({ nombre: '', cantidad: '', precioUnitario: '' });
+  const [ajustes, setAjustes] = useState([]);
+  const [nuevoAjuste, setNuevoAjuste] = useState({ nombre: '', costo: '', porcentaje: '' });
+  const [subtotalMateriales, setSubtotalMateriales] = useState(0);
+  const [totalFinal, setTotalFinal] = useState(0);
+
+  // --- 2. EFECTOS (CÁLCULOS) ---
+  useEffect(() => {
+    const l = parseFloat(dimensiones.largo) || 0;
+    const a = parseFloat(dimensiones.ancho) || 0;
+    const h = parseFloat(dimensiones.alto) || 0;
+    const perimetro = (l + a) * 2;
+    setResultadoArea((perimetro * h).toFixed(2));
+  }, [dimensiones]);
+
+  useEffect(() => {
+    const sumaMats = materiales.reduce((acc, item) => acc + (item.cantidad * item.precioUnitario), 0);
+    setSubtotalMateriales(sumaMats);
+    let sumaAjustes = 0;
+    ajustes.forEach(ajuste => {
+      if (ajuste.tipo === 'dinero') { sumaAjustes += ajuste.valor; }
+      else { sumaAjustes += (sumaMats * (ajuste.valor / 100)); }
+    });
+    setTotalFinal(sumaMats + sumaAjustes);
+  }, [materiales, ajustes]);
+
+  // --- 3. MANEJADORES ---
+  const agregarMaterial = () => {
+    if (!nuevoMaterial.nombre || !nuevoMaterial.cantidad || !nuevoMaterial.precioUnitario) return;
+    const item = { id: Date.now(), nombre: nuevoMaterial.nombre, cantidad: parseFloat(nuevoMaterial.cantidad), precioUnitario: parseFloat(nuevoMaterial.precioUnitario) };
+    setMateriales([...materiales, item]);
+    setNuevoMaterial({ nombre: '', cantidad: '', precioUnitario: '' });
+  };
+
+  const agregarAjuste = () => {
+    if (!nuevoAjuste.nombre) return;
+    let tipo = 'dinero';
+    let valor = parseFloat(nuevoAjuste.costo);
+    if (nuevoAjuste.porcentaje) { tipo = 'porcentaje'; valor = parseFloat(nuevoAjuste.porcentaje); }
+    else if (nuevoAjuste.costo) { tipo = 'dinero'; valor = parseFloat(nuevoAjuste.costo); }
+    else { return; }
+    setAjustes([...ajustes, { id: Date.now(), nombre: nuevoAjuste.nombre, tipo, valor }]);
+    setNuevoAjuste({ nombre: '', costo: '', porcentaje: '' });
+  };
+
+  const handleAjusteChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'costo' && value !== '') { setNuevoAjuste({ ...nuevoAjuste, costo: value, porcentaje: '' }); }
+    else if (name === 'porcentaje' && value !== '') { setNuevoAjuste({ ...nuevoAjuste, porcentaje: value, costo: '' }); }
+    else { setNuevoAjuste({ ...nuevoAjuste, [name]: value }); }
+  };
+
+  const handleBorrarTodo = () => {
+    if(window.confirm("¿Borrar todo y empezar de nuevo?")) {
+      setMateriales([]); setAjustes([]); setNombreProyecto(''); setDimensiones({ largo: '', ancho: '', alto: '' });
+    }
+  };
+
+  const handleGuardar = () => {
+    if (!nombreProyecto) return alert("Ponle nombre al proyecto");
+    const proyecto = { nombre: nombreProyecto, fecha: new Date().toLocaleDateString(), area: resultadoArea, total: totalFinal.toFixed(2), materiales, ajustes };
+    guardarPresupuesto(proyecto);
+    alert("✅ ¡Guardado!");
+  };
+
+  const handleExportar = () => {
+    let csv = "CONCEPTO,CANTIDAD,PRECIO,TOTAL\n";
+    materiales.forEach(m => csv += `${m.nombre},${m.cantidad},${m.precioUnitario},${(m.cantidad * m.precioUnitario).toFixed(2)}\n`);
+    csv += `\nSUBTOTAL,,,$${subtotalMateriales.toFixed(2)}\n`;
+    ajustes.forEach(a => csv += `${a.nombre},,${a.tipo === 'porcentaje' ? a.valor + '%' : '$' + a.valor},${a.tipo === 'porcentaje' ? ((subtotalMateriales * a.valor)/100).toFixed(2) : a.valor}\n`);
+    csv += `\nGRAN TOTAL,,,$${totalFinal.toFixed(2)}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${nombreProyecto || 'presupuesto'}.csv`; a.click();
+  };
+
+  // --- 4. RENDERIZADO (UI) ---
+  return (
+    <div style={{ border: '2px solid white', padding: '15px', maxWidth: '500px', margin: 'auto', minHeight: '90vh', background: 'black', color: 'white' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, color: '#3498db' }}>AP CONSTRU</h2>
+        <div style={{ fontSize: '0.8em' }}>OFFLINE V1.0</div>
+      </div>
+
+      <input className="input-box" type="text" placeholder="NOMBRE DEL PROYECTO" value={nombreProyecto} onChange={(e) => setNombreProyecto(e.target.value)} style={{width: '95%', textAlign: 'center', fontSize: '1.2em', fontWeight: 'bold', marginBottom: '15px'}} />
+
+      <div style={{ border: '1px solid #555', padding: '10px', marginBottom: '20px' }}>
+        <p style={{ color: '#e74c3c', margin: '0 0 10px 0', fontSize: '0.9em' }}>Area = Perimetro x Altura</p>
+        <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
+           <input type="number" placeholder="Largo" value={dimensiones.largo} onChange={(e) => setDimensiones({...dimensiones, largo: e.target.value})} style={{width: '50px'}} />
+           <input type="number" placeholder="Ancho" value={dimensiones.ancho} onChange={(e) => setDimensiones({...dimensiones, ancho: e.target.value})} style={{width: '50px'}} />
+           <input type="number" placeholder="Alto" value={dimensiones.alto} onChange={(e) => setDimensiones({...dimensiones, alto: e.target.value})} style={{width: '50px'}} />
+           <div style={{display: 'flex', alignItems: 'center', color: '#f1c40f', fontWeight: 'bold'}}>= {resultadoArea} m²</div>
+        </div>
+      </div>
+
+      <table style={{ marginBottom: '10px', fontSize: '0.9em', width: '100%' }}>
+        <thead><tr style={{background: '#333'}}><th>MATERIAL</th><th>CANT</th><th>$/U</th><th>TOTAL</th><th></th></tr></thead>
+        <tbody>
+          {materiales.map((item) => (
+            <tr key={item.id}>
+              <td>{item.nombre}</td><td>{item.cantidad}</td><td>{item.precioUnitario}</td><td>{(item.cantidad * item.precioUnitario).toFixed(0)}</td>
+              <td onClick={() => setMateriales(materiales.filter(m => m.id !== item.id))} style={{color: 'red'}}>X</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ display: 'flex', gap: '5px', marginBottom: '20px' }}>
+        <input placeholder="Material..." value={nuevoMaterial.nombre} onChange={(e) => setNuevoMaterial({...nuevoMaterial, nombre: e.target.value})} style={{flex: 2}} />
+        <input type="number" placeholder="#" value={nuevoMaterial.cantidad} onChange={(e) => setNuevoMaterial({...nuevoMaterial, cantidad: e.target.value})} style={{flex: 1}} />
+        <input type="number" placeholder="$" value={nuevoMaterial.precioUnitario} onChange={(e) => setNuevoMaterial({...nuevoMaterial, precioUnitario: e.target.value})} style={{flex: 1}} />
+        <button onClick={agregarMaterial} style={{background: 'white', color: 'black'}}>+</button>
+      </div>
+
+      <div style={{ border: '1px solid #fff', padding: '15px', position: 'relative' }}>
+        <div style={{position: 'absolute', top: '-12px', left: '20px', background: 'black', padding: '0 10px'}}>AJUSTES</div>
+        {ajustes.map(aj => (
+          <div key={aj.id} style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', marginBottom: '5px'}}>
+            <span>{aj.nombre} {aj.tipo === 'porcentaje' ? `(${aj.valor}%)` : ''}</span>
+            <span>+ ${aj.tipo === 'porcentaje' ? ((subtotalMateriales * aj.valor)/100).toFixed(2) : aj.valor}</span>
+            <span onClick={() => setAjustes(ajustes.filter(a => a.id !== aj.id))} style={{color: 'red', cursor: 'pointer'}}>x</span>
+          </div>
+        ))}
+        <div style={{display: 'flex', gap: '5px', marginTop: '10px'}}>
+           <input name="nombre" placeholder="Nombre (Ej. IVA)" value={nuevoAjuste.nombre} onChange={handleAjusteChange} style={{flex: 2}} />
+           <input type="number" name="costo" placeholder="$ Costo" value={nuevoAjuste.costo} onChange={handleAjusteChange} style={{flex: 1}} />
+           <input type="number" name="porcentaje" placeholder="%" value={nuevoAjuste.porcentaje} onChange={handleAjusteChange} style={{flex: 1}} />
+        </div>
+        <button onClick={agregarAjuste} style={{width: '100%', marginTop: '5px', border: '1px solid white', padding: '5px'}}>AGREGAR</button>
+      </div>
+
+      <div style={{display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '20px', gap: '10px'}}>
+        <span style={{fontSize: '1.2em'}}>TOTAL FINAL:</span>
+        <div style={{border: '1px solid white', padding: '10px 20px', fontSize: '1.5em', fontWeight: 'bold'}}>${totalFinal.toFixed(2)}</div>
+      </div>
+
+      <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '30px'}}>
+        <button onClick={handleBorrarTodo} style={{border: '1px solid red', color: 'red'}}>BORRAR</button>
+        <button onClick={handleGuardar} style={{border: '1px solid #3498db', color: '#3498db'}}>GUARDAR</button>
+        <button onClick={handleExportar} style={{border: '1px solid #2ecc71', color: '#2ecc71'}}>EXPORTAR</button>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+FASE 5: EMPAQUETADO FINAL
+Verifica en el navegador que todo funcione.
+
+Ejecuta npm run build para generar la carpeta de producción.
+
+Ejecuta npx cap sync para actualizar la plataforma Android.
+
+Solicita instrucciones al Usuario para la apertura de Android Studio
