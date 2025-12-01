@@ -2097,11 +2097,30 @@ def actualizar_precios_masivo():
         return jsonify({"error": "Ocurrió un error al actualizar los precios."}), 500
 
 
+
+def create_default_admin():
+    """Crea un usuario administrador por defecto si no existe."""
+    try:
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            print("Creando usuario administrador por defecto...")
+            admin = User(username="admin", is_admin=True)
+            admin.set_password("admin123")
+            db.session.add(admin)
+            db.session.commit()
+            print("Usuario 'admin' creado con password 'admin123'.")
+        else:
+            print("El usuario 'admin' ya existe.")
+    except Exception as e:
+        print(f"Error al crear admin por defecto: {e}")
+
+
 if __name__ == "__main__":
     from seed_data import seed_all_data
 
     with app.app_context():
         init_db()
+        create_default_admin()
         seed_all_data()
 
     print("Servidor backend corriendo")
