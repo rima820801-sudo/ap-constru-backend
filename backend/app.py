@@ -402,17 +402,35 @@ def init_db():
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    try:
+        print("Login attempt received")
+        data = request.get_json()
+        if not data:
+            print("No JSON data received")
+            return jsonify({"error": "No JSON data"}), 400
+            
+        username = data.get("username")
+        password = data.get("password")
+        print(f"Login attempt for user: {username}")
 
-    user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
-        session["user_id"] = user.id
-        session.permanent = True
-        return jsonify({"user": user.to_dict()}), 200
-    
-    return jsonify({"error": "Credenciales inválidas"}), 401
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            print("User not found")
+            return jsonify({"error": "Credenciales inválidas"}), 401
+            
+        if user.check_password(password):
+            print("Password correct, setting session")
+            session["user_id"] = user.id
+            session.permanent = True
+            return jsonify({"user": user.to_dict()}), 200
+        
+        print("Password incorrect")
+        return jsonify({"error": "Credenciales inválidas"}), 401
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
 
 
 @app.route("/api/auth/me", methods=["GET"])
@@ -2140,18 +2158,210 @@ def create_default_admin():
     except Exception as e:
         print(f"Error al crear admin por defecto: {e}")
 
+                agregar_material(material, Decimal("7.5"))
+            arena = match_material("arena", materiales)
+            if arena:
+                agregar_material(arena, Decimal("0.35"))
+        else:
+            for material in materiales[:2]:
+                agregar_material(material, Decimal("1.0"))
+
+        agua = match_material("agua", materiales)
+        if agua:
+            agregar_material(agua, Decimal("0.2"))
+
+        for mano in mano_obra[:2]:
+            agregar_mano(mano, Decimal("0.3"))
+
+        equipo_predeterminado = match_equipo("revolvedora", equipo)
+        if equipo_predeterminado:
+            agregar_equipo(equipo_predeterminado, Decimal("0.2"))
+
+        retro = match_maquinaria("retro", maquinaria)
+        if retro:
+            agregar_maquinaria(retro, Decimal("0.1"))
+
+        if not materiales and descripcion_original:
+            sugerencias.append(
+                {
+                    "tipo_insumo": "Material",
+                    "id_insumo": 0,
+                    "insumo_id": 0,
+                    "cantidad": 1.0,
+                    "precio_unitario_calculado": 0.0,
+                    "porcentaje_merma": 0.03,
+                    "precio_flete_unitario": 0.0,
+                    "existe_en_catalogo": False,
+                    "nombre": f"Material sugerido para {descripcion_original[:30]}",
+                    "nombre_sugerido": f"Material sugerido para {descripcion_original[:30]}",
+                    "justificacion_breve": f"Material generico necesario para {descripcion_original[:30]}",
+                }
+            )
+
+        if not mano_obra and descripcion_original:
+            sugerencias.append(
+                {
+                    "tipo_insumo": "ManoObra",
+                    "id_insumo": 0,
+                    "insumo_id": 0,
+                    "cantidad": 1.0,
+                    "precio_unitario_calculado": 0.0,
+                    "rendimiento_jornada": 8.0,
+                    "existe_en_catalogo": False,
+                    "nombre": f"Cuadrilla sugerida para {descripcion_original[:30]}",
+                    "nombre_sugerido": f"Cuadrilla sugerida para {descripcion_original[:30]}",
+                    "justificacion_breve": f"Cuadrilla generica necesaria para {descripcion_original[:30]}",
+                }
+            )
+
+    return sugerencias
+
+
+@app.route("/api/catalogos/sugerir_precio_mercado", methods=["POST"])
+def sugerir_precio_mercado():
+    """
+    Endpoint que sugiere un precio de mercado para un insumo basado en su nombre y unidad.
+    Utiliza Gemini para simular búsquedas de precios de mercado.
+    """
+    payload = request.get_json(force=True)
+    nombre = payload.get("nombre", "").strip().lower()
+    unidad = payload.get("unidad", "").strip()
+
+    if not nombre or not unidad:
+        return jsonify({"error": "Nombre y unidad son requeridos"}), 400
+
+    # Diccionario de precios simulados basado en palabras clave
+    precios_simulados = {
+        "block": {"pza": 5.50, "pieza": 5.50},
+        "tabique": {"pza": 3.25, "pieza": 3.25},
+        "cemento": {"kg": 0.35, "bulto": 250.00},
+        "arena": {"m3": 450.00, "tonelada": 280.00},
+        "grava": {"m3": 380.00, "tonelada": 240.00},
+        "varilla": {"kg": 18.50, "tonelada": 18500.00},
+        "acero": {"kg": 18.50, "tonelada": 18500.00},
+        "alambre": {"kg": 22.00, "rollo": 180.00},
+        "mortero": {"sacos": 85.00, "kg": 0.45},
+        "agua": {"m3": 15.00, "litro": 0.015},
+        "pintura": {"litro": 45.00, "cubeta": 350.00},
+        "vidrio": {"m2": 120.00, "pieza": 85.00},
+        "ladrillo": {"pza": 2.50, "pieza": 2.50},
+        "tubo": {"metro": 45.00, "pieza": 150.00},
+    }
+
+    precio_sugerido = None
+    fuente = "Simulación de Búsqueda de Mercado"
+
+    # Buscar coincidencias en el diccionario
+    for palabra_clave, precios_por_unidad in precios_simulados.items():
+        if palabra_clave in nombre:
+            unidad_normalizada = unidad.lower()
+            if unidad_normalizada in precios_por_unidad:
+                precio_sugerido = precios_por_unidad[unidad_normalizada]
+                break
+
+    # Si no hay coincidencia simulada, usar Gemini si está disponible
+    if precio_sugerido is None and GEMINI_API_KEY:
+        try:
+            model = genai.GenerativeModel(GEMINI_MODEL)
+            prompt = f"""
+            Proporciona SOLO un número que represente el precio de mercado promedio en MXN (pesos mexicanos) 
+            para: "{nombre}" en unidad "{unidad}".
+            
+            Responde SOLO con el número decimal (ej: 12.50, 450.00).
+            Si no conoces el precio, responde con: 0
+            """
+            response = model.generate_content(prompt)
+            respuesta_text = response.text.strip()
+            try:
+                precio_sugerido = float(respuesta_text)
+                fuente = "Gemini AI - Búsqueda de Mercado"
+            except ValueError:
+                precio_sugerido = 0.0
+                fuente = "Error: No se pudo procesar la respuesta de Gemini"
+        except Exception as e:
+            current_app.logger.error(f"Error al consultar Gemini para precio: {e}")
+            precio_sugerido = 0.0
+            fuente = f"Error: {str(e)}"
+
+    # Si aún no hay precio, devolver un valor por defecto
+    if precio_sugerido is None:
+        precio_sugerido = 0.0
+        fuente = "No se encontró información de precio"
+
+    return jsonify({
+        "nombre": nombre,
+        "unidad": unidad,
+        "precio_sugerido": float(precio_sugerido),
+        "fuente": fuente,
+    }), 200
+
+
+@app.route("/api/catalogos/actualizar_precios_masivo", methods=["POST"])
+def actualizar_precios_masivo():
+    updates = request.get_json(force=True)
+    if not isinstance(updates, list):
+        return jsonify({"error": "El payload debe ser una lista de actualizaciones"}), 400
+
+    try:
+        for item_update in updates:
+            insumo_id = item_update.get("insumo_id")
+            tipo = item_update.get("tipo")
+            nuevo_precio = decimal_field(item_update.get("nuevo_precio"))
+
+            if not all([insumo_id, tipo, nuevo_precio is not None]):
+                continue # Opcional: registrar un warning
+
+            if tipo == "Material":
+                insumo = Material.query.get(insumo_id)
+                if insumo:
+                    insumo.precio_unitario = nuevo_precio
+            elif tipo == "ManoObra":
+                insumo = ManoObra.query.get(insumo_id)
+                if insumo:
+                    insumo.salario_base = nuevo_precio
+            elif tipo == "Equipo":
+                insumo = Equipo.query.get(insumo_id)
+                if insumo:
+                    insumo.costo_hora_maq = nuevo_precio
+            elif tipo == "Maquinaria":
+                insumo = Maquinaria.query.get(insumo_id)
+                if insumo:
+                    insumo.costo_adquisicion = nuevo_precio
+        
+        db.session.commit()
+        return jsonify({"mensaje": f"{len(updates)} precios actualizados exitosamente."}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error en actualización masiva de precios: {e}")
+        return jsonify({"error": "Ocurrió un error al actualizar los precios."}), 500
+
+
+
+def create_default_admin():
+    """Crea un usuario administrador por defecto si no existe."""
+    try:
+        admin = User.query.filter_by(username="admin").first()
+        if not admin:
+            print("Creando usuario administrador por defecto...")
+            admin = User(username="admin", is_admin=True)
+            admin.set_password("admin123")
+            db.session.add(admin)
+            db.session.commit()
+            print("Usuario 'admin' creado con password 'admin123'.")
+        else:
+            print("El usuario 'admin' ya existe.")
+    except Exception as e:
+        print(f"Error al crear admin por defecto: {e}")
+
+# Inicialización de la Base de Datos (Ejecutar siempre, incluso con Gunicorn)
+with app.app_context():
+    init_db()
+    create_default_admin()
+    # seed_all_data() # Descomentar si se desea poblar datos iniciales
 
 if __name__ == "__main__":
     from seed_data import seed_all_data
 
-    with app.app_context():
-        init_db()
-        create_default_admin()
-        seed_all_data()
-
     print("Servidor backend corriendo")
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
-
-
-
