@@ -29,7 +29,16 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {
+    "origins": [
+        "https://ap-constru-backend-1.onrender.com",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ],
+    "supports_credentials": True,
+    "allow_headers": "*",
+    "methods": "*"
+}})
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
