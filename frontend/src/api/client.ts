@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig, type Method } from "axios";
 
-export const API_BASE_URL = "https://ap-constru-backend.onrender.com/api";
+// Usamos ruta relativa para que Render use el Proxy y evite el error CORS
+export const API_BASE_URL = "/api";
 
 const client = axios.create({
     baseURL: API_BASE_URL,
