@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 import google.generativeai as genai
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, current_app, send_file
+from flask import Flask, jsonify, request, current_app, send_file, session
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -401,9 +401,8 @@ def login():
 
     user = User.query.filter_by(username=username).first()
     if user and user.check_password(password):
-        # En una app real usaríamos sesiones o JWT.
-        # Aquí simularemos una sesión simple devolviendo el usuario.
-        # Para producción real, configurar Flask-Login o JWT.
+        session["user_id"] = user.id
+        session.permanent = True
         return jsonify({"user": user.to_dict()}), 200
     
     return jsonify({"error": "Credenciales inválidas"}), 401
@@ -411,16 +410,20 @@ def login():
 
 @app.route("/api/auth/me", methods=["GET"])
 def get_current_user():
-    # Simulación: En un caso real, decodificaríamos la sesión/token.
-    # Por ahora, esto requeriría manejo de cookies/tokens que no está implementado completamente.
-    # Pero para que el frontend no falle, podemos devolver 401 si no hay auth.
-    # O implementar un login básico con sesiones si Flask-Login estuviera.
-    # Dado que el usuario pidió "analizar", y no hay nada, esto es lo básico.
-    return jsonify({"error": "No autenticado"}), 401
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "No autenticado"}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 401
+
+    return jsonify({"user": user.to_dict()}), 200
 
 
 @app.route("/api/auth/logout", methods=["POST"])
 def logout():
+    session.pop("user_id", None)
     return jsonify({"message": "Logged out"}), 200
 
 
