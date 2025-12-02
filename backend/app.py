@@ -458,15 +458,24 @@ def login():
 
 @app.route("/api/auth/me", methods=["GET"])
 def get_current_user():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "No autenticado"}), 401
+    # MODIFICACIÓN MODO ABIERTO: Siempre devolver Admin
+    # user_id = session.get("user_id")
+    # if not user_id:
+    #     return jsonify({"error": "No autenticado"}), 401
     
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "Usuario no encontrado"}), 401
+    # user = User.query.get(user_id)
+    # if not user:
+    #     return jsonify({"error": "Usuario no encontrado"}), 401
 
-    return jsonify({"user": user.to_dict()}), 200
+    # return jsonify({"user": user.to_dict()}), 200
+    
+    # Dummy Admin User
+    dummy_user = {
+        "id": 1,
+        "username": "Admin Invitado",
+        "is_admin": True
+    }
+    return jsonify({"user": dummy_user}), 200
 
 
 @app.route("/api/auth/logout", methods=["POST"])

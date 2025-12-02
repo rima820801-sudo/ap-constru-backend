@@ -10,12 +10,15 @@ import { UserInfo } from './types/user';
 import { UserContext } from './context/user';
 
 function App() {
-    const [user, setUser] = useState<UserInfo | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isChecking, setIsChecking] = useState(true);
+    // MODO ABIERTO: Usuario dummy por defecto
+    const [user, setUser] = useState<UserInfo | null>({ is_admin: true, username: "Admin Invitado", id: 1 });
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
+    const [isChecking, setIsChecking] = useState(false); // No verificar al inicio
     const isAdmin = Boolean(user?.is_admin);
 
     useEffect(() => {
+        // MODO ABIERTO: Desactivar verificación de sesión real
+        /*
         let isMounted = true;
 
         const checkAuth = async () => {
@@ -50,6 +53,7 @@ function App() {
         return () => {
             isMounted = false;
         };
+        */
     }, []);
 
     const handleLogin = (userInfo: UserInfo) => {
@@ -64,7 +68,7 @@ function App() {
             <Routes>
                 <Route
                     path="/login"
-                    element={!isAuthenticated ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/analisis" replace />}
+                    element={<Navigate to="/analisis" replace />}
                 />
                 <Route
                     path="/analisis"
