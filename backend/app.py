@@ -400,6 +400,29 @@ def init_db():
 
 
 
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    try:
+        # Intentar una consulta simple
+        user_count = User.query.count()
+        admin = User.query.filter_by(username="admin").first()
+        admin_exists = admin is not None
+        return jsonify({
+            "status": "ok", 
+            "db_connected": True, 
+            "user_count": user_count,
+            "admin_exists": admin_exists,
+            "db_path": DB_PATH,
+            "cwd": os.getcwd()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error", 
+            "db_connected": False, 
+            "error": str(e)
+        }), 500
+
+
 @app.route("/api/auth/login", methods=["POST"])
 def login():
     try:
