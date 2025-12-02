@@ -18,6 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -25,14 +26,20 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data.sqlite3")
 
 app = Flask(__name__)
+# Aplicar ProxyFix para manejar correctamente los headers de Render (HTTPS, Host, etc.)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Configuración de Sesión para Cross-Site (Render)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "TU_SECRET_KEY_SUPER_SECRETA")
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config["SESSION_COOKIE_SECURE"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = 3600
+# Configuración de Sesión para Cross-Site (Render) - HARDCODED
+app.secret_key = "super_clave_secreta_apu_builder_produccion_2025"
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='None',
+    PERMANENT_SESSION_LIFETIME=3600
+)
 
 db = SQLAlchemy(app)
 CORS(app, resources={r"/api/*": {
