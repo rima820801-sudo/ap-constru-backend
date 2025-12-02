@@ -28,6 +28,12 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# Configuración de Sesión para Cross-Site (Render)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "TU_SECRET_KEY_SUPER_SECRETA")
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = 3600
+
 db = SQLAlchemy(app)
 CORS(app, resources={r"/api/*": {
     "origins": [
