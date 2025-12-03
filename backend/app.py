@@ -2190,63 +2190,64 @@ def create_default_admin():
     except Exception as e:
         print(f"Error al crear admin por defecto: {e}")
 
-                agregar_material(material, Decimal("7.5"))
-            arena = match_material("arena", materiales)
-            if arena:
-                agregar_material(arena, Decimal("0.35"))
-        else:
-            for material in materiales[:2]:
-                agregar_material(material, Decimal("1.0"))
-
-        agua = match_material("agua", materiales)
-        if agua:
-            agregar_material(agua, Decimal("0.2"))
-
-        for mano in mano_obra[:2]:
-            agregar_mano(mano, Decimal("0.3"))
-
-        equipo_predeterminado = match_equipo("revolvedora", equipo)
-        if equipo_predeterminado:
-            agregar_equipo(equipo_predeterminado, Decimal("0.2"))
-
-        retro = match_maquinaria("retro", maquinaria)
-        if retro:
-            agregar_maquinaria(retro, Decimal("0.1"))
-
-        if not materiales and descripcion_original:
-            sugerencias.append(
-                {
-                    "tipo_insumo": "Material",
-                    "id_insumo": 0,
-                    "insumo_id": 0,
-                    "cantidad": 1.0,
-                    "precio_unitario_calculado": 0.0,
-                    "porcentaje_merma": 0.03,
-                    "precio_flete_unitario": 0.0,
-                    "existe_en_catalogo": False,
-                    "nombre": f"Material sugerido para {descripcion_original[:30]}",
-                    "nombre_sugerido": f"Material sugerido para {descripcion_original[:30]}",
-                    "justificacion_breve": f"Material generico necesario para {descripcion_original[:30]}",
-                }
-            )
-
-        if not mano_obra and descripcion_original:
-            sugerencias.append(
-                {
-                    "tipo_insumo": "ManoObra",
-                    "id_insumo": 0,
-                    "insumo_id": 0,
-                    "cantidad": 1.0,
-                    "precio_unitario_calculado": 0.0,
-                    "rendimiento_jornada": 8.0,
-                    "existe_en_catalogo": False,
-                    "nombre": f"Cuadrilla sugerida para {descripcion_original[:30]}",
-                    "nombre_sugerido": f"Cuadrilla sugerida para {descripcion_original[:30]}",
-                    "justificacion_breve": f"Cuadrilla generica necesaria para {descripcion_original[:30]}",
-                }
-            )
-
-    return sugerencias
+    # CODIGO ORFANO/FRAGMENTADO - COMENTADO PARA CORREGIR ERROR DE INDENTACION
+    #             agregar_material(material, Decimal("7.5"))
+    #         arena = match_material("arena", materiales)
+    #         if arena:
+    #             agregar_material(arena, Decimal("0.35"))
+    #     else:
+    #         for material in materiales[:2]:
+    #             agregar_material(material, Decimal("1.0"))
+    #
+    #     agua = match_material("agua", materiales)
+    #     if agua:
+    #         agregar_material(agua, Decimal("0.2"))
+    #
+    #     for mano in mano_obra[:2]:
+    #         agregar_mano(mano, Decimal("0.3"))
+    #
+    #     equipo_predeterminado = match_equipo("revolvedora", equipo)
+    #     if equipo_predeterminado:
+    #         agregar_equipo(equipo_predeterminado, Decimal("0.2"))
+    #
+    #     retro = match_maquinaria("retro", maquinaria)
+    #     if retro:
+    #         agregar_maquinaria(retro, Decimal("0.1"))
+    #
+    #     if not materiales and descripcion_original:
+    #         sugerencias.append(
+    #             {
+    #                 "tipo_insumo": "Material",
+    #                 "id_insumo": 0,
+    #                 "insumo_id": 0,
+    #                 "cantidad": 1.0,
+    #                 "precio_unitario_calculado": 0.0,
+    #                 "porcentaje_merma": 0.03,
+    #                 "precio_flete_unitario": 0.0,
+    #                 "existe_en_catalogo": False,
+    #                 "nombre": f"Material sugerido para {descripcion_original[:30]}",
+    #                 "nombre_sugerido": f"Material sugerido para {descripcion_original[:30]}",
+    #                 "justificacion_breve": f"Material generico necesario para {descripcion_original[:30]}",
+    #             }
+    #         )
+    #
+    #     if not mano_obra and descripcion_original:
+    #         sugerencias.append(
+    #             {
+    #                 "tipo_insumo": "ManoObra",
+    #                 "id_insumo": 0,
+    #                 "insumo_id": 0,
+    #                 "cantidad": 1.0,
+    #                 "precio_unitario_calculado": 0.0,
+    #                 "rendimiento_jornada": 8.0,
+    #                 "existe_en_catalogo": False,
+    #                 "nombre": f"Cuadrilla sugerida para {descripcion_original[:30]}",
+    #                 "nombre_sugerido": f"Cuadrilla sugerida para {descripcion_original[:30]}",
+    #                 "justificacion_breve": f"Cuadrilla generica necesaria para {descripcion_original[:30]}",
+    #             }
+    #         )
+    #
+    # return sugerencias
 
 
 @app.route("/api/catalogos/sugerir_precio_mercado", methods=["POST"])
