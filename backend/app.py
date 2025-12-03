@@ -55,7 +55,7 @@ CORS(app, resources={r"/api/*": {
 }})
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Días para considerar un precio como obsoleto (configurable)
 PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
@@ -2169,7 +2169,7 @@ def sugerir_precio_mercado():
     # Si no hay coincidencia simulada, usar Gemini si está disponible
     if precio_sugerido is None and GEMINI_API_KEY:
         try:
-            model = genai.GenerativeModel(GEMINI_MODEL)
+            model = genai.GenerativeModel(model_name="gemini-2.5-flash")
             prompt = f"""
             Proporciona SOLO un número que represente el precio de mercado promedio en MXN (pesos mexicanos) 
             para: "{nombre}" en unidad "{unidad}".
