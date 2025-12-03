@@ -1,28 +1,8 @@
-/.vscode/
-.DS_Store
-*.log
-
-# Python
-venv*/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.so
-*.egg-info/
-dist/
-
-# Flask / general
-catalogos/data.sqlite3
-catalogos/*.pyc
-catalogos/*.pyo
-catalogos/__pycache__/
-catalogos/.env
-
-# Node
+node_modules/
 frontend/node_modules/
+backend/.venv/
+backend/venv/
+dist/
 frontend/dist/
-frontend/.env
-
-# IDE/editor
-.idea/
+.env
+.DS_Store
