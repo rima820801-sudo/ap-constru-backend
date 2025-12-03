@@ -1413,6 +1413,74 @@ def explicar_sugerencia():
     return jsonify({"explicacion": explicacion})
 
 
+def cotizar_con_gemini(material):
+    """
+    Consulta a Gemini precios estimados de un material en 3 tiendas.
+    """
+    if not GEMINI_API_KEY:
+        return None
+
+    prompt = f"""
+    Actúa como un experto en costos de construcción en México.
+    Cotiza el siguiente material en 3 tiendas conocidas de materiales en México (ej. Home Depot, Construrama, Truper, etc).
+    
+    Material: "{material}"
+    
+    Responde EXCLUSIVAMENTE en JSON con esta estructura exacta:
+    {{
+        "tienda1": "Nombre Tienda 1", "precio1": 100.00,
+        "tienda2": "Nombre Tienda 2", "precio2": 105.50,
+        "tienda3": "Nombre Tienda 3", "precio3": 98.00
+    }}
+    
+    Reglas:
+    - Precios en Pesos Mexicanos (MXN).
+    - Solo devuelve el JSON, nada de texto extra.
+    """
+
+    try:
+        model = genai.GenerativeModel(model_name=GEMINI_MODEL)
+        respuesta = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.2},
+        )
+        
+        contenido = getattr(respuesta, "text", "") or ""
+        bloque = extraer_json_de_texto(contenido)
+        if not bloque:
+            return None
+            
+        return json.loads(bloque)
+    except Exception as e:
+        current_app.logger.error(f"Error Gemini Cotizar: {e}")
+        return None
+
+
+@app.route("/api/ia/cotizar", methods=["POST"])
+def cotizar_material():
+    try:
+        data = request.get_json()
+        material = data.get("material")
+        if not material:
+            return jsonify({"error": "Se requiere el nombre del material"}), 400
+
+        resultado = cotizar_con_gemini(material)
+        
+        if not resultado:
+            # Fallback si falla la IA o no hay API Key
+            return jsonify({
+                "tienda1": "Generico A", "precio1": 0.0,
+                "tienda2": "Generico B", "precio2": 0.0,
+                "tienda3": "Generico C", "precio3": 0.0
+            }), 200
+
+        return jsonify(resultado), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error en /api/ia/cotizar: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 def normalizar_tipo_insumo(tipo: Optional[str]) -> str:
     if not tipo:
         return ""
