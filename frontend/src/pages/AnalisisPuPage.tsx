@@ -9,6 +9,7 @@ import {
     mapearSugerenciasDesdeIA,
 } from "../components/conceptos/ConceptoMatrizEditor";
 import { NotaVentaModalFixed as NotaVentaModal, type NotaVenta } from "../components/conceptos/NotaVentaModalFixed";
+import { Navbar } from "../components/layout/Navbar";
 
 type Concepto = {
     id: number;
@@ -298,75 +299,82 @@ export function AnalisisPuPage() {
     const hayConceptoGuardado = Boolean(conceptoForm.id);
 
     return (
-        <section className="page analisis-pu">
-            <header className="analisis-hero">
-                <div>
-                    <p className="analisis-lead">Precios Unitarios</p>
-                    <h1>Analisis de Precio Unitario</h1>
-                </div>
-            </header>
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
+            <Navbar />
 
-            <div className="analisis-layout">
-                <div className="analisis-column analisis-column--left">
-                    <section className="card detalle-card">
-                        <header className="card__header">
-                            <p className="card__eyebrow">Detalle del concepto</p>
-                            <span className="card__status">{hayConceptoGuardado ? "Guardado" : "Borrador"}</span>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Columna Izquierda */}
+                <div className="lg:col-span-1 space-y-6">
+                    {/* Tarjeta Detalle */}
+                    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <header className="flex justify-between items-center mb-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase">Detalle del concepto</p>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${hayConceptoGuardado ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                                {hayConceptoGuardado ? "Guardado" : "Borrador"}
+                            </span>
                         </header>
-                        <div className="analisis-form-grid">
-                            <label>
-                                Nombre
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                 <input
+                                    className="w-full border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.clave}
                                     onChange={(event) => handleChange("clave", event.target.value)}
                                     placeholder="Ej. Barda de tabique de 5 metros"
                                 />
-                            </label>
-                            <label className="descripcion-field">
-                                Descripcion
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
+                                    className="w-full border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.descripcion}
                                     onChange={(event) => handleChange("descripcion", event.target.value)}
                                     rows={4}
                                     placeholder="Describe la actividad y especificaciones"
                                 />
-                            </label>
+                            </div>
                         </div>
-                        <p className="descripcion-tip">
-                            Mientras mas completa sea la descripcion, mejor sera la sugerencia de la IA.
+                        <p className="text-xs text-gray-400 mt-2 italic">
+                            Mientras más completa sea la descripción, mejor será la sugerencia de la IA.
                         </p>
                     </section>
 
-                    <section className="card resumen-card">
-                        <header className="card__header">
-                            <p className="card__eyebrow">Resumen financiero</p>
+                    {/* Tarjeta Resumen */}
+                    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <header className="mb-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase">Resumen financiero</p>
                         </header>
-                        <div className="resumen-costos resumen-costos--panel">
+                        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                             <div>
-                                <span>Costo directo</span>
-                                <strong>${resumen.costo_directo.toFixed(2)}</strong>
+                                <span className="block text-xs text-gray-500 mb-1">Costo directo</span>
+                                <strong className="text-lg text-gray-900">${resumen.costo_directo.toFixed(2)}</strong>
                             </div>
                             <div>
-                                <span>Precio unitario</span>
-                                <strong>${resumen.precio_unitario.toFixed(4)}</strong>
+                                <span className="block text-xs text-gray-500 mb-1">Precio unitario</span>
+                                <strong className="text-lg text-indigo-600">${resumen.precio_unitario.toFixed(4)}</strong>
                             </div>
                         </div>
-                        <p className="resumen-ayuda">Activa los sobrecostos que deseas incluir en el calculo.</p>
-                        <div className="sobrecosto-grid">
+                        <p className="text-xs text-gray-500 mb-3">Activa los sobrecostos que deseas incluir:</p>
+                        <div className="space-y-3">
                             {(Object.keys(SOBRECOSTO_FIELDS) as FactorToggleKey[]).map((key) => {
                                 const config = sobrecostos[key];
                                 const meta = SOBRECOSTO_FIELDS[key];
                                 return (
-                                    <div key={key} className="sobrecosto-item">
-                                        <label className="sobrecosto-item__toggle">
+                                    <div key={key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                                        <div className="flex items-center gap-2">
                                             <input
                                                 type="checkbox"
                                                 checked={config.activo}
                                                 onChange={(event) => handleSobrecostoToggle(key, event.target.checked)}
+                                                className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                                                aria-label={`Activar ${meta.label}`}
                                             />
-                                            <span>{meta.label}</span>
-                                        </label>
-                                        <div className="sobrecosto-item__input">
+                                            <div>
+                                                <span className="block text-sm font-medium text-gray-700">{meta.label}</span>
+                                                <span className="block text-[10px] text-gray-400">{meta.description}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
                                             <input
                                                 type="number"
                                                 min={0}
@@ -374,10 +382,11 @@ export function AnalisisPuPage() {
                                                 value={config.porcentaje}
                                                 onChange={(event) => handleSobrecostoPorcentaje(key, event.target.value)}
                                                 disabled={!config.activo}
+                                                className="w-16 text-right text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-400"
+                                                aria-label={`Porcentaje de ${meta.label}`}
                                             />
-                                            <span>%</span>
+                                            <span className="text-xs text-gray-500">%</span>
                                         </div>
-                                        <small>{meta.description}</small>
                                     </div>
                                 );
                             })}
@@ -385,33 +394,56 @@ export function AnalisisPuPage() {
                     </section>
                 </div>
 
-                <div className="analisis-column analisis-column--right">
-                    <section className="card acciones-card">
-                        <header className="card__header">
-                            <p className="card__eyebrow">Acciones</p>
+                {/* Columna Derecha */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Tarjeta Acciones */}
+                    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <header className="mb-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase">Acciones</p>
                         </header>
-                        <div className="analisis-actions-grid">
-                            <button type="button" onClick={handleSugerirAPUConIA} disabled={!conceptoForm.descripcion}>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={handleSugerirAPUConIA}
+                                disabled={!conceptoForm.descripcion}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                                 Sugerencia Gemini
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDetallesSugerencia}
                                 disabled={!conceptoForm.descripcion || cargandoExplicacion}
+                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
                                 {cargandoExplicacion ? "Obteniendo..." : "Detalles de Sugerencia"}
                             </button>
-                            <button type="button" onClick={handleGuardarConcepto}>
-                                Guardar Concepto
+                            <div className="w-px h-8 bg-gray-300 mx-2 self-center hidden sm:block"></div>
+                            <button
+                                type="button"
+                                onClick={handleGuardarConcepto}
+                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                                Guardar
                             </button>
-                            <button type="button" disabled={!conceptoForm.id} onClick={handleGuardarMatriz}>
-                                Guardar Matriz
+                            <button
+                                type="button"
+                                disabled={!conceptoForm.id}
+                                onClick={handleEliminarConcepto}
+                                className="bg-white border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                                Eliminar
                             </button>
-                            <button type="button" disabled={!conceptoForm.id} onClick={handleEliminarConcepto}>
-                                Eliminar Concepto
-                            </button>
-                            <button type="button" disabled={!hayConceptoGuardado} onClick={handleGenerarNotaVenta}>
-                                Generar Nota de Venta
+                            <button
+                                type="button"
+                                disabled={!hayConceptoGuardado}
+                                onClick={handleGenerarNotaVenta}
+                                className="ml-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2" /><path d="M14 2v6h6" /><path d="M3 15h6" /><path d="M3 18h6" /><path d="M3 12h6" /></svg>
+                                Nota de Venta
                             </button>
                         </div>
                     </section>
@@ -432,6 +464,6 @@ export function AnalisisPuPage() {
             </div>
 
             <NotaVentaModal nota={notaVentaData} onClose={() => setNotaVentaData(null)} />
-        </section>
+        </div>
     );
 }

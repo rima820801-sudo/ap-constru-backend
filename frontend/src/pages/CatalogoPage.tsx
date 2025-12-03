@@ -4,6 +4,7 @@ import {
     FolderOpen, FileText, ArrowUpRight, BoxSelect, X, Eye, Tag, CheckCircle2,
     Folder, ChevronLeft, Calculator, Receipt, ScrollText
 } from 'lucide-react';
+import { Navbar } from '../components/layout/Navbar';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -109,7 +110,7 @@ export default function CatalogoPage() {
     const renderForm = () => {
         if (activeTab === 'materiales') return (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="col-span-2"><label className="text-xs font-semibold text-gray-500 uppercase">Nombre</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
+                <div className="col-span-2"><label className="text-xs font-semibold text-gray-500 uppercase">Nombre</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Nombre del material" /></div>
 
                 {/* CAMBIO: Input con Datalist */}
                 <div>
@@ -121,22 +122,23 @@ export default function CatalogoPage() {
                         onChange={e => handleInputChange('unidad', e.target.value)}
                         className="w-full border-gray-300 rounded text-sm"
                         placeholder="Ej. pza"
+                        aria-label="Unidad del material"
                     />
                 </div>
 
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Precio</label><input type="number" value={newItem.precio} onChange={e => handleInputChange('precio', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Precio</label><input type="number" value={newItem.precio} onChange={e => handleInputChange('precio', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Precio del material" /></div>
             </div>
         );
         if (activeTab === 'mano_obra') return (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div className="col-span-2"><label className="text-xs font-semibold text-gray-500 uppercase">Puesto</label><input type="text" value={newItem.puesto} onChange={e => handleInputChange('puesto', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Salario</label><input type="number" value={newItem.salario} onChange={e => handleInputChange('salario', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Antigüedad (años)</label><input type="number" value={newItem.antiguedad} onChange={e => handleInputChange('antiguedad', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
+                <div className="col-span-2"><label className="text-xs font-semibold text-gray-500 uppercase">Puesto</label><input type="text" value={newItem.puesto} onChange={e => handleInputChange('puesto', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Puesto de trabajo" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Salario</label><input type="number" value={newItem.salario} onChange={e => handleInputChange('salario', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Salario diario" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Antigüedad (años)</label><input type="number" value={newItem.antiguedad} onChange={e => handleInputChange('antiguedad', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Antigüedad en años" /></div>
             </div>
         );
         if (activeTab === 'equipos') return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div className="col-span-1"><label className="text-xs font-semibold text-gray-500 uppercase">Nombre Equipo</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
+                <div className="col-span-1"><label className="text-xs font-semibold text-gray-500 uppercase">Nombre Equipo</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Nombre del equipo" /></div>
 
                 {/* CAMBIO: Input con Datalist */}
                 <div>
@@ -147,18 +149,19 @@ export default function CatalogoPage() {
                         value={newItem.unidad}
                         onChange={e => handleInputChange('unidad', e.target.value)}
                         className="w-full border-gray-300 rounded text-sm"
+                        aria-label="Unidad del equipo"
                     />
                 </div>
 
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Costo Hora</label><input type="number" value={newItem.costo_hora} onChange={e => handleInputChange('costo_hora', e.target.value)} className="w-full border-gray-300 rounded text-sm" placeholder="$0.00" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Costo Hora</label><input type="number" value={newItem.costo_hora} onChange={e => handleInputChange('costo_hora', e.target.value)} className="w-full border-gray-300 rounded text-sm" placeholder="$0.00" aria-label="Costo por hora" /></div>
             </div>
         );
         if (activeTab === 'maquinaria') return (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Nombre</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Costo Adquisición</label><input type="number" value={newItem.costo_adq} onChange={e => handleInputChange('costo_adq', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Vida Útil (hrs)</label><input type="number" value={newItem.vida_util} onChange={e => handleInputChange('vida_util', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
-                <div><label className="text-xs font-semibold text-gray-500 uppercase">Tasa (%)</label><input type="number" value={newItem.tasa} onChange={e => handleInputChange('tasa', e.target.value)} className="w-full border-gray-300 rounded text-sm" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Nombre</label><input type="text" value={newItem.nombre} onChange={e => handleInputChange('nombre', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Nombre de la maquinaria" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Costo Adquisición</label><input type="number" value={newItem.costo_adq} onChange={e => handleInputChange('costo_adq', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Costo de adquisición" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Vida Útil (hrs)</label><input type="number" value={newItem.vida_util} onChange={e => handleInputChange('vida_util', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Vida útil en horas" /></div>
+                <div><label className="text-xs font-semibold text-gray-500 uppercase">Tasa (%)</label><input type="number" value={newItem.tasa} onChange={e => handleInputChange('tasa', e.target.value)} className="w-full border-gray-300 rounded text-sm" aria-label="Tasa de interés anual" /></div>
             </div>
         );
         return null;
@@ -173,24 +176,10 @@ export default function CatalogoPage() {
             </datalist>
 
             {/* Navbar Superior */}
-            <nav className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm h-16 flex-shrink-0 z-20">
-                <div className="flex items-center gap-3">
-                    <div className="bg-indigo-600 text-white p-1.5 rounded-lg"><BoxSelect className="w-5 h-5" /></div>
-                    <h1 className="text-lg font-bold text-slate-800 tracking-tight">APU <span className="font-normal text-slate-400">| Builder IA</span></h1>
-                    <div className="ml-8 flex space-x-1 text-sm font-medium">
-                        <button onClick={() => window.location.href = '/analisis'} className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">Análisis APU</button>
-                        <button className="text-indigo-600 bg-indigo-50 px-3 py-2 rounded-md cursor-default">Catálogo</button>
-                        <button onClick={() => window.location.href = '/comparador'} className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">Comparador</button>
-                    </div>
-                </div>
-                <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
-                    <input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-64 focus:ring-2 focus:ring-indigo-500 bg-gray-50 focus:bg-white transition-colors" />
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Contenido Principal */}
-            <div className="max-w-7xl mx-auto px-8 py-6 flex-1 w-full flex flex-col">
+            <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 flex-1 w-full flex flex-col">
 
                 {/* Tabs */}
                 <div className="flex space-x-1 mb-6 border-b border-gray-200 overflow-x-auto shrink-0">
@@ -223,7 +212,7 @@ export default function CatalogoPage() {
                         ) : (
                             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in slide-in-from-right-4">
                                 <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-4 bg-gray-50">
-                                    <button onClick={() => setCurrentFolder(null)} className="p-2 hover:bg-white rounded-full border border-transparent hover:border-gray-300 transition-all text-gray-500"><ChevronLeft className="w-5 h-5" /></button>
+                                    <button onClick={() => setCurrentFolder(null)} className="p-2 hover:bg-white rounded-full border border-transparent hover:border-gray-300 transition-all text-gray-500" aria-label="Volver a carpetas"><ChevronLeft className="w-5 h-5" /></button>
                                     <div><h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Folder className="w-5 h-5" /> {currentFolder}s</h3></div>
                                 </div>
                                 <table className="w-full text-sm text-left">
@@ -257,38 +246,40 @@ export default function CatalogoPage() {
 
                         {/* Tablas de Insumos */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                            {activeTab === 'materiales' && (
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Precio</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {materiales.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 text-gray-500">{m.unidad}</td><td className="px-6 py-3 font-bold">${m.precio}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMateriales)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></td></tr>))}
-                                    </tbody>
-                                </table>
-                            )}
-                            {activeTab === 'mano_obra' && (
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Puesto</th><th className="px-6 py-3">Salario</th><th className="px-6 py-3">Antigüedad</th><th className="px-6 py-3">Rendimiento</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {manoObra.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.puesto}</td><td className="px-6 py-3 font-bold">${m.salario}</td><td className="px-6 py-3 text-gray-500">{m.antiguedad} años</td><td className="px-6 py-3 text-gray-500">{m.rendimiento}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setManoObra)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></td></tr>))}
-                                    </tbody>
-                                </table>
-                            )}
-                            {activeTab === 'equipos' && (
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Costo Hora</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {equipos.map(e => (<tr key={e.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{e.nombre}</td><td className="px-6 py-3 text-gray-500">{e.unidad}</td><td className="px-6 py-3 font-bold">${e.costo_hora}</td><td className="px-6 py-3 text-gray-400 text-xs">{e.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(e.id, setEquipos)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></td></tr>))}
-                                    </tbody>
-                                </table>
-                            )}
-                            {activeTab === 'maquinaria' && (
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Costo Adq.</th><th className="px-6 py-3">Vida Útil</th><th className="px-6 py-3">Tasa</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {maquinaria.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 font-bold">${m.costo_adq.toLocaleString()}</td><td className="px-6 py-3 text-gray-500">{m.vida_util} hrs</td><td className="px-6 py-3 text-gray-500">{m.tasa}%</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMaquinaria)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button></td></tr>))}
-                                    </tbody>
-                                </table>
-                            )}
+                            <div className="overflow-x-auto">
+                                {activeTab === 'materiales' && (
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Precio</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {materiales.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 text-gray-500">{m.unidad}</td><td className="px-6 py-3 font-bold">${m.precio}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMateriales)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar material"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                        </tbody>
+                                    </table>
+                                )}
+                                {activeTab === 'mano_obra' && (
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Puesto</th><th className="px-6 py-3">Salario</th><th className="px-6 py-3">Antigüedad</th><th className="px-6 py-3">Rendimiento</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {manoObra.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.puesto}</td><td className="px-6 py-3 font-bold">${m.salario}</td><td className="px-6 py-3 text-gray-500">{m.antiguedad} años</td><td className="px-6 py-3 text-gray-500">{m.rendimiento}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setManoObra)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar mano de obra"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                        </tbody>
+                                    </table>
+                                )}
+                                {activeTab === 'equipos' && (
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Costo Hora</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {equipos.map(e => (<tr key={e.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{e.nombre}</td><td className="px-6 py-3 text-gray-500">{e.unidad}</td><td className="px-6 py-3 font-bold">${e.costo_hora}</td><td className="px-6 py-3 text-gray-400 text-xs">{e.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(e.id, setEquipos)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar equipo"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                        </tbody>
+                                    </table>
+                                )}
+                                {activeTab === 'maquinaria' && (
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Costo Adq.</th><th className="px-6 py-3">Vida Útil</th><th className="px-6 py-3">Tasa</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {maquinaria.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 font-bold">${m.costo_adq.toLocaleString()}</td><td className="px-6 py-3 text-gray-500">{m.vida_util} hrs</td><td className="px-6 py-3 text-gray-500">{m.tasa}%</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMaquinaria)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar maquinaria"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}
@@ -300,7 +291,7 @@ export default function CatalogoPage() {
                     <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
                         <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
                             <div><h2 className="text-lg font-bold text-gray-800 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-600" /> {selectedProject.nombre}</h2></div>
-                            <button onClick={() => setSelectedProject(null)}><X className="w-5 h-5 text-gray-500" /></button>
+                            <button onClick={() => setSelectedProject(null)} aria-label="Cerrar detalle"><X className="w-5 h-5 text-gray-500" /></button>
                         </div>
                         <div className="p-6 overflow-y-auto">
                             <div className="space-y-4">

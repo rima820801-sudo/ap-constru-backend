@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { UserContext } from '../context/user';
 import { API_BASE_URL } from '../api/client';
+import { Navbar } from '../components/layout/Navbar';
 
 // --- Tipos ---
 type Cotizacion = {
@@ -194,33 +195,9 @@ export default function ComparadorPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+            <Navbar />
 
-            {/* Navbar */}
-            <nav className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm h-16 flex-shrink-0 z-20">
-                <div className="flex items-center gap-3">
-                    <div className="bg-indigo-600 text-white p-1.5 rounded-lg"><BoxSelect className="w-5 h-5" /></div>
-                    <h1 className="text-lg font-bold text-slate-800 tracking-tight">APU <span className="font-normal text-slate-400">| Builder IA</span></h1>
-                    <div className="ml-8 flex space-x-1 text-sm font-medium">
-                        <button onClick={() => window.location.href = '/analisis'} className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">Análisis APU</button>
-                        <button onClick={() => window.location.href = '/catalogo'} className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">Catálogo</button>
-                        <button className="text-indigo-600 bg-indigo-50 px-3 py-2 rounded-md cursor-default">Comparador</button>
-                    </div>
-                </div>
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                    <button onClick={() => setView('active')} className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>Cotizador</button>
-                    <button onClick={() => setView('history')} className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>Guardados ({historial.length})</button>
-                </div>
-                {currentUser?.is_admin && (
-                    <button
-                        onClick={() => (window.location.href = '/admin')}
-                        className="ml-4 bg-gray-900 hover:bg-black text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-all"
-                    >
-                        Dashboard Admin
-                    </button>
-                )}
-            </nav>
-
-            <div className="max-w-6xl mx-auto px-6 py-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
                 {/* VISTA COTIZADOR */}
                 {view === 'active' && (
@@ -256,52 +233,54 @@ export default function ComparadorPage() {
 
                         {tabla.length > 0 ? (
                             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs">
-                                        <tr>
-                                            <th className="px-6 py-4 w-1/4">Material / Insumo</th>
-                                            <th className="px-4 py-4 w-1/4 bg-blue-50/50 text-blue-600 border-l">Opción A</th>
-                                            <th className="px-4 py-4 w-1/4 border-l">Opción B</th>
-                                            <th className="px-4 py-4 w-1/4 border-l">Opción C</th>
-                                            <th className="px-2 py-4 w-10 text-center"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {tabla.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50 group">
-                                                <td className="px-6 py-3 align-top relative">
-                                                    {/* Loading Overlay para el item */}
-                                                    {item.isLoading && (
-                                                        <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center gap-2 text-indigo-600 text-xs font-medium">
-                                                            <Loader2 className="w-4 h-4 animate-spin" /> Buscando precios...
-                                                        </div>
-                                                    )}
-
-                                                    <input type="text" value={item.nombre} onChange={(e) => updateItem(item.id, 'nombre', e.target.value)} className="w-full font-medium text-gray-900 bg-transparent border-none p-0 focus:ring-0 mb-1" />
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-400">{item.unidad}</span>
-                                                        <button
-                                                            onClick={() => handleReCotizar(item.id, item.nombre)}
-                                                            className="text-[10px] text-indigo-400 hover:text-indigo-600 hover:underline flex items-center gap-1"
-                                                        >
-                                                            <Sparkles className="w-3 h-3" /> Recotizar
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                {/* Opciones de Precios */}
-                                                {['1', '2', '3'].map((n) => (
-                                                    <td key={n} className={`px-4 py-3 border-l border-gray-100 ${n === '1' ? 'bg-blue-50/30' : ''}`}>
-                                                        <input type="text" placeholder={`Proveedor ${n}`} value={(item.cotizaciones as any)[`tienda${n}`]} onChange={(e) => updateItem(item.id, `tienda${n}`, e.target.value, true)} className="w-full text-xs mb-1 bg-white border border-gray-200 rounded px-2 py-1" />
-                                                        <div className="relative"><span className="absolute left-2 top-1 text-gray-400 text-xs">$</span><input type="number" placeholder="0.00" value={(item.cotizaciones as any)[`precio${n}`] || ''} onChange={(e) => updateItem(item.id, `precio${n}`, parseFloat(e.target.value), true)} className="w-full text-sm font-bold text-gray-800 pl-5 bg-white border border-gray-200 rounded px-2 py-1" /></div>
-                                                    </td>
-                                                ))}
-                                                <td className="px-2 py-3 text-center align-middle">
-                                                    <button onClick={() => setTabla(t => t.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
-                                                </td>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left min-w-[600px]">
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs">
+                                            <tr>
+                                                <th className="px-6 py-4 w-1/4">Material / Insumo</th>
+                                                <th className="px-4 py-4 w-1/4 bg-blue-50/50 text-blue-600 border-l">Opción A</th>
+                                                <th className="px-4 py-4 w-1/4 border-l">Opción B</th>
+                                                <th className="px-4 py-4 w-1/4 border-l">Opción C</th>
+                                                <th className="px-2 py-4 w-10 text-center"></th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {tabla.map((item) => (
+                                                <tr key={item.id} className="hover:bg-gray-50 group">
+                                                    <td className="px-6 py-3 align-top relative">
+                                                        {/* Loading Overlay para el item */}
+                                                        {item.isLoading && (
+                                                            <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center gap-2 text-indigo-600 text-xs font-medium">
+                                                                <Loader2 className="w-4 h-4 animate-spin" /> Buscando precios...
+                                                            </div>
+                                                        )}
+
+                                                        <input type="text" value={item.nombre} onChange={(e) => updateItem(item.id, 'nombre', e.target.value)} className="w-full font-medium text-gray-900 bg-transparent border-none p-0 focus:ring-0 mb-1" aria-label="Nombre del material" />
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                            <button
+                                                                onClick={() => handleReCotizar(item.id, item.nombre)}
+                                                                className="text-[10px] text-indigo-400 hover:text-indigo-600 hover:underline flex items-center gap-1"
+                                                            >
+                                                                <Sparkles className="w-3 h-3" /> Recotizar
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                    {/* Opciones de Precios */}
+                                                    {['1', '2', '3'].map((n) => (
+                                                        <td key={n} className={`px-4 py-3 border-l border-gray-100 ${n === '1' ? 'bg-blue-50/30' : ''}`}>
+                                                            <input type="text" placeholder={`Proveedor ${n}`} value={(item.cotizaciones as any)[`tienda${n}`]} onChange={(e) => updateItem(item.id, `tienda${n}`, e.target.value, true)} className="w-full text-xs mb-1 bg-white border border-gray-200 rounded px-2 py-1" />
+                                                            <div className="relative"><span className="absolute left-2 top-1 text-gray-400 text-xs">$</span><input type="number" placeholder="0.00" value={(item.cotizaciones as any)[`precio${n}`] || ''} onChange={(e) => updateItem(item.id, `precio${n}`, parseFloat(e.target.value), true)} className="w-full text-sm font-bold text-gray-800 pl-5 bg-white border border-gray-200 rounded px-2 py-1" /></div>
+                                                        </td>
+                                                    ))}
+                                                    <td className="px-2 py-3 text-center align-middle">
+                                                        <button onClick={() => setTabla(t => t.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500 p-1" title="Eliminar fila" aria-label="Eliminar fila"><Trash2 className="w-4 h-4" /></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         ) : (
                             <div className="text-center py-20 border-2 border-dashed border-gray-200 rounded-xl"><Package className="w-12 h-12 mx-auto mb-3 text-gray-300" /><p className="text-gray-500">Escribe un material arriba para cotizar automáticamente.</p></div>
@@ -316,7 +295,7 @@ export default function ComparadorPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {historial.map(comp => (
                                 <div key={comp.id} onClick={() => handleCargarHistorial(comp)} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all group relative">
-                                    <div className="flex justify-between items-start"><div><h3 className="font-bold text-gray-800 group-hover:text-indigo-700">{comp.nombre}</h3><p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><History className="w-3 h-3" /> {comp.fecha}</p></div><button onClick={(e) => handleBorrarHistorial(comp.id, e)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"><Trash2 className="w-4 h-4" /></button></div>
+                                    <div className="flex justify-between items-start"><div><h3 className="font-bold text-gray-800 group-hover:text-indigo-700">{comp.nombre}</h3><p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><History className="w-3 h-3" /> {comp.fecha}</p></div><button onClick={(e) => handleBorrarHistorial(comp.id, e)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Borrar historial" aria-label="Borrar historial"><Trash2 className="w-4 h-4" /></button></div>
                                     <div className="mt-4 flex items-center gap-2"><span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded border border-indigo-100">{comp.items.length} items analizados</span><span className="text-xs text-gray-400 flex items-center gap-1 ml-auto group-hover:text-indigo-500">Cargar <ArrowRight className="w-3 h-3" /></span></div>
                                 </div>
                             ))}
@@ -330,7 +309,7 @@ export default function ComparadorPage() {
             {showImportModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white w-full max-w-md rounded-xl shadow-xl p-6">
-                        <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-gray-800">Selecciona un Proyecto</h3><button onClick={() => setShowImportModal(false)}><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button></div>
+                        <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-gray-800">Selecciona un Proyecto</h3><button onClick={() => setShowImportModal(false)} title="Cerrar modal" aria-label="Cerrar modal"><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button></div>
                         <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                             {MOCK_PROYECTOS.map(proj => (<button key={proj.id} onClick={() => handleImportarProyecto(proj)} className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"><div className="font-bold text-gray-800 group-hover:text-indigo-700">{proj.nombre}</div><div className="text-xs text-gray-500 mt-1">{proj.insumos.length} insumos registrados</div></button>))}
                         </div>

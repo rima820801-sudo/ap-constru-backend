@@ -55,7 +55,7 @@ CORS(app, resources={r"/api/*": {
 }})
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
 # Días para considerar un precio como obsoleto (configurable)
 PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
@@ -1418,6 +1418,7 @@ def cotizar_con_gemini(material):
     Consulta a Gemini precios estimados de un material en 3 tiendas.
     """
     if not GEMINI_API_KEY:
+        current_app.logger.error("GEMINI_API_KEY no esta configurada en el entorno.")
         return None
 
     prompt = f"""
@@ -1448,11 +1449,12 @@ def cotizar_con_gemini(material):
         contenido = getattr(respuesta, "text", "") or ""
         bloque = extraer_json_de_texto(contenido)
         if not bloque:
+            current_app.logger.error(f"Gemini no devolvio JSON valido. Respuesta: {contenido[:100]}...")
             return None
             
         return json.loads(bloque)
     except Exception as e:
-        current_app.logger.error(f"Error Gemini Cotizar: {e}")
+        current_app.logger.error(f"Error Gemini Cotizar ({GEMINI_MODEL}): {e}")
         return None
 
 
