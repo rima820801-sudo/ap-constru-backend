@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+  input, textarea, select {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  button {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  /* Primary Button Style by default for unstyled buttons */
+  button:not([class*="bg-"]) {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2;
+  }
+}
+
+@layer components {
+  .app-content {
+    @apply container mx-auto py-8 px-4 md:px-6;
+  }
+
+  .card {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm;
+  }
+  
+  .card__header {
+    @apply flex flex-row items-center justify-between space-y-0 p-6 pb-2;
+  }
+  
+  .card__eyebrow {
+    @apply text-sm font-medium leading-none tracking-tight text-muted-foreground uppercase;
+  }
+
+  .analisis-hero {
+    @apply flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8;
+  }
+
+  .analisis-lead {
+    @apply text-sm text-muted-foreground font-medium uppercase tracking-wider mb-1;
+  }
+
+  .analisis-layout {
+    @apply grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start;
+  }
+
+  .analisis-column {
+    @apply flex flex-col gap-6;
+  }
+
+  .analisis-form-grid {
+    @apply grid gap-4 p-6 pt-0;
+  }
+
+  .analisis-actions-grid {
+    @apply grid gap-3 p-6 pt-0 grid-cols-1 sm:grid-cols-2;
+  }
+
+  .resumen-costos--panel {
+    @apply flex justify-between items-center p-4 bg-muted/50 rounded-lg border;
+  }
+
+  .sobrecosto-grid {
+    @apply grid gap-3 p-6 pt-0 grid-cols-1 sm:grid-cols-2;
+  }
+
+  .sobrecosto-item {
+    @apply flex flex-col gap-2 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors;
+  }
+
+  .sobrecosto-item__toggle {
+    @apply flex items-center gap-2 font-medium text-sm cursor-pointer;
+  }
+
+  .sobrecosto-item__input input {
+    @apply h-8 w-20;
+  }
+
+  /* Table Styles */
+  .catalogo-table, .matriz-table {
+    @apply w-full caption-bottom text-sm;
+  }
+  
+  .catalogo-table th, .matriz-table th {
+    @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 border-b;
+  }
+  
+  .catalogo-table td, .matriz-table td {
+    @apply p-4 align-middle [&:has([role=checkbox])]:pr-0 border-b;
+  }
+
+  .catalogo-table tr:hover, .matriz-table tr:hover {
+    @apply bg-muted/50;
+  }
+}

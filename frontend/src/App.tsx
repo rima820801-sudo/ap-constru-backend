@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import { API_BASE_URL } from './api/client';
 import { UserInfo } from './types/user';
 import { UserContext } from './context/user';
+import { AppHeader } from './components/layout/AppHeader';
 
 function App() {
     // MODO ABIERTO: Usuario dummy por defecto
@@ -65,6 +66,7 @@ function App() {
 
     return (
         <UserContext.Provider value={user}>
+            {isAuthenticated && <AppHeader />}
             <Routes>
                 <Route
                     path="/login"
