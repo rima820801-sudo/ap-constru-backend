@@ -780,8 +780,8 @@ export function ConceptoMatrizEditor({
                         <tr key={row.id ?? `tmp-${index}`}>
                             <td>
                                 <select
-                                    id={`tipo-${index}`}
-                                    name={`tipo-${index}`}
+                                    id={`matriz-tipo-${index}`}
+                                    name={`matriz-tipo-${index}`}
                                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
                                     aria-label="Tipo de insumo"
                                     value={row.tipo_insumo}
@@ -806,8 +806,8 @@ export function ConceptoMatrizEditor({
                             <td>{obtenerUnidad(row)}</td>
                             <td>
                                 <input
-                                    id={`cantidad-${index}`}
-                                    name={`cantidad-${index}`}
+                                    id={`matriz-cantidad-${index}`}
+                                    name={`matriz-cantidad-${index}`}
                                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
                                     aria-label="Cantidad"
                                     type="number"
@@ -824,8 +824,8 @@ export function ConceptoMatrizEditor({
                             <td>
                                 {row.tipo_insumo === "Material" ? (
                                     <input
-                                        id={`merma-${index}`}
-                                        name={`merma-${index}`}
+                                        id={`matriz-merma-${index}`}
+                                        name={`matriz-merma-${index}`}
                                         className="bg-white text-gray-900 border-gray-300 rounded text-sm w-16"
                                         aria-label="Porcentaje de merma"
                                         type="number"
@@ -844,8 +844,8 @@ export function ConceptoMatrizEditor({
                             <td>
                                 {row.tipo_insumo === "Material" ? (
                                     <input
-                                        id={`flete-${index}`}
-                                        name={`flete-${index}`}
+                                        id={`matriz-flete-${index}`}
+                                        name={`matriz-flete-${index}`}
                                         className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
                                         aria-label="Precio flete unitario"
                                         type="number"
@@ -865,8 +865,8 @@ export function ConceptoMatrizEditor({
                             <td>
                                 {row.tipo_insumo === "ManoObra" ? (
                                     <input
-                                        id={`rendimiento-${index}`}
-                                        name={`rendimiento-${index}`}
+                                        id={`matriz-rendimiento-${index}`}
+                                        name={`matriz-rendimiento-${index}`}
                                         className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
                                         aria-label="Rendimiento jornada"
                                         type="number"
@@ -887,10 +887,6 @@ export function ConceptoMatrizEditor({
                             <td>
                                 {obtenerCostoUnitario(row) === 0 ? (
                                     <button
-                                        type="button"
-                                        onClick={() => handleObtenerPrecio(index)}
-                                        disabled={loadingPriceForRow === index}
-                                        title="Obtener sugerencia de precio de mercado"
                                         type="button"
                                         onClick={() => handleObtenerPrecio(index)}
                                         disabled={loadingPriceForRow === index}
@@ -1086,8 +1082,8 @@ export function ConceptoMatrizEditor({
         return (
             <div className="insumo-field">
                 <select
-                    id={index >= 0 ? `insumo-select-${index}` : "draft-insumo-select"}
-                    name={index >= 0 ? `insumo-select-${index}` : "draft-insumo-select"}
+                    id={index >= 0 ? `matriz-insumo-select-${index}` : "draft-insumo-select"}
+                    name={index >= 0 ? `matriz-insumo-select-${index}` : "draft-insumo-select"}
                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
                     aria-label="Seleccionar insumo"
                     value={row.id_insumo}

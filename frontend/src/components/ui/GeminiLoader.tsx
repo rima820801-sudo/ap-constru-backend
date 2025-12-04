@@ -27,9 +27,7 @@ export function GeminiLoader() {
                     {["G", "E", "M", "I", "N", "I"].map((char, index) => (
                         <span
                             key={index}
-                            className="inline-block animate-bounce"
-                            // @ts-ignore
-                            style={{ animationDelay: `${index * 0.1}s` }}
+                            className={`inline-block animate-bounce delay-${index}`}
                         >
                             {char}
                         </span>
@@ -50,6 +48,12 @@ export function GeminiLoader() {
                 .animate-spin-reverse {
                     animation: spin-reverse 3s linear infinite;
                 }
+                .delay-0 { animation-delay: 0s; }
+                .delay-1 { animation-delay: 0.1s; }
+                .delay-2 { animation-delay: 0.2s; }
+                .delay-3 { animation-delay: 0.3s; }
+                .delay-4 { animation-delay: 0.4s; }
+                .delay-5 { animation-delay: 0.5s; }
             `}</style>
         </div>
     );
