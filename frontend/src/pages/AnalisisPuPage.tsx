@@ -339,8 +339,10 @@ export function AnalisisPuPage() {
                         </header>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <label htmlFor="clave" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                 <input
+                                    id="clave"
+                                    name="clave"
                                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.clave}
                                     onChange={(event) => handleChange("clave", event.target.value)}
@@ -348,8 +350,10 @@ export function AnalisisPuPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
+                                    id="descripcion"
+                                    name="descripcion"
                                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.descripcion}
                                     onChange={(event) => handleChange("descripcion", event.target.value)}
@@ -388,6 +392,8 @@ export function AnalisisPuPage() {
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="checkbox"
+                                                id={`toggle-${key}`}
+                                                name={`toggle-${key}`}
                                                 checked={config.activo}
                                                 onChange={(event) => handleSobrecostoToggle(key, event.target.checked)}
                                                 className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
@@ -401,6 +407,8 @@ export function AnalisisPuPage() {
                                         <div className="flex items-center gap-1">
                                             <input
                                                 type="number"
+                                                id={`porcentaje-${key}`}
+                                                name={`porcentaje-${key}`}
                                                 min={0}
                                                 step={0.1}
                                                 value={config.porcentaje}
