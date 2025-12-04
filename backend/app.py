@@ -1164,12 +1164,13 @@ Genera un Analisis de Precio Unitario (APU) para el siguiente concepto de constr
 Descripcion del concepto: "{texto}"
 Unidad del concepto: "{unidad}"
 
-Instrucciones CRITICAS para cantidades:
+Instrucciones CRITICAS para cantidades y volumetria:
 1. Analiza las dimensiones en la descripcion (largo, alto, ancho) para calcular la volumetria total.
+   - SIEMPRE calcula "metros_cuadrados_construccion" si la descripcion tiene dimensiones, INDEPENDIENTEMENTE de la unidad solicitada.
+   - Ejemplo: "Barda 20m x 2m", metros_cuadrados_construccion = 40.0.
 2. Si la 'Unidad del concepto' es "m2", "m3", "ml", "kg", "ton", calcula la cantidad de insumos necesaria para UNA sola unidad de esa medida (Unitario).
-   - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas, NO el total del muro.
-3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, y la descripcion implica un elemento completo (ej. "Barda de 20m"), calcula los materiales TOTALES para todo el elemento.
-   - Ejemplo: Para "Barda de 20m x 2m" unidad "Lote", la cantidad de block es 20*2*12.5 = 500 piezas.
+   - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas.
+3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, calcula los materiales TOTALES.
 4. Si la descripcion tiene dimensiones especificas (ej. 22m x 16m), USALAS para validar si se pide un precio unitario o un costo total segun la unidad.
 
 Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:

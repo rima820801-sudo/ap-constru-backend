@@ -421,6 +421,17 @@ export function AnalisisPuPage() {
                                 />
                             </div>
                             <div>
+                                <label htmlFor={`${idPrefix}-unidad`} className="block text-sm font-medium text-gray-700 mb-1">Unidad</label>
+                                <input
+                                    id={`${idPrefix}-unidad`}
+                                    name={`${idPrefix}-unidad`}
+                                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={conceptoForm.unidad_concepto}
+                                    onChange={(event) => handleChange("unidad_concepto", event.target.value)}
+                                    placeholder="Ej. m2, Lote, Pza"
+                                />
+                            </div>
+                            <div>
                                 <label htmlFor={`${idPrefix}-descripcion`} className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
                                     id={`${idPrefix}-descripcion`}
