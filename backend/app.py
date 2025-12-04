@@ -480,18 +480,7 @@ def login():
 
 @app.route("/api/auth/me", methods=["GET"])
 def get_current_user():
-    # MODIFICACIÓN MODO ABIERTO: Siempre devolver Admin
-    # user_id = session.get("user_id")
-    # if not user_id:
-    #     return jsonify({"error": "No autenticado"}), 401
-    
-    # user = User.query.get(user_id)
-    # if not user:
-    #     return jsonify({"error": "Usuario no encontrado"}), 401
-
-    # return jsonify({"user": user.to_dict()}), 200
-    
-    # Dummy Admin User
+    # Dummy Admin User for Open Mode
     dummy_user = {
         "id": 1,
         "username": "Admin Invitado",
@@ -2288,11 +2277,8 @@ def create_default_admin():
 with app.app_context():
     init_db()
     create_default_admin()
-    # seed_all_data() # Descomentar si se desea poblar datos iniciales
 
 if __name__ == "__main__":
-    from seed_data import seed_all_data
-
     print("Servidor backend corriendo")
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)

@@ -3,9 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AnalisisPuPage } from './pages/AnalisisPuPage';
 import CatalogoPage from './pages/CatalogoPage';
 import ComparadorPage from './pages/ComparadorPage';
-import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
-import { API_BASE_URL } from './api/client';
 import { UserInfo } from './types/user';
 import { UserContext } from './context/user';
 
@@ -14,75 +12,27 @@ function App() {
     // MODO ABIERTO: Usuario dummy por defecto
     const [user, setUser] = useState<UserInfo | null>({ is_admin: true, username: "Admin Invitado", id: 1 });
     const [isAuthenticated, setIsAuthenticated] = useState(true);
-    const [isChecking, setIsChecking] = useState(false); // No verificar al inicio
     const isAdmin = Boolean(user?.is_admin);
 
     useEffect(() => {
-        // MODO ABIERTO: Desactivar verificación de sesión real
-        /*
-        let isMounted = true;
-
-        const checkAuth = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/auth/me`, {
-                    credentials: 'include',
-                });
-                if (!isMounted) return;
-                if (response.ok) {
-                    const data = await response.json();
-                    setUser(data);
-                    setIsAuthenticated(true);
-                } else {
-                    setUser(null);
-                    setIsAuthenticated(false);
-                }
-            } catch (error) {
-                console.error('Error verificando sesión:', error);
-                if (isMounted) {
-                    setUser(null);
-                    setIsAuthenticated(false);
-                }
-            } finally {
-                if (isMounted) {
-                    setIsChecking(false);
-                }
-            }
-        };
-
-        checkAuth();
-
-        return () => {
-            isMounted = false;
-        };
-        */
+        // MODO ABIERTO: Sin verificación de sesión real
     }, []);
-
-    const handleLogin = (userInfo: UserInfo) => {
-        setUser(userInfo);
-        setIsAuthenticated(true);
-    };
-
-    if (isChecking) return null;
 
     return (
         <UserContext.Provider value={user}>
 
             <Routes>
                 <Route
-                    path="/login"
-                    element={<Navigate to="/analisis" replace />}
-                />
-                <Route
                     path="/analisis"
-                    element={isAuthenticated ? <AnalisisPuPage /> : <Navigate to="/login" replace />}
+                    element={isAuthenticated ? <AnalisisPuPage /> : <Navigate to="/analisis" replace />}
                 />
                 <Route
                     path="/catalogo"
-                    element={isAuthenticated ? <CatalogoPage /> : <Navigate to="/login" replace />}
+                    element={isAuthenticated ? <CatalogoPage /> : <Navigate to="/analisis" replace />}
                 />
                 <Route
                     path="/comparador"
-                    element={isAuthenticated ? <ComparadorPage /> : <Navigate to="/login" replace />}
+                    element={isAuthenticated ? <ComparadorPage /> : <Navigate to="/analisis" replace />}
                 />
                 <Route
                     path="/admin"
