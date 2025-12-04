@@ -162,9 +162,14 @@ export function ConceptoMatrizEditor({
     useEffect(() => {
         if (!modoLocal) return;
         const newRows = externalRows ?? [];
-        // Prevent infinite loop when clearing: if both are empty, do nothing
-        if (newRows.length === 0 && rows.length === 0) return;
-        setRows(newRows);
+
+        setRows((prevRows) => {
+            // Deep compare to prevent infinite loop when parent updates with same content (new ref)
+            if (JSON.stringify(newRows) === JSON.stringify(prevRows)) {
+                return prevRows;
+            }
+            return newRows;
+        });
     }, [externalRows, modoLocal]);
 
     useEffect(() => {
