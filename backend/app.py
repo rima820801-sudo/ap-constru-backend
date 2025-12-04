@@ -399,6 +399,23 @@ class DetallePresupuesto(db.Model):
 def init_db():
     os.makedirs(BASE_DIR, exist_ok=True)
     db.create_all()
+    
+    # Migración simple para SQLite: Verificar si existe la columna created_at en users
+    try:
+        with db.engine.connect() as connection:
+            from sqlalchemy import text
+            # Verificar columnas de la tabla users
+            result = connection.execute(text("PRAGMA table_info(users)"))
+            columns = [row[1] for row in result.fetchall()]
+            
+            if "created_at" not in columns:
+                print("Migrando base de datos: Agregando columna created_at a users...")
+                connection.execute(text("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+                connection.commit()
+                print("Migración completada.")
+    except Exception as e:
+        print(f"Error en migración de DB: {e}")
+
     ConstantesFASAR.get_singleton()
 
 
