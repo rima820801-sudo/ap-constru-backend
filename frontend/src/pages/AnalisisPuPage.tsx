@@ -317,7 +317,7 @@ export function AnalisisPuPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                 <input
-                                    className="w-full border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.clave}
                                     onChange={(event) => handleChange("clave", event.target.value)}
                                     placeholder="Ej. Barda de tabique de 5 metros"
@@ -326,7 +326,7 @@ export function AnalisisPuPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
-                                    className="w-full border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.descripcion}
                                     onChange={(event) => handleChange("descripcion", event.target.value)}
                                     rows={4}
