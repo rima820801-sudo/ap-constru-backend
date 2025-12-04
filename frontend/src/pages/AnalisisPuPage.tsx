@@ -89,6 +89,7 @@ export function AnalisisPuPage() {
     const [cargandoExplicacion, setCargandoExplicacion] = useState(false);
     const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>([]);
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
+    const [matrizNotaVenta, setMatrizNotaVenta] = useState<MatrizRow[]>([]);
     const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => initialSobrecostos());
 
     useEffect(() => {
@@ -290,6 +291,7 @@ export function AnalisisPuPage() {
                 body: payload,
             });
             setNotaVentaData(notaVenta);
+            setMatrizNotaVenta(matrizParaEnviar);
         } catch (error) {
             console.error("Error al generar la nota de venta:", error);
             alert("Hubo un error al generar la nota de venta. Revisa la consola para mas detalles.");
@@ -463,7 +465,7 @@ export function AnalisisPuPage() {
                 </div>
             </div>
 
-            <NotaVentaModal nota={notaVentaData} onClose={() => setNotaVentaData(null)} />
+            <NotaVentaModal nota={notaVentaData} matriz={matrizNotaVenta} onClose={() => setNotaVentaData(null)} />
         </div>
     );
 }
