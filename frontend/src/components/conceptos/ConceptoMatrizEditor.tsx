@@ -138,7 +138,7 @@ export function ConceptoMatrizEditor({
     const [catalogModal, setCatalogModal] = useState<CatalogModalState | null>(null);
     const [loadingPriceForRow, setLoadingPriceForRow] = useState<number | null>(null);
 
-    const idPrefix = useId();
+    const idPrefix = useId().replace(/:/g, "");
 
     useEffect(() => {
         void loadCatalogos();
@@ -925,8 +925,8 @@ export function ConceptoMatrizEditor({
                     <tr>
                         <td>
                             <select
-                                id="draft-tipo"
-                                name="draft-tipo"
+                                id={`${idPrefix}-draft-tipo`}
+                                name={`${idPrefix}-draft-tipo`}
                                 className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
                                 aria-label="Tipo de insumo"
                                 value={draftRow.tipo_insumo}

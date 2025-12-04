@@ -89,7 +89,7 @@ export function AnalisisPuPage() {
     const [iaExplanation, setIaExplanation] = useState<string>("");
     const [textoDetalles, setTextoDetalles] = useState<string>("");
 
-    const idPrefix = useId();
+    const idPrefix = useId().replace(/:/g, "");
     const [cargandoExplicacion, setCargandoExplicacion] = useState(false);
     const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>([]);
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
