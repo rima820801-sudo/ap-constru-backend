@@ -90,7 +90,7 @@ export function AnalisisPuPage() {
     const [textoDetalles, setTextoDetalles] = useState<string>("");
 
     const idPrefix = useId().replace(/:/g, "");
-    const [cargandoExplicacion, setCargandoExplicacion] = useState(false);
+    const [cargandoIA, setCargandoIA] = useState(false);
     const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>([]);
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
     const [matrizNotaVenta, setMatrizNotaVenta] = useState<MatrizRow[]>([]);
@@ -223,6 +223,7 @@ export function AnalisisPuPage() {
 
     async function handleSugerirAPUConIA() {
         if (!conceptoForm.descripcion) return;
+        setCargandoIA(true);
         try {
             const data = await apiFetch<ChatApuResponse>(`/ia/chat_apu`, {
                 method: "POST",
@@ -239,6 +240,8 @@ export function AnalisisPuPage() {
             setTextoDetalles(explicacion);
         } catch (error) {
             console.error("Error al solicitar /ia/chat_apu", error);
+        } finally {
+            setCargandoIA(false);
         }
     }
 
@@ -254,7 +257,7 @@ export function AnalisisPuPage() {
             return;
         }
         if (!conceptoForm.id && !conceptoForm.descripcion) return;
-        setCargandoExplicacion(true);
+        setCargandoIA(true);
         try {
             const params = conceptoForm.id
                 ? `?concepto_id=${conceptoForm.id}`
@@ -264,7 +267,7 @@ export function AnalisisPuPage() {
         } catch (error) {
             console.error("Error al obtener /ia/explicar_sugerencia", error);
         } finally {
-            setCargandoExplicacion(false);
+            setCargandoIA(false);
         }
     }
 
@@ -472,10 +475,10 @@ export function AnalisisPuPage() {
                             <button
                                 type="button"
                                 onClick={handleDetallesSugerencia}
-                                disabled={!conceptoForm.descripcion || cargandoExplicacion}
+                                disabled={!conceptoForm.descripcion || cargandoIA}
                                 className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
-                                {cargandoExplicacion ? "Obteniendo..." : "Detalles de Sugerencia"}
+                                {cargandoIA ? "Obteniendo..." : "Detalles de Sugerencia"}
                             </button>
                             <div className="w-px h-8 bg-gray-300 mx-2 self-center hidden sm:block"></div>
                             <button
@@ -512,7 +515,7 @@ export function AnalisisPuPage() {
                         </div>
                     </section>
 
-                    {cargandoExplicacion ? (
+                    {cargandoIA ? (
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex justify-center items-center min-h-[400px]">
                             <GeminiLoader />
                         </div>
