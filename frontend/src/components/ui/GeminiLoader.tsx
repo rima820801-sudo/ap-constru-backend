@@ -2,106 +2,143 @@ import React from "react";
 
 export function GeminiLoader() {
     return (
-        <div className="flex flex-col items-center justify-center p-8 space-y-8 min-h-[300px] w-full overflow-hidden bg-slate-50 rounded-xl border border-slate-200">
-            {/* Scene Container */}
-            <div className="relative w-full max-w-[400px] h-[200px] flex items-end justify-center border-b-4 border-slate-800">
+        <div className="flex flex-col items-center justify-center p-8 space-y-8 min-h-[350px] w-full overflow-hidden bg-[#1e293b] rounded-xl border border-slate-700 relative shadow-inner">
+            {/* Blueprint Grid Background */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none"
+                style={{
+                    backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)',
+                    backgroundSize: '20px 20px'
+                }}
+            ></div>
 
-                {/* Crane Structure */}
-                <div className="absolute left-10 bottom-0 w-4 h-[160px] bg-yellow-500 border border-slate-700 z-10 flex flex-col items-center justify-end">
-                    <div className="w-full h-full flex flex-col justify-evenly">
-                        {[...Array(8)].map((_, i) => (
-                            <div key={i} className="w-full h-px bg-slate-700/30"></div>
-                        ))}
-                        <div className="absolute inset-0 border-x-2 border-slate-700/20"></div>
-                    </div>
-                </div>
+            {/* Blueprint Animation Container */}
+            <div className="relative w-64 h-64 flex items-center justify-center z-10">
+                <svg width="220" height="220" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="blueprint-svg drop-shadow-lg">
+                    {/* Main Structure (House) */}
+                    <path
+                        d="M30 110 L110 30 L190 110 V190 H30 V110 Z"
+                        stroke="white"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="draw-path"
+                    />
+                    
+                    {/* Inner Details */}
+                    {/* Door */}
+                    <rect x="90" y="130" width="40" height="60" stroke="white" strokeWidth="2" fill="none" className="draw-path delay-1" />
+                    {/* Window Left */}
+                    <rect x="50" y="130" width="25" height="25" stroke="white" strokeWidth="2" fill="none" className="draw-path delay-2" />
+                    {/* Window Right */}
+                    <rect x="145" y="130" width="25" height="25" stroke="white" strokeWidth="2" fill="none" className="draw-path delay-2" />
+                    {/* Attic Window */}
+                    <circle cx="110" cy="80" r="12" stroke="white" strokeWidth="2" fill="none" className="draw-path delay-2" />
 
-                {/* Crane Cab */}
-                <div className="absolute left-6 bottom-[120px] w-12 h-10 bg-yellow-400 border border-slate-700 z-20 rounded-sm">
-                    <div className="w-6 h-6 bg-blue-200/50 ml-1 mt-1 border border-slate-400"></div>
-                </div>
+                    {/* Technical Dimensions (Cyan Lines) */}
+                    {/* Bottom Width */}
+                    <path d="M30 205 H190" stroke="#38bdf8" strokeWidth="1" className="draw-path delay-3" />
+                    <path d="M30 200 V210 M190 200 V210" stroke="#38bdf8" strokeWidth="1" className="draw-path delay-3" />
+                    <text x="110" y="215" fill="#38bdf8" fontSize="10" textAnchor="middle" className="fade-in delay-3 font-mono">12.00m</text>
+                    
+                    {/* Side Height */}
+                    <path d="M15 110 V190" stroke="#38bdf8" strokeWidth="1" className="draw-path delay-3" />
+                    <path d="M10 110 H20 M10 190 H20" stroke="#38bdf8" strokeWidth="1" className="draw-path delay-3" />
+                    <text x="5" y="155" fill="#38bdf8" fontSize="10" textAnchor="middle" transform="rotate(-90, 5, 155)" className="fade-in delay-3 font-mono">6.50m</text>
 
-                {/* Crane Arm (Jib) */}
-                <div className="absolute left-12 bottom-[150px] w-[220px] h-4 bg-yellow-500 border border-slate-700 z-10 origin-left">
-                    <div className="w-full h-full flex justify-evenly">
-                        {[...Array(10)].map((_, i) => (
-                            <div key={i} className="h-full w-px bg-slate-700/30"></div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Counterweight */}
-                <div className="absolute left-2 bottom-[148px] w-12 h-8 bg-slate-600 border border-slate-800 z-10 rounded-sm"></div>
-
-                {/* Trolley & Hook Animation */}
-                <div className="absolute left-12 bottom-[150px] w-[200px] h-[140px] z-30 pointer-events-none">
-                    <div className="crane-trolley absolute top-0 h-full">
-                        <div className="w-6 h-4 bg-slate-700 -mt-2 relative z-20"></div>
-                        <div className="w-0.5 h-full bg-slate-800 mx-auto origin-top crane-cable"></div>
-                        <div className="w-6 h-6 border-2 border-slate-800 rounded-full absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center bg-white z-20">
-                            <div className="w-1 h-3 bg-slate-800"></div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Letters being placed */}
-                <div className="flex items-end space-x-2 mb-1 z-0 pl-16">
-                    {["G", "E", "M", "I", "N", "I"].map((char, index) => (
-                        <span
-                            key={index}
-                            className={`text-4xl font-black text-indigo-700 letter-block letter-appear-${index}`}
-                            style={{
-                                textShadow: '2px 2px 0px rgba(0,0,0,0.2)',
-                                width: '30px',
-                                textAlign: 'center'
-                            }}
-                        >
-                            {char}
-                        </span>
-                    ))}
-                </div>
+                    {/* Construction Nodes (Dots) */}
+                    <circle cx="30" cy="110" r="3" fill="#38bdf8" className="node-pop delay-4" />
+                    <circle cx="110" cy="30" r="3" fill="#38bdf8" className="node-pop delay-4" />
+                    <circle cx="190" cy="110" r="3" fill="#38bdf8" className="node-pop delay-4" />
+                    <circle cx="190" cy="190" r="3" fill="#38bdf8" className="node-pop delay-4" />
+                    <circle cx="30" cy="190" r="3" fill="#38bdf8" className="node-pop delay-4" />
+                </svg>
             </div>
 
-            <div className="text-center z-10">
-                <p className="text-sm font-bold text-slate-500 tracking-widest uppercase animate-pulse">
-                    Construyendo Sugerencia...
-                </p>
+            <div className="text-center z-10 h-8">
+                <LoadingText />
             </div>
 
             <style>{`
-                @keyframes moveTrolley {
-                    0%, 100% { left: 10%; }
-                    15% { left: 20%; } /* G */
-                    30% { left: 35%; } /* E */
-                    45% { left: 50%; } /* M */
-                    60% { left: 65%; } /* I */
-                    75% { left: 80%; } /* N */
-                    90% { left: 95%; } /* I */
+                .draw-path {
+                    stroke-dasharray: 1000;
+                    stroke-dashoffset: 1000;
+                    animation: draw 4s ease-in-out infinite;
                 }
+                
+                .delay-1 { animation-delay: 0.5s; }
+                .delay-2 { animation-delay: 1.0s; }
+                .delay-3 { animation-delay: 1.5s; }
+                .delay-4 { animation-delay: 2.0s; }
 
-                @keyframes dropLetter {
-                    0% { opacity: 0; transform: translateY(-100px); }
-                    50% { opacity: 1; transform: translateY(0); }
-                    100% { opacity: 1; transform: translateY(0); }
-                }
-
-                .crane-trolley {
-                    animation: moveTrolley 4s steps(6, end) infinite;
-                }
-
-                .letter-block {
+                .fade-in {
                     opacity: 0;
-                    animation: dropLetter 4s infinite;
+                    animation: fadeIn 4s ease-in-out infinite;
                 }
 
-                .letter-appear-0 { animation-delay: 0.0s; }
-                .letter-appear-1 { animation-delay: 0.6s; }
-                .letter-appear-2 { animation-delay: 1.2s; }
-                .letter-appear-3 { animation-delay: 1.8s; }
-                .letter-appear-4 { animation-delay: 2.4s; }
-                .letter-appear-5 { animation-delay: 3.0s; }
+                .node-pop {
+                    opacity: 0;
+                    transform-origin: center;
+                    animation: pop 4s ease-in-out infinite;
+                }
 
+                @keyframes draw {
+                    0% { stroke-dashoffset: 1000; opacity: 0; }
+                    10% { opacity: 1; }
+                    40% { stroke-dashoffset: 0; }
+                    80% { opacity: 1; stroke-dashoffset: 0; }
+                    90% { opacity: 0; }
+                    100% { stroke-dashoffset: 0; opacity: 0; }
+                }
+
+                @keyframes fadeIn {
+                    0%, 40% { opacity: 0; }
+                    50% { opacity: 1; }
+                    80% { opacity: 1; }
+                    90% { opacity: 0; }
+                    100% { opacity: 0; }
+                }
+
+                @keyframes pop {
+                    0%, 45% { transform: scale(0); opacity: 0; }
+                    50% { transform: scale(1.5); opacity: 1; }
+                    60% { transform: scale(1); opacity: 1; }
+                    80% { opacity: 1; }
+                    90% { opacity: 0; }
+                    100% { opacity: 0; }
+                }
             `}</style>
+        </div>
+    );
+}
+
+function LoadingText() {
+    const [index, setIndex] = React.useState(0);
+    const messages = [
+        "Trazando ejes principales...",
+        "Calculando cargas estructurales...",
+        "Diseñando volumetría...",
+        "Cuantificando materiales...",
+        "Consultando precios de mercado...",
+        "Optimizando presupuesto..."
+    ];
+
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setIndex((prev) => (prev + 1) % messages.length);
+        }, 2500);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-1">
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+            </div>
+            <p className="text-sm font-medium text-slate-300 tracking-widest uppercase transition-all duration-500 font-mono">
+                {messages[index]}
+            </p>
         </div>
     );
 }

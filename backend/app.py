@@ -54,7 +54,7 @@ CORS(app, resources={r"/api/*": {
 }})
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
 # Días para considerar un precio como obsoleto (configurable)
 PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
@@ -1164,15 +1164,23 @@ Genera un Analisis de Precio Unitario (APU) para el siguiente concepto de constr
 Descripcion del concepto: "{texto}"
 Unidad del concepto: "{unidad}"
 
+Instrucciones CRITICAS para cantidades:
+1. Analiza las dimensiones en la descripcion (largo, alto, ancho) para calcular la volumetria total.
+2. Si la 'Unidad del concepto' es "m2", "m3", "ml", "kg", "ton", calcula la cantidad de insumos necesaria para UNA sola unidad de esa medida (Unitario).
+   - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas, NO el total del muro.
+3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, y la descripcion implica un elemento completo (ej. "Barda de 20m"), calcula los materiales TOTALES para todo el elemento.
+   - Ejemplo: Para "Barda de 20m x 2m" unidad "Lote", la cantidad de block es 20*2*12.5 = 500 piezas.
+4. Si la descripcion tiene dimensiones especificas (ej. 22m x 16m), USALAS para validar si se pide un precio unitario o un costo total segun la unidad.
+
 Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
 
 {{
-  "explicacion": "texto breve explicando que materiales, mano de obra y equipo propusiste y por que",
+  "explicacion": "Breve justificacion tecnica de los materiales, mano de obra y rendimientos elegidos. Menciona si calculaste por unidad o total.",
   "insumos": [
     {{
       "tipo_insumo": "Material | Mano de Obra | Equipo | Maquinaria",
-      "nombre": "Nombre del insumo, por ejemplo 'Cemento gris saco 50kg'",
-      "unidad": "Unidad del insumo, por ejemplo 'saco', 'm3', 'jornada', 'hora'",
+      "nombre": "Nombre del insumo (ej. 'Block 12x20x40', 'Cemento gris', 'Oficial albañil')",
+      "unidad": "Unidad del insumo (ej. 'pieza', 'saco', 'm3', 'jornada', 'hora')",
       "cantidad": 0.0,
       "merma": 0.0,
       "flete_unitario": 0.0,
@@ -1182,8 +1190,9 @@ Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
 }}
 
 Reglas:
-- Usa cantidades y rendimientos razonables para obra tradicional en Mexico.
-- Incluye materiales principales, mano de obra y equipo realmente necesarios.
+- Usa cantidades y rendimientos REALISTAS para obra tradicional en Mexico.
+- Incluye TODOS los materiales necesarios (mortero, acero, cimbra si aplica).
+- Para Mano de Obra, usa 'jornada' y especifica el rendimiento diario (cuanto hace la cuadrilla en un dia).
 - NO incluyas ningun comentario fuera del JSON.
 """
 

@@ -833,28 +833,28 @@ export function ConceptoMatrizEditor({
                 {calculando && <small className="concepto-editor__estado">Calculando...</small>}
             </header>
 
-            <table className="matriz-table">
+            <table className="matriz-table w-full">
                 <thead>
                     <tr>
                         <th className="w-[140px]">
                             Tipo Insumo
                             {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                         </th>
-                        <th className="min-w-[250px]">
+                        <th className="min-w-[300px]">
                             Insumo
                             {renderTooltip("Recurso específico extraído del Catálogo.")}
                         </th>
-                        <th className="w-[80px]">
+                        <th className="w-[100px]">
                             Unidad
                             {renderTooltip("Unidad de medida del insumo (ej., saco, m3, jornada).")}
                         </th>
-                        <th className="w-[100px]">
+                        <th className="w-[110px]">
                             Cantidad
                             {renderTooltip(
                                 "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m³ de muro)."
                             )}
                         </th>
-                        <th className="w-[120px]">
+                        <th className="w-[130px]">
                             Precio Unitario
                             {renderTooltip("Costo base del insumo por unidad. Si es nuevo, ingrésalo aquí para agregarlo.")}
                         </th>
@@ -874,7 +874,7 @@ export function ConceptoMatrizEditor({
                                 "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
                             )}
                         </th>
-                        <th className="w-[140px]">
+                        <th className="w-[140px] text-right">
                             Costo Total
                             {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
                         </th>
@@ -887,11 +887,11 @@ export function ConceptoMatrizEditor({
                 <tbody>
                     {rows.map((row, index) => (
                         <tr key={row.id ?? `tmp-${index}`}>
-                            <td>
+                            <td className="p-2">
                                 <select
                                     id={`${idPrefix}-tipo-${index}`}
                                     name={`${idPrefix}-tipo-${index}`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10"
                                     aria-label="Tipo de insumo"
                                     value={row.tipo_insumo}
                                     onChange={(event) => {
@@ -911,13 +911,17 @@ export function ConceptoMatrizEditor({
                                     <option value="Maquinaria">Maquinaria</option>
                                 </select>
                             </td>
-                            <td>{renderInsumoSelect(row, index)}</td>
-                            <td>{obtenerUnidad(row)}</td>
-                            <td>
+                            <td className="p-2">{renderInsumoSelect(row, index)}</td>
+                            <td className="p-2">
+                                <div className="flex items-center h-10 px-3 bg-gray-50 rounded border border-gray-200 text-gray-700 text-sm">
+                                    {obtenerUnidad(row)}
+                                </div>
+                            </td>
+                            <td className="p-2">
                                 <input
                                     id={`${idPrefix}-cantidad-${index}`}
                                     name={`${idPrefix}-cantidad-${index}`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                     aria-label="Cantidad"
                                     type="number"
                                     min="0"
@@ -930,15 +934,15 @@ export function ConceptoMatrizEditor({
                                     }
                                 />
                             </td>
-                            <td>
+                            <td className="p-2">
                                 {row.existe_en_catalogo ? (
-                                    <span className="text-sm text-gray-700">
+                                    <div className="flex items-center justify-end h-10 px-3 bg-gray-50 rounded border border-gray-200 text-gray-700 text-sm font-medium">
                                         {formatearMoneda(obtenerPrecioUnitarioBase(row))}
-                                    </span>
+                                    </div>
                                 ) : (
                                     <input
                                         type="number"
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-24"
+                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                         placeholder="0.00"
                                         value={row.precio_unitario_temp ?? ""}
                                         onChange={(e) =>
@@ -949,12 +953,12 @@ export function ConceptoMatrizEditor({
                                     />
                                 )}
                             </td>
-                            <td>
+                            <td className="p-2">
                                 {row.tipo_insumo === "Material" ? (
                                     <input
                                         id={`${idPrefix}-merma-${index}`}
                                         name={`${idPrefix}-merma-${index}`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-16"
+                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                         aria-label="Porcentaje de merma"
                                         type="number"
                                         step="0.0001"
@@ -966,15 +970,15 @@ export function ConceptoMatrizEditor({
                                         }
                                     />
                                 ) : (
-                                    "-"
+                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                                 )}
                             </td>
-                            <td>
+                            <td className="p-2">
                                 {row.tipo_insumo === "Material" ? (
                                     <input
                                         id={`${idPrefix}-flete-${index}`}
                                         name={`${idPrefix}-flete-${index}`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                         aria-label="Precio flete unitario"
                                         type="number"
                                         step="0.01"
@@ -987,15 +991,15 @@ export function ConceptoMatrizEditor({
                                         }
                                     />
                                 ) : (
-                                    "-"
+                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                                 )}
                             </td>
-                            <td>
+                            <td className="p-2">
                                 {row.tipo_insumo === "ManoObra" ? (
                                     <input
                                         id={`${idPrefix}-rendimiento-${index}`}
                                         name={`${idPrefix}-rendimiento-${index}`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                         aria-label="Rendimiento jornada"
                                         type="number"
                                         min="0"
@@ -1009,33 +1013,39 @@ export function ConceptoMatrizEditor({
                                         }
                                     />
                                 ) : (
-                                    "-"
+                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                                 )}
                             </td>
-                            <td>{formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}</td>
-                            <td>
+                            <td className="p-2 text-right font-medium text-gray-900">
+                                {formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}
+                            </td>
+                            <td className="p-2 text-center">
                                 {row.existe_en_catalogo === false ? (
                                     <button
                                         type="button"
                                         onClick={() => handleQuickAdd(index)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded h-10 w-full"
                                     >
                                         Agregar
                                     </button>
                                 ) : (
-                                    <button type="button" onClick={() => handleDeleteRow(row.id, index)}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteRow(row.id, index)}
+                                        className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded h-10 w-full text-xs font-medium transition-colors"
+                                    >
                                         Eliminar
                                     </button>
                                 )}
                             </td>
                         </tr>
                     ))}
-                    <tr>
-                        <td>
+                    <tr className="bg-gray-50/50">
+                        <td className="p-2">
                             <select
                                 id={`${idPrefix}-draft-tipo`}
                                 name={`${idPrefix}-draft-tipo`}
-                                className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
+                                className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10"
                                 aria-label="Tipo de insumo"
                                 value={draftRow.tipo_insumo}
                                 onChange={(event) =>
@@ -1055,17 +1065,21 @@ export function ConceptoMatrizEditor({
                                 <option value="Maquinaria">Maquinaria</option>
                             </select>
                         </td>
-                        <td>
+                        <td className="p-2">
                             {renderInsumoSelect(draftRow, -1, (updates) =>
                                 setDraftRow((prev) => ({ ...prev, ...updates }))
                             )}
                         </td>
-                        <td>{obtenerUnidad(draftRow)}</td>
-                        <td>
+                        <td className="p-2">
+                            <div className="flex items-center h-10 px-3 bg-gray-100 rounded border border-gray-200 text-gray-500 text-sm">
+                                {obtenerUnidad(draftRow)}
+                            </div>
+                        </td>
+                        <td className="p-2">
                             <input
                                 id={`${idPrefix}-draft-cantidad`}
                                 name={`${idPrefix}-draft-cantidad`}
-                                className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                 aria-label="Cantidad"
                                 type="number"
                                 min="0"
@@ -1076,16 +1090,16 @@ export function ConceptoMatrizEditor({
                                 }
                             />
                         </td>
-                        <td>
+                        <td className="p-2">
                             {/* Draft Row Precio Unitario - No editable aquí, solo al agregar */}
-                            <span className="text-gray-400 text-xs">-</span>
+                            <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                         </td>
-                        <td>
+                        <td className="p-2">
                             {draftRow.tipo_insumo === "Material" ? (
                                 <input
                                     id={`${idPrefix}-draft-merma`}
                                     name={`${idPrefix}-draft-merma`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-16"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                     aria-label="Porcentaje de merma"
                                     type="number"
                                     step="0.0001"
@@ -1098,15 +1112,15 @@ export function ConceptoMatrizEditor({
                                     }
                                 />
                             ) : (
-                                "-"
+                                <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                             )}
                         </td>
-                        <td>
+                        <td className="p-2">
                             {draftRow.tipo_insumo === "Material" ? (
                                 <input
                                     id={`${idPrefix}-draft-flete`}
                                     name={`${idPrefix}-draft-flete`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                     aria-label="Precio flete unitario"
                                     type="number"
                                     step="0.01"
@@ -1119,15 +1133,15 @@ export function ConceptoMatrizEditor({
                                     }
                                 />
                             ) : (
-                                "-"
+                                <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                             )}
                         </td>
-                        <td>
+                        <td className="p-2">
                             {draftRow.tipo_insumo === "ManoObra" ? (
                                 <input
                                     id={`${idPrefix}-draft-rendimiento`}
                                     name={`${idPrefix}-draft-rendimiento`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
                                     aria-label="Rendimiento jornada"
                                     type="number"
                                     min="0"
@@ -1141,12 +1155,19 @@ export function ConceptoMatrizEditor({
                                     }
                                 />
                             ) : (
-                                "-"
+                                <div className="flex items-center justify-center h-10 text-gray-400">-</div>
                             )}
                         </td>
-                        <td>{formatearMoneda(obtenerCostoUnitario(draftRow) * draftRow.cantidad)}</td>
-                        <td>
-                            <button type="button" onClick={handleAgregarDraft} disabled={!puedeAgregarDraft()}>
+                        <td className="p-2 text-right font-medium text-gray-900">
+                            {formatearMoneda(obtenerCostoUnitario(draftRow) * draftRow.cantidad)}
+                        </td>
+                        <td className="p-2 text-center">
+                            <button
+                                type="button"
+                                onClick={handleAgregarDraft}
+                                disabled={!puedeAgregarDraft()}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 rounded h-10 w-full text-xs font-medium transition-colors disabled:opacity-50"
+                            >
                                 Agregar
                             </button>
                         </td>
