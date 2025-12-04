@@ -955,8 +955,8 @@ export function ConceptoMatrizEditor({
                         <td>{obtenerUnidad(draftRow)}</td>
                         <td>
                             <input
-                                id="draft-cantidad"
-                                name="draft-cantidad"
+                                id={`${idPrefix}-draft-cantidad`}
+                                name={`${idPrefix}-draft-cantidad`}
                                 className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
                                 aria-label="Cantidad"
                                 type="number"
@@ -971,8 +971,8 @@ export function ConceptoMatrizEditor({
                         <td>
                             {draftRow.tipo_insumo === "Material" ? (
                                 <input
-                                    id="draft-merma"
-                                    name="draft-merma"
+                                    id={`${idPrefix}-draft-merma`}
+                                    name={`${idPrefix}-draft-merma`}
                                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-16"
                                     aria-label="Porcentaje de merma"
                                     type="number"
@@ -992,8 +992,8 @@ export function ConceptoMatrizEditor({
                         <td>
                             {draftRow.tipo_insumo === "Material" ? (
                                 <input
-                                    id="draft-flete"
-                                    name="draft-flete"
+                                    id={`${idPrefix}-draft-flete`}
+                                    name={`${idPrefix}-draft-flete`}
                                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-20"
                                     aria-label="Precio flete unitario"
                                     type="number"
