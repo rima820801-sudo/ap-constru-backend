@@ -416,8 +416,8 @@ export function AnalisisPuPage() {
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="checkbox"
-                                                id={`toggle-${key}`}
-                                                name={`toggle-${key}`}
+                                                id={`analisis-toggle-${key}`}
+                                                name={`analisis-toggle-${key}`}
                                                 checked={config.activo}
                                                 onChange={(event) => handleSobrecostoToggle(key, event.target.checked)}
                                                 className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"

@@ -783,6 +783,7 @@ export function ConceptoMatrizEditor({
                                     id={`tipo-${index}`}
                                     name={`tipo-${index}`}
                                     className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
+                                    aria-label="Tipo de insumo"
                                     value={row.tipo_insumo}
                                     onChange={(event) => {
                                         const nextType = event.target.value as MatrizRow["tipo_insumo"];
@@ -890,27 +891,17 @@ export function ConceptoMatrizEditor({
                                         onClick={() => handleObtenerPrecio(index)}
                                         disabled={loadingPriceForRow === index}
                                         title="Obtener sugerencia de precio de mercado"
-                                        style={{
-                                            padding: "4px 8px",
-                                            backgroundColor: "#4CAF50",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            cursor: loadingPriceForRow === index ? "not-allowed" : "pointer",
-                                            opacity: loadingPriceForRow === index ? 0.6 : 1,
-                                        }}
+                                        type="button"
+                                        onClick={() => handleObtenerPrecio(index)}
+                                        disabled={loadingPriceForRow === index}
+                                        title="Obtener sugerencia de precio de mercado"
+                                        className={`px-2 py-1 bg-green-500 text-white border-none rounded cursor-pointer ${loadingPriceForRow === index ? "opacity-60 cursor-not-allowed" : ""}`}
                                     >
                                         {loadingPriceForRow === index ? "â³ Cargando..." : "ð Obtener"}
                                     </button>
                                 ) : obtenerObsoleto(row) ? (
                                     <span
-                                        style={{
-                                            backgroundColor: "#fff3cd",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            fontWeight: "bold",
-                                            color: "#856404",
-                                        }}
+                                        className="bg-yellow-100 px-2 py-1 rounded font-bold text-yellow-800"
                                         title="Precio obsoleto (más de 90 días sin actualizar)"
                                     >
                                         ?? {formatearMoneda(obtenerCostoUnitario(row))}

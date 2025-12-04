@@ -28,6 +28,7 @@ export function GeminiLoader() {
                         <span
                             key={index}
                             className="inline-block animate-bounce"
+                            // @ts-ignore
                             style={{ animationDelay: `${index * 0.1}s` }}
                         >
                             {char}
