@@ -143,6 +143,12 @@ export function ConceptoMatrizEditor({
     }, []);
 
     useEffect(() => {
+        if (guardarTrigger && guardarTrigger > 0) {
+            void guardarMatrizCompleta();
+        }
+    }, [guardarTrigger]);
+
+    useEffect(() => {
         if (modoLocal) return;
         if (!conceptoId) {
             setRows([]);

@@ -10,6 +10,8 @@ import {
 } from "../components/conceptos/ConceptoMatrizEditor";
 import { NotaVentaModalFixed as NotaVentaModal, type NotaVenta } from "../components/conceptos/NotaVentaModalFixed";
 import { Navbar } from "../components/layout/Navbar";
+import { GeminiLoader } from "../components/ui/GeminiLoader";
+import { ConceptoSelectorModal } from "../components/conceptos/ConceptoSelectorModal";
 
 type Concepto = {
     id: number;
@@ -91,6 +93,7 @@ export function AnalisisPuPage() {
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
     const [matrizNotaVenta, setMatrizNotaVenta] = useState<MatrizRow[]>([]);
     const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => initialSobrecostos());
+    const [showSelector, setShowSelector] = useState(false);
 
     useEffect(() => {
         void loadConceptos();
@@ -165,14 +168,33 @@ export function AnalisisPuPage() {
         await loadConceptos();
     }
 
-    async function handleEliminarConcepto() {
-        if (!conceptoForm.id) return;
-        if (!confirm("?Eliminar el concepto seleccionado?")) return;
-        await apiFetch(`/conceptos/${conceptoForm.id}`, { method: "DELETE" });
+    async function handleBorrarTodo() {
+        if (!hayConceptoGuardado && (conceptoForm.descripcion || matrizDraft.length > 0)) {
+            if (!confirm("Este proyecto no se ha guardado y no habrá forma de recuperarlo. ¿Estás seguro?")) {
+                return;
+            }
+        } else if (hayConceptoGuardado) {
+            if (!confirm("¿Estás seguro de limpiar el editor? Se perderán los cambios no guardados.")) {
+                return;
+            }
+        }
+
         setConceptoForm(emptyConceptoForm());
         setSelectedConceptId(null);
         setMatrizDraft([]);
-        await loadConceptos();
+        setIaRows(null);
+        setIaExplanation("");
+        setTextoDetalles("");
+        setResumen({ costo_directo: 0, precio_unitario: 0 });
+    }
+
+    function handleAbrirConcepto() {
+        setShowSelector(true);
+    }
+
+    function handleConceptoSeleccionado(id: number) {
+        setSelectedConceptId(id);
+        setShowSelector(false);
     }
 
     function handleChange<K extends keyof ConceptoForm>(field: K, value: ConceptoForm[K]) {
@@ -424,6 +446,13 @@ export function AnalisisPuPage() {
                             <div className="w-px h-8 bg-gray-300 mx-2 self-center hidden sm:block"></div>
                             <button
                                 type="button"
+                                onClick={handleAbrirConcepto}
+                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            >
+                                <span>📂</span> Abrir
+                            </button>
+                            <button
+                                type="button"
                                 onClick={handleGuardarConcepto}
                                 className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                             >
@@ -432,11 +461,10 @@ export function AnalisisPuPage() {
                             </button>
                             <button
                                 type="button"
-                                disabled={!conceptoForm.id}
-                                onClick={handleEliminarConcepto}
-                                className="bg-white border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                onClick={handleBorrarTodo}
+                                className="bg-white border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
-                                Eliminar
+                                Borrar todo
                             </button>
                             <button
                                 type="button"
@@ -450,22 +478,35 @@ export function AnalisisPuPage() {
                         </div>
                     </section>
 
-                    <ConceptoMatrizEditor
-                        conceptoId={conceptoForm.id}
-                        conceptoInfo={conceptoForm}
-                        iaRows={iaRows ?? undefined}
-                        iaExplanation={iaExplanation}
-                        guardarTrigger={guardarTrigger}
-                        onResumenChange={setResumen}
-                        modoLocal={!hayConceptoGuardado}
-                        externalRows={!hayConceptoGuardado ? matrizDraft : undefined}
-                        onRowsChange={!hayConceptoGuardado ? setMatrizDraft : undefined}
-                        factoresSobrecosto={sobrecostos}
-                    />
+                    {cargandoExplicacion ? (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex justify-center items-center min-h-[400px]">
+                            <GeminiLoader />
+                        </div>
+                    ) : (
+                        <ConceptoMatrizEditor
+                            conceptoId={conceptoForm.id}
+                            conceptoInfo={conceptoForm}
+                            iaRows={iaRows ?? undefined}
+                            iaExplanation={iaExplanation}
+                            guardarTrigger={guardarTrigger}
+                            onResumenChange={setResumen}
+                            modoLocal={!hayConceptoGuardado}
+                            externalRows={!hayConceptoGuardado ? matrizDraft : undefined}
+                            onRowsChange={!hayConceptoGuardado ? setMatrizDraft : undefined}
+                            factoresSobrecosto={sobrecostos}
+                        />
+                    )}
                 </div>
             </div>
 
             <NotaVentaModal nota={notaVentaData} matriz={matrizNotaVenta} onClose={() => setNotaVentaData(null)} />
+
+            {showSelector && (
+                <ConceptoSelectorModal
+                    onSelect={handleConceptoSeleccionado}
+                    onClose={() => setShowSelector(false)}
+                />
+            )}
         </div>
     );
 }
