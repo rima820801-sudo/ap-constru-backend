@@ -410,7 +410,8 @@ def init_db():
             
             if "created_at" not in columns:
                 print("Migrando base de datos: Agregando columna created_at a users...")
-                connection.execute(text("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+                # SQLite requiere un valor constante para ADD COLUMN con DEFAULT
+                connection.execute(text("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT '2025-01-01 00:00:00'"))
                 connection.commit()
                 print("Migración completada.")
     except Exception as e:
