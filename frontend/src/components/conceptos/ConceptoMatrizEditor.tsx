@@ -13,6 +13,7 @@ export type MatrizRow = {
     existe_en_catalogo?: boolean;
     nombre_sugerido?: string;
     justificacion_breve?: string;
+    precio_unitario_temp?: number | "";
 };
 
 type MaterialDTO = {
@@ -164,7 +165,6 @@ export function ConceptoMatrizEditor({
         const newRows = externalRows ?? [];
 
         setRows((prevRows) => {
-            // Deep compare to prevent infinite loop when parent updates with same content (new ref)
             if (JSON.stringify(newRows) === JSON.stringify(prevRows)) {
                 return prevRows;
             }
@@ -584,6 +584,88 @@ export function ConceptoMatrizEditor({
         setCatalogModal(null);
     }
 
+    async function handleQuickAdd(rowIndex: number) {
+        const row = rows[rowIndex];
+        if (!row.nombre_sugerido) return;
+
+        // Si no hay precio temporal, abrimos el modal para que lo llene
+        if (row.precio_unitario_temp === "" || row.precio_unitario_temp === undefined) {
+            abrirCatalogoDesdeRow(rowIndex);
+            return;
+        }
+
+        const precio = Number(row.precio_unitario_temp);
+        let endpoint = "";
+        let payload: Record<string, unknown> = {};
+
+        switch (row.tipo_insumo) {
+            case "Material":
+                endpoint = "/materiales";
+                payload = {
+                    nombre: row.nombre_sugerido,
+                    unidad: "unidad", // Default
+                    precio_unitario: precio,
+                    fecha_actualizacion: new Date().toISOString().split("T")[0],
+                    porcentaje_merma: 0.03, // Default
+                    precio_flete_unitario: 0,
+                };
+                break;
+            case "ManoObra":
+                endpoint = "/manoobra";
+                payload = {
+                    puesto: row.nombre_sugerido,
+                    salario_base: precio,
+                    rendimiento_jornada: 8.0, // Default
+                };
+                break;
+            case "Equipo":
+                endpoint = "/equipo";
+                payload = {
+                    nombre: row.nombre_sugerido,
+                    unidad: "hora",
+                    costo_hora_maq: precio,
+                };
+                break;
+            case "Maquinaria":
+                endpoint = "/maquinaria";
+                payload = {
+                    nombre: row.nombre_sugerido,
+                    costo_adquisicion: precio, // Asumiendo que el precio es costo de adquisición para simplificar, o costo hora?
+                    // Para maquinaria es complejo, mejor abrir modal si es maquinaria para evitar errores
+                    // Pero intentaremos un default seguro
+                    vida_util_horas: 10000,
+                    tasa_interes_anual: 0.10,
+                    rendimiento_horario: 1.0,
+                };
+                // Maquinaria requiere muchos datos, mejor forzar modal si no es simple
+                abrirCatalogoDesdeRow(rowIndex);
+                return;
+            default:
+                return;
+        }
+
+        try {
+            const creado = await apiFetch<Record<string, any>>(endpoint, { method: "POST", body: payload });
+            await loadCatalogos();
+            setRows((prev) =>
+                prev.map((r, idx) =>
+                    idx === rowIndex
+                        ? {
+                            ...r,
+                            id_insumo: creado.id,
+                            existe_en_catalogo: true,
+                            nombre_sugerido: undefined,
+                            precio_unitario_temp: undefined,
+                        }
+                        : r
+                )
+            );
+        } catch (error) {
+            console.error("Error al agregar al catalogo:", error);
+            alert("Error al guardar en catálogo. Intenta usar el botón de editar para ver más detalles.");
+        }
+    }
+
     async function persistRow(row: MatrizRow) {
         if (modoLocal || !conceptoId) {
             return;
@@ -658,6 +740,27 @@ export function ConceptoMatrizEditor({
         }
     }
 
+    function obtenerPrecioUnitarioBase(row: MatrizRow): number {
+        if (row.existe_en_catalogo === false) return 0;
+        if (!catalogos || !row.id_insumo) return 0;
+        const id = Number(row.id_insumo);
+        switch (row.tipo_insumo) {
+            case "Material":
+                return catalogos.materiales[id]?.precio_unitario ?? 0;
+            case "ManoObra":
+                const mano = catalogos.manoObra[id];
+                // Mostramos Salario Base * Fasar como "Precio Unitario" aproximado
+                return mano ? mano.salario_base * mano.fasar : 0;
+            case "Equipo":
+                return catalogos.equipos[id]?.costo_hora_maq ?? 0;
+            case "Maquinaria":
+                // Maquinaria costo posesion hora
+                return catalogos.maquinaria[id]?.costo_posesion_hora ?? 0;
+            default:
+                return 0;
+        }
+    }
+
     function obtenerCostoUnitario(row: MatrizRow): number {
         if (row.existe_en_catalogo === false) return 0;
         if (!catalogos || !row.id_insumo) return 0;
@@ -727,21 +830,17 @@ export function ConceptoMatrizEditor({
     return (
         <section className="concepto-editor">
             <header className="concepto-editor__header">
-                <div className="concepto-editor__detalle-ia">
-                    <span className="concepto-editor__detalle-label">Detalles de la sugerencia</span>
-                    <p className="concepto-editor__detalle-texto">{detalleSugerencia}</p>
-                </div>
                 {calculando && <small className="concepto-editor__estado">Calculando...</small>}
             </header>
 
             <table className="matriz-table">
                 <thead>
                     <tr>
-                        <th className="w-[180px]">
+                        <th className="w-[140px]">
                             Tipo Insumo
                             {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                         </th>
-                        <th className="min-w-[200px]">
+                        <th className="min-w-[250px]">
                             Insumo
                             {renderTooltip("Recurso específico extraído del Catálogo.")}
                         </th>
@@ -754,6 +853,10 @@ export function ConceptoMatrizEditor({
                             {renderTooltip(
                                 "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m³ de muro)."
                             )}
+                        </th>
+                        <th className="w-[120px]">
+                            Precio Unitario
+                            {renderTooltip("Costo base del insumo por unidad. Si es nuevo, ingrésalo aquí para agregarlo.")}
                         </th>
                         <th className="w-[100px]">
                             Merma (%)
@@ -771,15 +874,11 @@ export function ConceptoMatrizEditor({
                                 "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
                             )}
                         </th>
-                        <th className="w-[120px]">
-                            Costo Unitario
-                            {renderTooltip("Costo final del insumo puesto en obra; incluye precio base, merma y flete.")}
-                        </th>
-                        <th className="w-[120px]">
+                        <th className="w-[140px]">
                             Costo Total
                             {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
                         </th>
-                        <th className="w-[100px]">
+                        <th className="w-[80px]">
                             Acciones
                             {renderTooltip("Acciones disponibles para el insumo (Eliminar).")}
                         </th>
@@ -830,6 +929,25 @@ export function ConceptoMatrizEditor({
                                         })
                                     }
                                 />
+                            </td>
+                            <td>
+                                {row.existe_en_catalogo ? (
+                                    <span className="text-sm text-gray-700">
+                                        {formatearMoneda(obtenerPrecioUnitarioBase(row))}
+                                    </span>
+                                ) : (
+                                    <input
+                                        type="number"
+                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-24"
+                                        placeholder="0.00"
+                                        value={row.precio_unitario_temp ?? ""}
+                                        onChange={(e) =>
+                                            handleRowChange(index, {
+                                                precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value),
+                                            })
+                                        }
+                                    />
+                                )}
                             </td>
                             <td>
                                 {row.tipo_insumo === "Material" ? (
@@ -894,33 +1012,15 @@ export function ConceptoMatrizEditor({
                                     "-"
                                 )}
                             </td>
-                            <td>
-                                {obtenerCostoUnitario(row) === 0 ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleObtenerPrecio(index)}
-                                        disabled={loadingPriceForRow === index}
-                                        title="Obtener sugerencia de precio de mercado"
-                                        className={`px-2 py-1 bg-green-500 text-white border-none rounded cursor-pointer ${loadingPriceForRow === index ? "opacity-60 cursor-not-allowed" : ""}`}
-                                    >
-                                        {loadingPriceForRow === index ? "â³ Cargando..." : "ð Obtener"}
-                                    </button>
-                                ) : obtenerObsoleto(row) ? (
-                                    <span
-                                        className="bg-yellow-100 px-2 py-1 rounded font-bold text-yellow-800"
-                                        title="Precio obsoleto (más de 90 días sin actualizar)"
-                                    >
-                                        ?? {formatearMoneda(obtenerCostoUnitario(row))}
-                                    </span>
-                                ) : (
-                                    formatearMoneda(obtenerCostoUnitario(row))
-                                )}
-                            </td>
                             <td>{formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}</td>
                             <td>
                                 {row.existe_en_catalogo === false ? (
-                                    <button type="button" onClick={() => abrirCatalogoDesdeRow(index)}>
-                                        Agregar a Catalogo
+                                    <button
+                                        type="button"
+                                        onClick={() => handleQuickAdd(index)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded"
+                                    >
+                                        Agregar
                                     </button>
                                 ) : (
                                     <button type="button" onClick={() => handleDeleteRow(row.id, index)}>
@@ -975,6 +1075,10 @@ export function ConceptoMatrizEditor({
                                     setDraftRow((prev) => ({ ...prev, cantidad: Number(event.target.value) || 0 }))
                                 }
                             />
+                        </td>
+                        <td>
+                            {/* Draft Row Precio Unitario - No editable aquí, solo al agregar */}
+                            <span className="text-gray-400 text-xs">-</span>
                         </td>
                         <td>
                             {draftRow.tipo_insumo === "Material" ? (
@@ -1040,7 +1144,6 @@ export function ConceptoMatrizEditor({
                                 "-"
                             )}
                         </td>
-                        <td>{formatearMoneda(obtenerCostoUnitario(draftRow))}</td>
                         <td>{formatearMoneda(obtenerCostoUnitario(draftRow) * draftRow.cantidad)}</td>
                         <td>
                             <button type="button" onClick={handleAgregarDraft} disabled={!puedeAgregarDraft()}>
@@ -1051,23 +1154,25 @@ export function ConceptoMatrizEditor({
                 </tbody>
             </table>
 
-            {catalogModal && (
-                <div className="catalog-modal">
-                    <div className="catalog-modal__content card">
-                        <h3>Agregar {catalogModal.tipo} al catalogo</h3>
-                        <form onSubmit={handleCatalogSubmit}>
-                            {renderCatalogFormFields()}
-                            <div className="modal-actions">
-                                <button type="submit">Guardar en Catalogo</button>
-                                <button type="button" onClick={() => setCatalogModal(null)}>
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
+            {
+                catalogModal && (
+                    <div className="catalog-modal">
+                        <div className="catalog-modal__content card">
+                            <h3>Agregar {catalogModal.tipo} al catalogo</h3>
+                            <form onSubmit={handleCatalogSubmit}>
+                                {renderCatalogFormFields()}
+                                <div className="modal-actions">
+                                    <button type="submit">Guardar en Catalogo</button>
+                                    <button type="button" onClick={() => setCatalogModal(null)}>
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </section>
+                )
+            }
+        </section >
     );
 
     function renderInsumoSelect(
@@ -1320,5 +1425,3 @@ function crearFormularioCatalogo(row: MatrizRow): Record<string, string> {
             return { nombre };
     }
 }
-
-

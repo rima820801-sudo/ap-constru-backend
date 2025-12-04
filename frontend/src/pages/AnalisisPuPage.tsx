@@ -104,12 +104,66 @@ export function AnalisisPuPage() {
     useEffect(() => {
         if (selectedConceptId) {
             void loadConceptoDetalle(selectedConceptId);
+            setIaExplanation("");
+            setTextoDetalles("");
         } else {
-            setConceptoForm(emptyConceptoForm());
+            const storedForm = localStorage.getItem("apu_builder_form");
+            if (storedForm) {
+                try {
+                    setConceptoForm({ ...emptyConceptoForm(), ...JSON.parse(storedForm) });
+                } catch {
+                    setConceptoForm(emptyConceptoForm());
+                }
+            } else {
+                setConceptoForm(emptyConceptoForm());
+            }
+
+            const storedIaRows = localStorage.getItem("apu_builder_ia_rows");
+            if (storedIaRows) {
+                try {
+                    setIaRows(JSON.parse(storedIaRows));
+                } catch {
+                    setIaRows(null);
+                }
+            } else {
+                setIaRows(null);
+            }
+
+            const storedIaExplanation = localStorage.getItem("apu_builder_ia_explanation");
+            if (storedIaExplanation) {
+                setIaExplanation(storedIaExplanation);
+                setTextoDetalles(storedIaExplanation);
+            } else {
+                setIaExplanation("");
+                setTextoDetalles("");
+            }
         }
-        setIaExplanation("");
-        setTextoDetalles("");
     }, [selectedConceptId]);
+
+    useEffect(() => {
+        if (!conceptoForm.id) {
+            localStorage.setItem(
+                "apu_builder_form",
+                JSON.stringify({
+                    clave: conceptoForm.clave,
+                    descripcion: conceptoForm.descripcion,
+                    unidad_concepto: conceptoForm.unidad_concepto,
+                })
+            );
+        }
+    }, [conceptoForm]);
+
+    useEffect(() => {
+        if (iaRows) {
+            localStorage.setItem("apu_builder_ia_rows", JSON.stringify(iaRows));
+        }
+    }, [iaRows]);
+
+    useEffect(() => {
+        if (iaExplanation) {
+            localStorage.setItem("apu_builder_ia_explanation", iaExplanation);
+        }
+    }, [iaExplanation]);
 
     useEffect(() => {
         if (selectedConceptId) {
@@ -119,7 +173,8 @@ export function AnalisisPuPage() {
 
     async function loadConceptos() {
         const data = await apiFetch<Concepto[]>(`/conceptos`);
-        if (data.length && !selectedConceptId) {
+        const hasLocalDraft = localStorage.getItem("apu_builder_form");
+        if (data.length && !selectedConceptId && !hasLocalDraft) {
             setSelectedConceptId(data[0].id);
         }
     }
@@ -206,6 +261,10 @@ export function AnalisisPuPage() {
         setIaExplanation("");
         setTextoDetalles("");
         setResumen({ costo_directo: 0, precio_unitario: 0 });
+
+        localStorage.removeItem("apu_builder_form");
+        localStorage.removeItem("apu_builder_ia_rows");
+        localStorage.removeItem("apu_builder_ia_explanation");
     }
 
     function handleAbrirConcepto() {
@@ -250,26 +309,7 @@ export function AnalisisPuPage() {
         setGuardarTrigger((prev) => prev + 1);
     }
 
-    async function handleDetallesSugerencia() {
-        const explicacionActual = iaExplanation.trim();
-        if (explicacionActual.length > 0) {
-            setTextoDetalles(explicacionActual);
-            return;
-        }
-        if (!conceptoForm.id && !conceptoForm.descripcion) return;
-        setCargandoIA(true);
-        try {
-            const params = conceptoForm.id
-                ? `?concepto_id=${conceptoForm.id}`
-                : `?descripcion_concepto=${encodeURIComponent(conceptoForm.descripcion)}`;
-            const data = await apiFetch<{ explicacion: string }>(`/ia/explicar_sugerencia${params}`);
-            setTextoDetalles(data.explicacion ?? "");
-        } catch (error) {
-            console.error("Error al obtener /ia/explicar_sugerencia", error);
-        } finally {
-            setCargandoIA(false);
-        }
-    }
+
 
     async function guardarMatrizRemota(conceptoId: number, rows: MatrizRow[]) {
         if (!conceptoId || rows.length === 0) return;
@@ -472,14 +512,7 @@ export function AnalisisPuPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                                 Sugerencia Gemini
                             </button>
-                            <button
-                                type="button"
-                                onClick={handleDetallesSugerencia}
-                                disabled={!conceptoForm.descripcion || cargandoIA}
-                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                                {cargandoIA ? "Obteniendo..." : "Detalles de Sugerencia"}
-                            </button>
+
                             <div className="w-px h-8 bg-gray-300 mx-2 self-center hidden sm:block"></div>
                             <button
                                 type="button"
