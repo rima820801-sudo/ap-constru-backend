@@ -44,8 +44,7 @@ app.config.update(
 db = SQLAlchemy(app)
 CORS(app, resources={r"/api/*": {
     "origins": [
-        "https://ap-constru-backend-1.onrender.com",
-        "https://ap-constru-backend.onrender.com",
+        r"^https://.*\.onrender\.com$",
         "http://localhost:5173",
         "http://localhost:3000"
     ],
@@ -60,8 +59,12 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 # Días para considerar un precio como obsoleto (configurable)
 PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
 
+# Logging de depuración para API Key (sin revelar la clave completa)
 if GEMINI_API_KEY:
+    print(f"GEMINI_API_KEY encontrada: {GEMINI_API_KEY[:4]}...{GEMINI_API_KEY[-4:]}")
     genai.configure(api_key=GEMINI_API_KEY)
+else:
+    print("ADVERTENCIA: GEMINI_API_KEY no encontrada en variables de entorno.")
 
 
 def is_precio_obsoleto(fecha_actualizacion: Optional[date]) -> bool:
