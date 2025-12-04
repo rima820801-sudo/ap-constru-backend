@@ -161,7 +161,10 @@ export function ConceptoMatrizEditor({
 
     useEffect(() => {
         if (!modoLocal) return;
-        setRows(externalRows ?? []);
+        const newRows = externalRows ?? [];
+        // Prevent infinite loop when clearing: if both are empty, do nothing
+        if (newRows.length === 0 && rows.length === 0) return;
+        setRows(newRows);
     }, [externalRows, modoLocal]);
 
     useEffect(() => {
