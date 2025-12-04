@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 
 import { apiFetch } from "../api/client";
 import {
@@ -88,6 +88,8 @@ export function AnalisisPuPage() {
     const [resumen, setResumen] = useState({ costo_directo: 0, precio_unitario: 0 });
     const [iaExplanation, setIaExplanation] = useState<string>("");
     const [textoDetalles, setTextoDetalles] = useState<string>("");
+
+    const idPrefix = useId();
     const [cargandoExplicacion, setCargandoExplicacion] = useState(false);
     const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>([]);
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
@@ -363,10 +365,10 @@ export function AnalisisPuPage() {
                         </header>
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="clave" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <label htmlFor={`${idPrefix}-clave`} className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                                 <input
-                                    id="clave"
-                                    name="clave"
+                                    id={`${idPrefix}-clave`}
+                                    name={`${idPrefix}-clave`}
                                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.clave}
                                     onChange={(event) => handleChange("clave", event.target.value)}
@@ -374,10 +376,10 @@ export function AnalisisPuPage() {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <label htmlFor={`${idPrefix}-descripcion`} className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
-                                    id="descripcion"
-                                    name="descripcion"
+                                    id={`${idPrefix}-descripcion`}
+                                    name={`${idPrefix}-descripcion`}
                                     className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={conceptoForm.descripcion}
                                     onChange={(event) => handleChange("descripcion", event.target.value)}
@@ -416,8 +418,8 @@ export function AnalisisPuPage() {
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="checkbox"
-                                                id={`analisis-toggle-${key}`}
-                                                name={`analisis-toggle-${key}`}
+                                                id={`${idPrefix}-toggle-${key}`}
+                                                name={`${idPrefix}-toggle-${key}`}
                                                 checked={config.activo}
                                                 onChange={(event) => handleSobrecostoToggle(key, event.target.checked)}
                                                 className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
@@ -431,8 +433,8 @@ export function AnalisisPuPage() {
                                         <div className="flex items-center gap-1">
                                             <input
                                                 type="number"
-                                                id={`porcentaje-${key}`}
-                                                name={`porcentaje-${key}`}
+                                                id={`${idPrefix}-porcentaje-${key}`}
+                                                name={`${idPrefix}-porcentaje-${key}`}
                                                 min={0}
                                                 step={0.1}
                                                 value={config.porcentaje}
