@@ -413,6 +413,7 @@ def init_db():
                 # SQLite requiere un valor constante para ADD COLUMN con DEFAULT
                 connection.execute(text("ALTER TABLE users ADD COLUMN created_at DATETIME DEFAULT '2025-01-01 00:00:00'"))
                 connection.commit()
+                # Migración exitosa
                 print("Migración completada.")
     except Exception as e:
         print(f"Error en migración de DB: {e}")
