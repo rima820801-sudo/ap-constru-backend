@@ -727,49 +727,49 @@ export function ConceptoMatrizEditor({
             <table className="matriz-table">
                 <thead>
                     <tr>
-                        <th>
+                        <th className="w-[140px]">
                             Tipo Insumo
-                            {renderTooltip("Categor??a del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
+                            {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                         </th>
-                        <th>
+                        <th className="min-w-[200px]">
                             Insumo
-                            {renderTooltip("Recurso espec??fico extra??do del Cat??logo.")}
+                            {renderTooltip("Recurso específico extraído del Catálogo.")}
                         </th>
-                        <th>
+                        <th className="w-[80px]">
                             Unidad
                             {renderTooltip("Unidad de medida del insumo (ej., saco, m3, jornada).")}
                         </th>
-                        <th>
+                        <th className="w-[100px]">
                             Cantidad
                             {renderTooltip(
-                                "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m?? de muro)."
+                                "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m³ de muro)."
                             )}
                         </th>
-                        <th>
+                        <th className="w-[100px]">
                             Merma (%)
                             {renderTooltip(
-                                "Porcentaje de desperdicio que se suma al consumo te??rico del material (ej., 3% de p??rdida por manejo). Este porcentaje incrementa el Costo Total del insumo."
+                                "Porcentaje de desperdicio que se suma al consumo teórico del material (ej., 3% de pérdida por manejo). Este porcentaje incrementa el Costo Total del insumo."
                             )}
                         </th>
-                        <th>
+                        <th className="w-[120px]">
                             Flete Unitario
                             {renderTooltip("Costo de transporte o acarreo del material hasta el sitio de la obra, prorrateado por la unidad del insumo.")}
                         </th>
-                        <th>
+                        <th className="w-[120px]">
                             Rendimiento Diario
                             {renderTooltip(
-                                "Productividad de la cuadrilla o m??quina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
+                                "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
                             )}
                         </th>
-                        <th>
+                        <th className="w-[120px]">
                             Costo Unitario
                             {renderTooltip("Costo final del insumo puesto en obra; incluye precio base, merma y flete.")}
                         </th>
-                        <th>
+                        <th className="w-[120px]">
                             Costo Total
-                            {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad ?? Costo Unitario).")}
+                            {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
                         </th>
-                        <th>
+                        <th className="w-[100px]">
                             Acciones
                             {renderTooltip("Acciones disponibles para el insumo (Eliminar).")}
                         </th>

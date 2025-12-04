@@ -148,24 +148,42 @@ export function AnalisisPuPage() {
     }
 
     async function handleGuardarConcepto() {
-        if (!conceptoForm.clave || !conceptoForm.descripcion || !conceptoForm.unidad_concepto) return;
+        if (!conceptoForm.clave || !conceptoForm.descripcion || !conceptoForm.unidad_concepto) {
+            alert("Por favor completa los campos obligatorios (Nombre, Descripción, Unidad).");
+            return;
+        }
         const payload = {
             clave: conceptoForm.clave,
             descripcion: conceptoForm.descripcion,
             unidad_concepto: conceptoForm.unidad_concepto,
         };
-        if (conceptoForm.id) {
-            await apiFetch(`/conceptos/${conceptoForm.id}`, { method: "PUT", body: payload });
+
+        try {
+            let conceptoId = conceptoForm.id;
+
+            if (conceptoId) {
+                await apiFetch(`/conceptos/${conceptoId}`, { method: "PUT", body: payload });
+            } else {
+                const created = await apiFetch<Concepto>(`/conceptos`, { method: "POST", body: payload });
+                conceptoId = created.id;
+                setConceptoForm((prev) => ({ ...prev, id: created.id }));
+                setSelectedConceptId(created.id);
+
+                // Si es nuevo, guardamos la matriz draft inicial
+                if (matrizDraft.length > 0) {
+                    await guardarMatrizRemota(created.id, matrizDraft);
+                    setMatrizDraft([]);
+                }
+            }
+
+            // Siempre disparamos el trigger para asegurar que el editor guarde cualquier cambio pendiente
             setGuardarTrigger((prev) => prev + 1);
             await loadConceptos();
-            return;
+            alert("Concepto guardado correctamente.");
+        } catch (error) {
+            console.error("Error al guardar concepto:", error);
+            alert("Error al guardar el concepto.");
         }
-        const created = await apiFetch<Concepto>(`/conceptos`, { method: "POST", body: payload });
-        await guardarMatrizRemota(created.id, matrizDraft);
-        setConceptoForm((prev) => ({ ...prev, id: created.id }));
-        setSelectedConceptId(created.id);
-        setMatrizDraft([]);
-        await loadConceptos();
     }
 
     async function handleBorrarTodo() {
@@ -297,6 +315,12 @@ export function AnalisisPuPage() {
 
         if (matrizParaEnviar.length === 0) {
             alert("La matriz de insumos esta vacia. No se puede generar una nota de venta.");
+            return;
+        }
+
+        // Asegurarnos de que el concepto esté guardado antes de generar la nota
+        if (!hayConceptoGuardado) {
+            alert("Por favor guarda el concepto antes de generar la nota de venta.");
             return;
         }
 
