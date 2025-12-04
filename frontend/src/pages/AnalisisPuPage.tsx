@@ -88,6 +88,7 @@ export function AnalisisPuPage() {
     const [resumen, setResumen] = useState({ costo_directo: 0, precio_unitario: 0 });
     const [iaExplanation, setIaExplanation] = useState<string>("");
     const [textoDetalles, setTextoDetalles] = useState<string>("");
+    const [metrosCuadrados, setMetrosCuadrados] = useState<number>(0);
 
     const idPrefix = useId().replace(/:/g, "");
     const [cargandoIA, setCargandoIA] = useState(false);
@@ -284,7 +285,7 @@ export function AnalisisPuPage() {
         if (!conceptoForm.descripcion) return;
         setCargandoIA(true);
         try {
-            const data = await apiFetch<ChatApuResponse>(`/ia/chat_apu`, {
+            const data = await apiFetch<ChatApuResponse & { metros_cuadrados_construccion?: number }>(`/ia/chat_apu`, {
                 method: "POST",
                 body: {
                     descripcion: conceptoForm.descripcion,
@@ -297,6 +298,7 @@ export function AnalisisPuPage() {
             const explicacion = data.explicacion ?? "";
             setIaExplanation(explicacion);
             setTextoDetalles(explicacion);
+            setMetrosCuadrados(data.metros_cuadrados_construccion || 0);
         } catch (error) {
             console.error("Error al solicitar /ia/chat_apu", error);
         } finally {
@@ -431,6 +433,17 @@ export function AnalisisPuPage() {
                                 />
                             </div>
                         </div>
+                        <div className="mt-4 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={handleSugerirAPUConIA}
+                                disabled={!conceptoForm.descripcion}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm w-full justify-center sm:w-auto"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                                Sugerencia Gemini
+                            </button>
+                        </div>
                         <p className="text-xs text-gray-400 mt-2 italic">
                             Mientras más completa sea la descripción, mejor será la sugerencia de la IA.
                         </p>
@@ -451,6 +464,17 @@ export function AnalisisPuPage() {
                                 <strong className="text-lg text-indigo-600">${resumen.precio_unitario.toFixed(4)}</strong>
                             </div>
                         </div>
+
+                        {/* Metros Cuadrados de Construcción (Nuevo Campo) */}
+                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <span className="block text-xs text-blue-600 mb-1 font-semibold uppercase">Metros Cuadrados de Construcción</span>
+                            <div className="flex items-baseline gap-2">
+                                <strong className="text-2xl text-blue-800">{metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}</strong>
+                                <span className="text-sm text-blue-600">m²</span>
+                            </div>
+                            <p className="text-[10px] text-blue-400 mt-1">Calculado por Gemini basado en la descripción.</p>
+                        </div>
+
                         <p className="text-xs text-gray-500 mb-3">Activa los sobrecostos que deseas incluir:</p>
                         <div className="space-y-3">
                             {(Object.keys(SOBRECOSTO_FIELDS) as FactorToggleKey[]).map((key) => {
@@ -497,54 +521,48 @@ export function AnalisisPuPage() {
 
                 {/* Columna Derecha */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Tarjeta Acciones */}
+                    {/* Botones de Acción (Reacomodados) */}
+                    <div className="flex flex-wrap gap-2 justify-end">
+                        <button
+                            type="button"
+                            onClick={handleAbrirConcepto}
+                            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                            <span>📂</span> Abrir
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleGuardarConcepto}
+                            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+                            Guardar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleBorrarTodo}
+                            className="bg-white border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        >
+                            Borrar todo
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!hayConceptoGuardado}
+                            onClick={handleGenerarNotaVenta}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2" /><path d="M14 2v6h6" /><path d="M3 15h6" /><path d="M3 18h6" /><path d="M3 12h6" /></svg>
+                            Nota de Venta
+                        </button>
+                    </div>
+
+                    {/* Tarjeta Descripción Gemini */}
                     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                         <header className="mb-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase">Acciones</p>
+                            <p className="text-xs font-bold text-gray-500 uppercase">Descripción Gemini</p>
                         </header>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                onClick={handleSugerirAPUConIA}
-                                disabled={!conceptoForm.descripcion}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                                Sugerencia Gemini
-                            </button>
-
-                            <div className="w-px h-8 bg-gray-300 mx-2 self-center hidden sm:block"></div>
-                            <button
-                                type="button"
-                                onClick={handleAbrirConcepto}
-                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                            >
-                                <span>📂</span> Abrir
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleGuardarConcepto}
-                                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-                                Guardar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleBorrarTodo}
-                                className="bg-white border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                Borrar todo
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!hayConceptoGuardado}
-                                onClick={handleGenerarNotaVenta}
-                                className="ml-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2" /><path d="M14 2v6h6" /><path d="M3 15h6" /><path d="M3 18h6" /><path d="M3 12h6" /></svg>
-                                Nota de Venta
-                            </button>
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 text-sm text-slate-700 leading-relaxed min-h-[60px]">
+                            {textoDetalles || "Aquí aparecerá la explicación detallada de la sugerencia generada por Gemini."}
                         </div>
                     </section>
 
@@ -567,16 +585,18 @@ export function AnalisisPuPage() {
                         />
                     )}
                 </div>
-            </div>
+            </div >
 
             <NotaVentaModal nota={notaVentaData} matriz={matrizNotaVenta} onClose={() => setNotaVentaData(null)} />
 
-            {showSelector && (
-                <ConceptoSelectorModal
-                    onSelect={handleConceptoSeleccionado}
-                    onClose={() => setShowSelector(false)}
-                />
-            )}
-        </div>
+            {
+                showSelector && (
+                    <ConceptoSelectorModal
+                        onSelect={handleConceptoSeleccionado}
+                        onClose={() => setShowSelector(false)}
+                    />
+                )
+            }
+        </div >
     );
 }

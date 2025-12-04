@@ -828,7 +828,7 @@ export function ConceptoMatrizEditor({
     }
 
     return (
-        <section className="concepto-editor">
+        <section className="concepto-editor bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <header className="concepto-editor__header">
                 {calculando && <small className="concepto-editor__estado">Calculando...</small>}
             </header>
@@ -840,7 +840,7 @@ export function ConceptoMatrizEditor({
                             Tipo Insumo
                             {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                         </th>
-                        <th className="min-w-[300px]">
+                        <th className="min-w-[350px]">
                             Insumo
                             {renderTooltip("Recurso específico extraído del Catálogo.")}
                         </th>
@@ -858,17 +858,17 @@ export function ConceptoMatrizEditor({
                             Precio Unitario
                             {renderTooltip("Costo base del insumo por unidad. Si es nuevo, ingrésalo aquí para agregarlo.")}
                         </th>
-                        <th className="w-[100px]">
+                        <th className="w-[120px]">
                             Merma (%)
                             {renderTooltip(
                                 "Porcentaje de desperdicio que se suma al consumo teórico del material (ej., 3% de pérdida por manejo). Este porcentaje incrementa el Costo Total del insumo."
                             )}
                         </th>
-                        <th className="w-[120px]">
+                        <th className="w-[140px]">
                             Flete Unitario
                             {renderTooltip("Costo de transporte o acarreo del material hasta el sitio de la obra, prorrateado por la unidad del insumo.")}
                         </th>
-                        <th className="w-[120px]">
+                        <th className="w-[140px]">
                             Rendimiento Diario
                             {renderTooltip(
                                 "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
@@ -878,7 +878,7 @@ export function ConceptoMatrizEditor({
                             Costo Total
                             {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
                         </th>
-                        <th className="w-[80px]">
+                        <th className="w-[160px]">
                             Acciones
                             {renderTooltip("Acciones disponibles para el insumo (Eliminar).")}
                         </th>
@@ -935,23 +935,19 @@ export function ConceptoMatrizEditor({
                                 />
                             </td>
                             <td className="p-2">
-                                {row.existe_en_catalogo ? (
-                                    <div className="flex items-center justify-end h-10 px-3 bg-gray-50 rounded border border-gray-200 text-gray-700 text-sm font-medium">
-                                        {formatearMoneda(obtenerPrecioUnitarioBase(row))}
-                                    </div>
-                                ) : (
-                                    <input
-                                        type="number"
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
-                                        placeholder="0.00"
-                                        value={row.precio_unitario_temp ?? ""}
-                                        onChange={(e) =>
-                                            handleRowChange(index, {
-                                                precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value),
-                                            })
-                                        }
-                                    />
-                                )}
+                                <input
+                                    type="number"
+                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                    placeholder="0.00"
+                                    defaultValue={row.existe_en_catalogo ? obtenerPrecioUnitarioBase(row) : (row.precio_unitario_temp ?? "")}
+                                    onChange={(e) => {
+                                        // Si existe en catalogo, podriamos querer actualizar el precio temporal o manejarlo diferente
+                                        // Por ahora, permitimos la edicion local en precio_unitario_temp
+                                        handleRowChange(index, {
+                                            precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value),
+                                        })
+                                    }}
+                                />
                             </td>
                             <td className="p-2">
                                 {row.tipo_insumo === "Material" ? (
@@ -1019,28 +1015,29 @@ export function ConceptoMatrizEditor({
                             <td className="p-2 text-right font-medium text-gray-900">
                                 {formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}
                             </td>
-                            <td className="p-2 text-center">
-                                {row.existe_en_catalogo === false ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleQuickAdd(index)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded h-10 w-full"
-                                    >
-                                        Agregar
-                                    </button>
-                                ) : (
+                            <td className="p-2">
+                                <div className="flex gap-1">
+                                    {!row.existe_en_catalogo && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleQuickAdd(index)}
+                                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded h-10 w-full font-medium"
+                                        >
+                                            Guardar
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => handleDeleteRow(row.id, index)}
-                                        className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded h-10 w-full text-xs font-medium transition-colors"
+                                        className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2 py-1 rounded h-10 w-full font-medium"
                                     >
                                         Eliminar
                                     </button>
-                                )}
+                                </div>
                             </td>
                         </tr>
                     ))}
-                    <tr className="bg-gray-50/50">
+                    <tr className="bg-gray-50">
                         <td className="p-2">
                             <select
                                 id={`${idPrefix}-draft-tipo`}

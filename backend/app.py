@@ -1176,6 +1176,7 @@ Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
 
 {{
   "explicacion": "Breve justificacion tecnica de los materiales, mano de obra y rendimientos elegidos. Menciona si calculaste por unidad o total.",
+  "metros_cuadrados_construccion": 0.0,
   "insumos": [
     {{
       "tipo_insumo": "Material | Mano de Obra | Equipo | Maquinaria",
@@ -1193,6 +1194,7 @@ Reglas:
 - Usa cantidades y rendimientos REALISTAS para obra tradicional en Mexico.
 - Incluye TODOS los materiales necesarios (mortero, acero, cimbra si aplica).
 - Para Mano de Obra, usa 'jornada' y especifica el rendimiento diario (cuanto hace la cuadrilla en un dia).
+- CALCULA los metros cuadrados de construccion basados en las dimensiones de la descripcion (ej. 22m x 2.8m = 61.6m2) y ponlo en "metros_cuadrados_construccion". Si no aplica, pon 0.
 - NO incluyas ningun comentario fuera del JSON.
 """
 
@@ -1361,9 +1363,11 @@ def chat_apu():
     sugerencias: List[Dict] = []
     explicacion = ""
 
+    metros_cuadrados = 0.0
     if data_gemini is not None:
         sugerencias = construir_matriz_desde_gemini(data_gemini)
         explicacion = data_gemini.get("explicacion") or ""
+        metros_cuadrados = data_gemini.get("metros_cuadrados_construccion", 0.0)
 
     if not sugerencias:
         sugerencias = construir_sugerencia_apu(descripcion, concepto_id)
@@ -1417,7 +1421,11 @@ def chat_apu():
             }
         )
 
-    return jsonify({"explicacion": explicacion, "insumos": insumos_json})
+    return jsonify({
+        "explicacion": explicacion,
+        "insumos": insumos_json,
+        "metros_cuadrados_construccion": metros_cuadrados
+    })
 
 @app.route("/api/ia/explicar_sugerencia", methods=["GET"])
 def explicar_sugerencia():
