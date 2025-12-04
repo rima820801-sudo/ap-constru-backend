@@ -729,7 +729,7 @@ export function ConceptoMatrizEditor({
             <table className="matriz-table">
                 <thead>
                     <tr>
-                        <th className="w-[140px]">
+                        <th className="w-[180px]">
                             Tipo Insumo
                             {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                         </th>
