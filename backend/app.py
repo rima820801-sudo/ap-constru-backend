@@ -1166,8 +1166,9 @@ Unidad del concepto: "{unidad}"
 
 Instrucciones CRITICAS para cantidades y volumetria:
 1. Analiza las dimensiones en la descripcion (largo, alto, ancho) para calcular la volumetria total.
-   - SIEMPRE calcula "metros_cuadrados_construccion" si la descripcion tiene dimensiones, INDEPENDIENTEMENTE de la unidad solicitada.
-   - Ejemplo: "Barda 20m x 2m", metros_cuadrados_construccion = 40.0.
+   - SIEMPRE calcula "metros_cuadrados_construccion" si la descripcion tiene dimensiones.
+   - IMPORTANTE: Este valor debe ser el AREA PRINCIPAL del concepto (ej. area de la losa, area del muro), NO la suma de cimbra ni otros elementos.
+   - Ejemplo: "Losa de 8m x 10m", metros_cuadrados_construccion = 80.0.
 2. Si la 'Unidad del concepto' es "m2", "m3", "ml", "kg", "ton", calcula la cantidad de insumos necesaria para UNA sola unidad de esa medida (Unitario).
    - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas.
 3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, calcula los materiales TOTALES.

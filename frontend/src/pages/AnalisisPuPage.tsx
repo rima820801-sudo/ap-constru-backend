@@ -81,21 +81,70 @@ const emptyConceptoForm = (): ConceptoForm => ({
 });
 
 export function AnalisisPuPage() {
-    const [conceptoForm, setConceptoForm] = useState<ConceptoForm>(() => emptyConceptoForm());
+    const [conceptoForm, setConceptoForm] = useState<ConceptoForm>(() => {
+        const saved = localStorage.getItem("apu_draft_form");
+        return saved ? JSON.parse(saved) : emptyConceptoForm();
+    });
     const [selectedConceptId, setSelectedConceptId] = useState<number | null>(null);
-    const [iaRows, setIaRows] = useState<MatrizRow[] | null>(null);
+    const [iaRows, setIaRows] = useState<MatrizRow[] | null>(() => {
+        const saved = localStorage.getItem("apu_draft_ia_rows");
+        return saved ? JSON.parse(saved) : null;
+    });
     const [guardarTrigger, setGuardarTrigger] = useState(0);
     const [resumen, setResumen] = useState({ costo_directo: 0, precio_unitario: 0 });
-    const [iaExplanation, setIaExplanation] = useState<string>("");
-    const [textoDetalles, setTextoDetalles] = useState<string>("");
-    const [metrosCuadrados, setMetrosCuadrados] = useState<number>(0);
+    const [iaExplanation, setIaExplanation] = useState<string>(() => {
+        return localStorage.getItem("apu_draft_ia_explanation") || "";
+    });
+    const [textoDetalles, setTextoDetalles] = useState<string>(() => {
+        return localStorage.getItem("apu_draft_texto_detalles") || "";
+    });
+    const [metrosCuadrados, setMetrosCuadrados] = useState<number>(() => {
+        const saved = localStorage.getItem("apu_draft_metros_cuadrados");
+        return saved ? Number(saved) : 0;
+    });
 
     const idPrefix = useId().replace(/:/g, "");
     const [cargandoIA, setCargandoIA] = useState(false);
-    const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>([]);
+    const [matrizDraft, setMatrizDraft] = useState<MatrizRow[]>(() => {
+        const saved = localStorage.getItem("apu_draft_matriz");
+        return saved ? JSON.parse(saved) : [];
+    });
     const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
     const [matrizNotaVenta, setMatrizNotaVenta] = useState<MatrizRow[]>([]);
-    const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => initialSobrecostos());
+    const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => {
+        const saved = localStorage.getItem("apu_draft_sobrecostos");
+        return saved ? JSON.parse(saved) : initialSobrecostos();
+    });
+
+    // Persistence Effects
+    useEffect(() => {
+        localStorage.setItem("apu_draft_form", JSON.stringify(conceptoForm));
+    }, [conceptoForm]);
+
+    useEffect(() => {
+        localStorage.setItem("apu_draft_matriz", JSON.stringify(matrizDraft));
+    }, [matrizDraft]);
+
+    useEffect(() => {
+        localStorage.setItem("apu_draft_sobrecostos", JSON.stringify(sobrecostos));
+    }, [sobrecostos]);
+
+    useEffect(() => {
+        if (iaRows) localStorage.setItem("apu_draft_ia_rows", JSON.stringify(iaRows));
+        else localStorage.removeItem("apu_draft_ia_rows");
+    }, [iaRows]);
+
+    useEffect(() => {
+        localStorage.setItem("apu_draft_ia_explanation", iaExplanation);
+    }, [iaExplanation]);
+
+    useEffect(() => {
+        localStorage.setItem("apu_draft_texto_detalles", textoDetalles);
+    }, [textoDetalles]);
+
+    useEffect(() => {
+        localStorage.setItem("apu_draft_metros_cuadrados", String(metrosCuadrados));
+    }, [metrosCuadrados]);
     const [showSelector, setShowSelector] = useState(false);
 
     useEffect(() => {
@@ -245,27 +294,26 @@ export function AnalisisPuPage() {
     }
 
     async function handleBorrarTodo() {
-        if (!hayConceptoGuardado && (conceptoForm.descripcion || matrizDraft.length > 0)) {
-            if (!confirm("Este proyecto no se ha guardado y no habrá forma de recuperarlo. ¿Estás seguro?")) {
-                return;
-            }
-        } else if (hayConceptoGuardado) {
-            if (!confirm("¿Estás seguro de limpiar el editor? Se perderán los cambios no guardados.")) {
-                return;
-            }
-        }
+        if (!confirm("¿Estás seguro de borrar todo el contenido actual?")) return;
 
         setConceptoForm(emptyConceptoForm());
-        setSelectedConceptId(null);
         setMatrizDraft([]);
         setIaRows(null);
         setIaExplanation("");
         setTextoDetalles("");
+        setMetrosCuadrados(0);
+        setSobrecostos(initialSobrecostos());
+        setSelectedConceptId(null);
         setResumen({ costo_directo: 0, precio_unitario: 0 });
 
-        localStorage.removeItem("apu_builder_form");
-        localStorage.removeItem("apu_builder_ia_rows");
-        localStorage.removeItem("apu_builder_ia_explanation");
+        // Clear localStorage
+        localStorage.removeItem("apu_draft_form");
+        localStorage.removeItem("apu_draft_matriz");
+        localStorage.removeItem("apu_draft_sobrecostos");
+        localStorage.removeItem("apu_draft_ia_rows");
+        localStorage.removeItem("apu_draft_ia_explanation");
+        localStorage.removeItem("apu_draft_texto_detalles");
+        localStorage.removeItem("apu_draft_metros_cuadrados");
     }
 
     function handleAbrirConcepto() {
@@ -566,16 +614,6 @@ export function AnalisisPuPage() {
                             Nota de Venta
                         </button>
                     </div>
-
-                    {/* Tarjeta Descripción Gemini */}
-                    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                        <header className="mb-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase">Descripción Gemini</p>
-                        </header>
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 text-sm text-slate-700 leading-relaxed min-h-[60px]">
-                            {textoDetalles || "Aquí aparecerá la explicación detallada de la sugerencia generada por Gemini."}
-                        </div>
-                    </section>
 
                     {cargandoIA ? (
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex justify-center items-center min-h-[400px]">
