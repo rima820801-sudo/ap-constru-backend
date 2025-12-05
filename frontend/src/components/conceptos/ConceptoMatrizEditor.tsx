@@ -827,58 +827,63 @@ export function ConceptoMatrizEditor({
     }
 
     return (
-        <section className="concepto-editor bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+        <section className="concepto-editor bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col relative">
             <header className="concepto-editor__header">
-                {calculando && <small className="concepto-editor__estado">Calculando...</small>}
+                {calculando && (
+                    <div className="absolute top-2 right-2 flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm border border-indigo-100 z-20 transition-all animate-in fade-in slide-in-from-top-2">
+                        <div className="animate-spin h-3 w-3 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                        <span className="text-xs font-medium text-indigo-600">Calculando...</span>
+                    </div>
+                )}
             </header>
 
             <div className="overflow-x-auto w-full">
                 <table className="concepto-editor__tabla min-w-full divide-y divide-gray-200">
                     <thead>
                         <tr>
-                            <th className="w-[140px]">
+                            <th className="w-[120px]">
                                 Tipo Insumo
                                 {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
                             </th>
-                            <th className="min-w-[350px]">
+                            <th className="min-w-[300px]">
                                 Insumo
                                 {renderTooltip("Recurso específico extraído del Catálogo.")}
                             </th>
-                            <th className="w-[100px]">
+                            <th className="w-[80px]">
                                 Unidad
                                 {renderTooltip("Unidad de medida del insumo (ej., saco, m3, jornada).")}
                             </th>
-                            <th className="w-[110px]">
+                            <th className="w-[100px]">
                                 Cantidad
                                 {renderTooltip(
                                     "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m³ de muro)."
                                 )}
                             </th>
-                            <th className="w-[130px]">
+                            <th className="w-[120px]">
                                 Precio Unitario
                                 {renderTooltip("Costo base del insumo por unidad. Si es nuevo, ingrésalo aquí para agregarlo.")}
                             </th>
-                            <th className="w-[120px]">
+                            <th className="w-[100px]">
                                 Merma (%)
                                 {renderTooltip(
                                     "Porcentaje de desperdicio que se suma al consumo teórico del material (ej., 3% de pérdida por manejo). Este porcentaje incrementa el Costo Total del insumo."
                                 )}
                             </th>
-                            <th className="w-[140px]">
+                            <th className="w-[120px]">
                                 Flete Unitario
                                 {renderTooltip("Costo de transporte o acarreo del material hasta el sitio de la obra, prorrateado por la unidad del insumo.")}
                             </th>
-                            <th className="w-[140px]">
+                            <th className="w-[120px]">
                                 Rendimiento Diario
                                 {renderTooltip(
                                     "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
                                 )}
                             </th>
-                            <th className="w-[140px] text-right">
+                            <th className="w-[120px] text-right">
                                 Costo Total
                                 {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
                             </th>
-                            <th className="w-[160px]">
+                            <th className="w-[100px]">
                                 Acciones
                                 {renderTooltip("Acciones disponibles para el insumo (Eliminar).")}
                             </th>
@@ -891,7 +896,7 @@ export function ConceptoMatrizEditor({
                                     <select
                                         id={`${idPrefix}-tipo-${index}`}
                                         name={`${idPrefix}-tipo-${index}`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10"
+                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 transition-all duration-200"
                                         aria-label="Tipo de insumo"
                                         value={row.tipo_insumo}
                                         onChange={(event) => {
@@ -921,7 +926,7 @@ export function ConceptoMatrizEditor({
                                     <input
                                         id={`${idPrefix}-cantidad-${index}`}
                                         name={`${idPrefix}-cantidad-${index}`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
                                         aria-label="Cantidad"
                                         type="number"
                                         min="0"
@@ -937,7 +942,7 @@ export function ConceptoMatrizEditor({
                                 <td className="p-2">
                                     <input
                                         type="number"
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
                                         placeholder="0.00"
                                         defaultValue={row.existe_en_catalogo ? obtenerPrecioUnitarioBase(row) : (row.precio_unitario_temp ?? "")}
                                         onChange={(e) => {
@@ -954,7 +959,7 @@ export function ConceptoMatrizEditor({
                                         <input
                                             id={`${idPrefix}-merma-${index}`}
                                             name={`${idPrefix}-merma-${index}`}
-                                            className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
                                             aria-label="Porcentaje de merma"
                                             type="number"
                                             step="0.0001"
@@ -974,7 +979,7 @@ export function ConceptoMatrizEditor({
                                         <input
                                             id={`${idPrefix}-flete-${index}`}
                                             name={`${idPrefix}-flete-${index}`}
-                                            className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
                                             aria-label="Precio flete unitario"
                                             type="number"
                                             step="0.01"
@@ -995,7 +1000,7 @@ export function ConceptoMatrizEditor({
                                         <input
                                             id={`${idPrefix}-rendimiento-${index}`}
                                             name={`${idPrefix}-rendimiento-${index}`}
-                                            className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
+                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
                                             aria-label="Rendimiento jornada"
                                             type="number"
                                             min="0"
@@ -1216,7 +1221,7 @@ export function ConceptoMatrizEditor({
                 <select
                     id={index >= 0 ? `${idPrefix}-insumo-select-${index}` : `${idPrefix}-draft-insumo-select`}
                     name={index >= 0 ? `${idPrefix}-insumo-select-${index}` : `${idPrefix}-draft-insumo-select`}
-                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full"
+                    className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 transition-all duration-200"
                     aria-label="Seleccionar insumo"
                     value={row.id_insumo}
                     title={row.justificacion_breve ?? undefined}

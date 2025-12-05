@@ -510,66 +510,89 @@ export function AnalisisPuPage() {
 
                     {/* Tarjeta Resumen */}
                     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                        <header className="mb-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase">Resumen financiero</p>
+                        <header className="mb-6 flex items-center justify-between">
+                            <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">Resumen Financiero</p>
+                            {cargandoIA && <span className="text-xs text-indigo-500 animate-pulse font-medium">Actualizando...</span>}
                         </header>
-                        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                            <div>
-                                <span className="block text-xs text-gray-500 mb-1">Costo directo</span>
-                                <strong className="text-lg text-gray-900">${resumen.costo_directo.toFixed(2)}</strong>
+
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Costo Directo</span>
+                                <strong className="text-xl text-gray-900 tracking-tight">${resumen.costo_directo.toFixed(2)}</strong>
                             </div>
-                            <div>
-                                <span className="block text-xs text-gray-500 mb-1">Precio unitario</span>
-                                <strong className="text-lg text-indigo-600">${resumen.precio_unitario.toFixed(4)}</strong>
+                            <div className="p-4 bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                <span className="block text-[10px] font-semibold text-indigo-400 uppercase tracking-wide mb-1">Precio Unitario</span>
+                                <strong className="text-xl text-indigo-600 tracking-tight">${resumen.precio_unitario.toFixed(2)}</strong>
                             </div>
                         </div>
 
-                        {/* Metros Cuadrados de Construcción (Nuevo Campo) */}
-                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                            <span className="block text-xs text-blue-600 mb-1 font-semibold uppercase">Metros Cuadrados de Construcción</span>
-                            <div className="flex items-baseline gap-2">
-                                <strong className="text-2xl text-blue-800">{metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}</strong>
-                                <span className="text-sm text-blue-600">m²</span>
+                        {/* Metros Cuadrados de Construcción (Rediseñado) */}
+                        <div className="mb-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between group hover:bg-blue-50 transition-colors duration-300">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Construcción Estimada</span>
+                                    <div className="relative group/tooltip">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 cursor-help"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 14a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm1-4.5V12a1 1 0 0 0-2 0v-1.5a2.5 2.5 0 1 1 2.5 2.5z" /></svg>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                            Calculado por Gemini basado en la descripción
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-baseline gap-1">
+                                    <strong className="text-2xl text-gray-800 font-bold tracking-tight">{metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}</strong>
+                                    <span className="text-xs text-gray-500 font-medium">m²</span>
+                                </div>
                             </div>
-                            <p className="text-[10px] text-blue-400 mt-1">Calculado por Gemini basado en la descripción.</p>
+                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4 8 4v14" /><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21" /></svg>
+                            </div>
                         </div>
 
-                        <p className="text-xs text-gray-500 mb-3">Activa los sobrecostos que deseas incluir:</p>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
+                            <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">Factores de Sobrecosto</p>
                             {(Object.keys(SOBRECOSTO_FIELDS) as FactorToggleKey[]).map((key) => {
                                 const config = sobrecostos[key];
                                 const meta = SOBRECOSTO_FIELDS[key];
                                 return (
-                                    <div key={key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="checkbox"
-                                                id={`${idPrefix}-toggle-${key}`}
-                                                name={`${idPrefix}-toggle-${key}`}
-                                                checked={config.activo}
-                                                onChange={(event) => handleSobrecostoToggle(key, event.target.checked)}
-                                                className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                                                aria-label={`Activar ${meta.label}`}
-                                            />
-                                            <div>
-                                                <span className="block text-sm font-medium text-gray-700">{meta.label}</span>
-                                                <span className="block text-[10px] text-gray-400">{meta.description}</span>
+                                    <div key={key} className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${config.activo ? 'bg-white border-indigo-100 shadow-sm' : 'bg-gray-50/50 border-transparent hover:bg-gray-50'}`}>
+                                        <div className="flex items-center gap-3">
+                                            {/* Custom Switch */}
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={config.activo}
+                                                onClick={() => handleSobrecostoToggle(key, !config.activo)}
+                                                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${config.activo ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                            >
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${config.activo ? 'translate-x-4' : 'translate-x-0'}`}
+                                                />
+                                            </button>
+
+                                            <div className="flex flex-col">
+                                                <span className={`text-sm font-medium transition-colors ${config.activo ? 'text-gray-900' : 'text-gray-500'}`}>{meta.label}</span>
+                                                <span className="text-[10px] text-gray-400 hidden sm:block">{meta.description}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                id={`${idPrefix}-porcentaje-${key}`}
-                                                name={`${idPrefix}-porcentaje-${key}`}
-                                                min={0}
-                                                step={0.1}
-                                                value={config.porcentaje}
-                                                onChange={(event) => handleSobrecostoPorcentaje(key, event.target.value)}
-                                                disabled={!config.activo}
-                                                className="w-16 text-right text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-400"
-                                                aria-label={`Porcentaje de ${meta.label}`}
-                                            />
-                                            <span className="text-xs text-gray-500">%</span>
+
+                                        <div className={`flex items-center gap-2 transition-all duration-300 ${config.activo ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    id={`${idPrefix}-porcentaje-${key}`}
+                                                    name={`${idPrefix}-porcentaje-${key}`}
+                                                    min={0}
+                                                    step={0.1}
+                                                    value={config.porcentaje}
+                                                    onChange={(event) => handleSobrecostoPorcentaje(key, event.target.value)}
+                                                    disabled={!config.activo}
+                                                    className="w-16 text-right text-sm font-medium bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 py-1.5 pr-6 text-gray-900 placeholder:text-gray-300"
+                                                    placeholder="0"
+                                                />
+                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 );
