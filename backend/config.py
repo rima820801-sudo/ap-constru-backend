@@ -15,4 +15,4 @@ class Config:
     PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
     # Updated to gemini-2.5-flash as per user requirement (from image)
-    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
