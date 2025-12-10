@@ -1,3 +1,10 @@
+import sys
+import os
+
+# Add the parent directory to sys.path to allow absolute imports (e.g., 'from backend.config ...')
+# even when running from inside the 'backend' directory (common in Render/Gunicorn setups).
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from backend.config import Config
@@ -60,6 +67,8 @@ def _create_default_admin():
     except Exception as e:
         print(f"Error creando admin: {e}")
 
+# Create app instance for Gunicorn
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     app.run(host="0.0.0.0", port=8000)
