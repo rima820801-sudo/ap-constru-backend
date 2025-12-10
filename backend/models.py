@@ -1,125 +1,202 @@
-from decimal import Decimal, ROUND_HALF_UP
+from datetime import date
+from decimal import Decimal
+from typing import Dict, Optional, List
+from .extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
-from django.core.validators import MinValueValidator
-from django.db import models
+# Helper for date checks (will be used in to_dict)
+PRECIOS_OBSOLETOS_DIAS = int(os.environ.get("PRECIOS_OBSOLETOS_DIAS", "90"))
+
+def is_precio_obsoleto(fecha_actualizacion: Optional[date]) -> bool:
+    """Determina si un precio está obsoleto según PRECIOS_OBSOLETOS_DIAS."""
+    if not fecha_actualizacion:
+        return False
+    try:
+        delta = date.today() - fecha_actualizacion
+        return delta.days > PRECIOS_OBSOLETOS_DIAS
+    except Exception:
+        return False
+
+def decimal_field(value) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, str) and not value.strip():
+        return Decimal("0")
+    return Decimal(str(value))
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "is_admin": self.is_admin,
+        }
 
 
-class ConstantesFASAR(models.Model):
-    """Configuracion editable para el calculo del FASAR (singleton)."""
+class ConstantesFASAR(db.Model):
+    __tablename__ = "constantes_fasar"
 
-    singleton_id = 1
-
-    dias_del_anio = models.PositiveIntegerField(default=365)
-    dias_festivos_obligatorios = models.DecimalField(
-        max_digits=6, decimal_places=2, default=Decimal("7.0")
-    )
-    dias_riesgo_trabajo_promedio = models.DecimalField(
-        max_digits=6, decimal_places=2, default=Decimal("1.5")
-    )
-    dias_vacaciones_minimos = models.PositiveIntegerField(default=12)
-    prima_vacacional_porcentaje = models.DecimalField(
-        max_digits=4, decimal_places=2, default=Decimal("0.25")
-    )
-    dias_aguinaldo_minimos = models.PositiveIntegerField(default=15)
-    suma_cargas_sociales = models.DecimalField(
-        max_digits=5,
-        decimal_places=4,
-        default=Decimal("0.15"),
-        help_text="Sumatoria de las cargas sociales patronales (IMSS, INFONAVIT, etc.).",
-    )
-
-    class Meta:
-        verbose_name = "Constantes FASAR"
-        verbose_name_plural = "Constantes FASAR"
-
-    def save(self, *args, **kwargs):
-        """Fuerza a que solo exista un registro persistiendo siempre con la misma PK."""
-
-        self.pk = self.singleton_id
-        super().save(*args, **kwargs)
+    id = db.Column(db.Integer, primary_key=True, default=1)
+    dias_del_anio = db.Column(db.Integer, default=365)
+    dias_festivos_obligatorios = db.Column(db.Numeric(6, 2), default=Decimal("7.0"))
+    dias_riesgo_trabajo_promedio = db.Column(db.Numeric(6, 2), default=Decimal("1.5"))
+    dias_vacaciones_minimos = db.Column(db.Integer, default=12)
+    prima_vacacional_porcentaje = db.Column(db.Numeric(4, 2), default=Decimal("0.25"))
+    dias_aguinaldo_minimos = db.Column(db.Integer, default=15)
+    suma_cargas_sociales = db.Column(db.Numeric(5, 4), default=Decimal("0.15"))
 
     @classmethod
-    def obtener_constantes(cls) -> "ConstantesFASAR":
-        """Obtiene el registro unico, creandolo si aun no existe."""
+    def get_singleton(cls) -> "ConstantesFASAR":
+        instancia = cls.query.get(1)
+        if not instancia:
+            instancia = cls(id=1)
+            db.session.add(instancia)
+            db.session.commit()
+        return instancia
 
-        constantes, _ = cls.objects.get_or_create(pk=cls.singleton_id)
-        return constantes
-
-
-class Material(models.Model):
-    """Catalogo de materiales basicos utilizados en los conceptos."""
-
-    nombre = models.CharField(max_length=255, unique=True)
-    unidad = models.CharField(max_length=50)
-    precio_unitario = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
-        validators=[MinValueValidator(Decimal("0.0000"))],
-        help_text="Costo del material por unidad (moneda base).",
-    )
-    fecha_actualizacion = models.DateField(
-        help_text="Fecha de la ultima actualizacion del precio unitario."
-    )
-
-    class Meta:
-        ordering = ["nombre"]
-
-    def __str__(self) -> str:
-        return self.nombre
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "dias_del_anio": self.dias_del_anio,
+            "dias_festivos_obligatorios": float(self.dias_festivos_obligatorios),
+            "dias_riesgo_trabajo_promedio": float(self.dias_riesgo_trabajo_promedio),
+            "dias_vacaciones_minimos": self.dias_vacaciones_minimos,
+            "prima_vacacional_porcentaje": float(self.prima_vacacional_porcentaje),
+            "dias_aguinaldo_minimos": self.dias_aguinaldo_minimos,
+            "suma_cargas_sociales": float(self.suma_cargas_sociales),
+        }
 
 
-class Equipo(models.Model):
-    """Catalogo de maquinaria o equipo auxiliar."""
+class Material(db.Model):
+    __tablename__ = "materiales"
 
-    nombre = models.CharField(max_length=255)
-    unidad = models.CharField(max_length=50)
-    costo_hora_maq = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
-        validators=[MinValueValidator(Decimal("0.0000"))],
-        help_text="Costo horario equivalente por maquina.",
-    )
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(255), unique=True, nullable=False)
+    unidad = db.Column(db.String(50), nullable=False)
+    precio_unitario = db.Column(db.Numeric(12, 4), nullable=False)
+    fecha_actualizacion = db.Column(db.Date, default=date.today, nullable=False)
+    disciplina = db.Column(db.String(100), nullable=True)
+    calidad = db.Column(db.String(100), nullable=True)
+    porcentaje_merma = db.Column(db.Numeric(5, 4), default=Decimal("0.03"), nullable=False)
+    precio_flete_unitario = db.Column(db.Numeric(12, 4), default=Decimal("0.00"), nullable=False)
 
-    class Meta:
-        ordering = ["nombre"]
-        unique_together = ("nombre", "unidad")
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "unidad": self.unidad,
+            "precio_unitario": float(self.precio_unitario),
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat(),
+            "disciplina": self.disciplina,
+            "calidad": self.calidad,
+            "obsoleto": is_precio_obsoleto(self.fecha_actualizacion),
+            "porcentaje_merma": float(self.porcentaje_merma or 0),
+            "precio_flete_unitario": float(self.precio_flete_unitario or 0),
+        }
 
-    def __str__(self) -> str:
-        return self.nombre
+
+class Equipo(db.Model):
+    __tablename__ = "equipos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(255), nullable=False)
+    unidad = db.Column(db.String(50), nullable=False)
+    disciplina = db.Column(db.String(100), nullable=True)
+    calidad = db.Column(db.String(100), nullable=True)
+    fecha_actualizacion = db.Column(db.Date, default=date.today, nullable=False)
+    costo_hora_maq = db.Column(db.Numeric(12, 4), nullable=False)
+
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "unidad": self.unidad,
+            "disciplina": self.disciplina,
+            "calidad": self.calidad,
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat(),
+            "obsoleto": is_precio_obsoleto(self.fecha_actualizacion),
+            "costo_hora_maq": float(self.costo_hora_maq),
+        }
 
 
-class ManoObra(models.Model):
-    """Catalogo de puestos de trabajo incluyendo calculo automatico del FASAR."""
+class Maquinaria(db.Model):
+    __tablename__ = "maquinaria"
 
-    puesto = models.CharField(max_length=255)
-    salario_base = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-    )
-    antiguedad_anios = models.PositiveIntegerField(default=1)
-    fasar = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        editable=False,
-        help_text="Factor de Salario Real calculado automaticamente.",
-    )
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(255), nullable=False)
+    costo_adquisicion = db.Column(db.Numeric(14, 2), nullable=False)
+    vida_util_horas = db.Column(db.Numeric(14, 2), nullable=False)
+    tasa_interes_anual = db.Column(db.Numeric(5, 4), default=Decimal("0.10"), nullable=False)
+    rendimiento_horario = db.Column(db.Numeric(10, 4), default=Decimal("1.0"), nullable=False)
+    costo_posesion_hora = db.Column(db.Numeric(14, 4), default=Decimal("0.0000"), nullable=False)
+    disciplina = db.Column(db.String(100), nullable=True)
+    calidad = db.Column(db.String(100), nullable=True)
+    fecha_actualizacion = db.Column(db.Date, default=date.today, nullable=False)
 
-    class Meta:
-        ordering = ["puesto"]
-        unique_together = ("puesto", "antiguedad_anios")
+    def actualizar_costo_posesion(self):
+        # Implement logic inline to avoid circular import issues with services
+        costo = decimal_field(self.costo_adquisicion)
+        vida = decimal_field(self.vida_util_horas or Decimal("1.0"))
+        if vida <= 0:
+            vida = Decimal("1.0")
+        tasa = decimal_field(self.tasa_interes_anual or Decimal("0.0"))
+        depreciacion = costo / vida
+        interes = (costo * tasa) / vida
+        self.costo_posesion_hora = depreciacion + interes
 
-    def calcular_fasar(self) -> Decimal:
-        """Calcula el FASAR usando las constantes legales configurables."""
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "disciplina": self.disciplina,
+            "calidad": self.calidad,
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat(),
+            "obsoleto": is_precio_obsoleto(self.fecha_actualizacion),
+            "costo_adquisicion": float(self.costo_adquisicion),
+            "vida_util_horas": float(self.vida_util_horas),
+            "tasa_interes_anual": float(self.tasa_interes_anual or 0),
+            "rendimiento_horario": float(self.rendimiento_horario or 0),
+            "costo_posesion_hora": float(self.costo_posesion_hora or 0),
+        }
 
-        constantes = ConstantesFASAR.obtener_constantes()
+
+class ManoObra(db.Model):
+    __tablename__ = "mano_obra"
+
+    id = db.Column(db.Integer, primary_key=True)
+    puesto = db.Column(db.String(255), nullable=False)
+    salario_base = db.Column(db.Numeric(12, 2), nullable=False)
+    antiguedad_anios = db.Column(db.Integer, default=1, nullable=False)
+    fasar = db.Column(db.Numeric(12, 4), default=Decimal("1.0000"), nullable=False)
+    rendimiento_jornada = db.Column(db.Numeric(10, 4), default=Decimal("1.0000"), nullable=False)
+    disciplina = db.Column(db.String(100), nullable=True)
+    calidad = db.Column(db.String(100), nullable=True)
+    fecha_actualizacion = db.Column(db.Date, default=date.today, nullable=False)
+
+    def refresh_fasar(self):
+        # Inline logic to break dependency cycle
+        constantes = ConstantesFASAR.get_singleton()
         dias_pagados = (
             Decimal(constantes.dias_del_anio)
             + Decimal(constantes.dias_aguinaldo_minimos)
-            + (
-                Decimal(constantes.dias_vacaciones_minimos)
-                * constantes.prima_vacacional_porcentaje
-            )
+            + Decimal(constantes.dias_vacaciones_minimos) * Decimal(constantes.prima_vacacional_porcentaje)
         )
         dias_trabajados = (
             Decimal(constantes.dias_del_anio)
@@ -127,203 +204,163 @@ class ManoObra(models.Model):
             - Decimal(constantes.dias_vacaciones_minimos)
             - Decimal(constantes.dias_riesgo_trabajo_promedio)
         )
-        if dias_trabajados <= 0:
-            raise ValueError("Los dias trabajados resultaron en cero; verifique las constantes FASAR.")
+        factor_dias = dias_pagados / dias_trabajados if dias_trabajados > 0 else Decimal("1.0")
+        factor_cargas = Decimal("1.0") + Decimal(constantes.suma_cargas_sociales)
+        self.fasar = factor_dias * factor_cargas
 
-        factor_dias = dias_pagados / dias_trabajados
-        factor_cargas = Decimal("1.00") + constantes.suma_cargas_sociales
-        fasar = factor_dias * factor_cargas
-        return fasar.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
-
-    def save(self, *args, **kwargs):
-        self.fasar = self.calcular_fasar()
-        super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return self.puesto
-
-    @property
-    def costo_unitario(self) -> Decimal:
-        """Devuelve el salario real aplicado al FASAR."""
-
-        return (self.salario_base * self.fasar).quantize(
-            Decimal("0.0001"), rounding=ROUND_HALF_UP
-        )
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "puesto": self.puesto,
+            "salario_base": float(self.salario_base),
+            "antiguedad_anios": self.antiguedad_anios,
+            "fasar": float(self.fasar),
+            "rendimiento_jornada": float(self.rendimiento_jornada or 0),
+            "disciplina": self.disciplina,
+            "calidad": self.calidad,
+            "fecha_actualizacion": self.fecha_actualizacion.isoformat(),
+            "obsoleto": is_precio_obsoleto(self.fecha_actualizacion),
+        }
 
 
-class Concepto(models.Model):
-    """Concepto dentro de la matriz de analisis de precio unitario."""
+class Concepto(db.Model):
+    __tablename__ = "conceptos"
 
-    clave = models.CharField(max_length=50, unique=True)
-    descripcion = models.TextField()
-    unidad_concepto = models.CharField(max_length=50)
+    id = db.Column(db.Integer, primary_key=True)
+    clave = db.Column(db.String(50), unique=True, nullable=False)
+    descripcion = db.Column(db.Text, nullable=False)
+    unidad_concepto = db.Column(db.String(50), nullable=False)
 
-    class Meta:
-        ordering = ["clave"]
+    insumos = db.relationship("MatrizInsumo", backref="concepto", cascade="all, delete-orphan")
 
-    def __str__(self) -> str:
-        return f"{self.clave} - {self.descripcion[:40]}"
-
-
-class MatrizInsumo(models.Model):
-    """Relacion de insumos por concepto para integrar el precio unitario."""
-
-    class TipoInsumo(models.TextChoices):
-        MATERIAL = "Material", "Material"
-        MANO_OBRA = "ManoObra", "Mano de Obra"
-        EQUIPO = "Equipo", "Equipo"
-
-    concepto = models.ForeignKey(
-        Concepto,
-        on_delete=models.CASCADE,
-        related_name="matrix_insumos",
-    )
-    tipo_insumo = models.CharField(max_length=20, choices=TipoInsumo.choices)
-    id_insumo = models.PositiveIntegerField(
-        help_text="Identificador del insumo en su catalogo especifico."
-    )
-    cantidad = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
-        validators=[MinValueValidator(Decimal("0.0001"))],
-        help_text="Cantidad del insumo para producir una unidad del concepto.",
-    )
-
-    class Meta:
-        unique_together = ("concepto", "tipo_insumo", "id_insumo")
-
-    def __str__(self) -> str:
-        return f"{self.concepto.clave} | {self.tipo_insumo} ({self.id_insumo})"
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "clave": self.clave,
+            "descripcion": self.descripcion,
+            "unidad_concepto": self.unidad_concepto,
+        }
 
 
-class Proyecto(models.Model):
-    """Proyecto general que agrupa el presupuesto."""
+class MatrizInsumo(db.Model):
+    __tablename__ = "matriz_insumo"
 
-    nombre_proyecto = models.CharField(max_length=255)
-    ubicacion = models.CharField(max_length=255)
-    fecha_creacion = models.DateField()
+    id = db.Column(db.Integer, primary_key=True)
+    concepto_id = db.Column(db.Integer, db.ForeignKey("conceptos.id"), nullable=False)
+    tipo_insumo = db.Column(db.String(20), nullable=False)
+    id_insumo = db.Column(db.Integer, nullable=False)
+    cantidad = db.Column(db.Numeric(12, 4), nullable=False)
+    porcentaje_merma = db.Column(db.Numeric(6, 4), nullable=True)
+    precio_flete_unitario = db.Column(db.Numeric(12, 4), nullable=True)
 
-    class Meta:
-        ordering = ["-fecha_creacion", "nombre_proyecto"]
-
-    def __str__(self) -> str:
-        return self.nombre_proyecto
-
-
-class Partida(models.Model):
-    """Partidas o capitulos de un presupuesto."""
-
-    proyecto = models.ForeignKey(
-        Proyecto,
-        on_delete=models.CASCADE,
-        related_name="partidas",
-    )
-    nombre_partida = models.CharField(max_length=255)
-
-    class Meta:
-        ordering = ["proyecto", "nombre_partida"]
-        unique_together = ("proyecto", "nombre_partida")
-
-    def __str__(self) -> str:
-        return f"{self.proyecto.nombre_proyecto} - {self.nombre_partida}"
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "concepto": self.concepto_id,
+            "tipo_insumo": self.tipo_insumo,
+            "id_insumo": self.id_insumo,
+            "cantidad": float(self.cantidad),
+            "porcentaje_merma": float(self.porcentaje_merma) if self.porcentaje_merma is not None else None,
+            "precio_flete_unitario": float(self.precio_flete_unitario) if self.precio_flete_unitario is not None else None,
+        }
 
 
-class DetallePresupuesto(models.Model):
-    """Detalle de conceptos presupuestados dentro de una partida."""
+class Proyecto(db.Model):
+    __tablename__ = "proyectos"
 
-    partida = models.ForeignKey(
-        Partida,
-        on_delete=models.CASCADE,
-        related_name="detalles",
-    )
-    concepto = models.ForeignKey(
-        Concepto,
-        on_delete=models.CASCADE,
-        related_name="detalles_presupuesto",
-    )
-    cantidad_obra = models.DecimalField(
-        max_digits=14,
-        decimal_places=4,
-        validators=[MinValueValidator(Decimal("0.0001"))],
-    )
-    precio_unitario_calculado = models.DecimalField(
-        max_digits=14,
-        decimal_places=4,
-        null=True,
-        blank=True,
-        help_text="Precio unitario almacenado al momento de la cotizacion.",
-    )
+    id = db.Column(db.Integer, primary_key=True)
+    nombre_proyecto = db.Column(db.String(255), nullable=False)
+    ubicacion = db.Column(db.String(255), nullable=True, default="")
+    descripcion = db.Column(db.Text, nullable=True, default="")
+    fecha_creacion = db.Column(db.Date, default=date.today, nullable=False)
+    ajuste_mano_obra_activo = db.Column(db.Boolean, default=False)
+    ajuste_mano_obra_porcentaje = db.Column(db.Numeric(6, 4), default=Decimal("0.00"))
+    ajuste_indirectos_activo = db.Column(db.Boolean, default=False)
+    ajuste_indirectos_porcentaje = db.Column(db.Numeric(6, 4), default=Decimal("0.00"))
+    ajuste_financiamiento_activo = db.Column(db.Boolean, default=False)
+    ajuste_financiamiento_porcentaje = db.Column(db.Numeric(6, 4), default=Decimal("0.00"))
+    ajuste_utilidad_activo = db.Column(db.Boolean, default=False)
+    ajuste_utilidad_porcentaje = db.Column(db.Numeric(6, 4), default=Decimal("0.00"))
+    ajuste_iva_activo = db.Column(db.Boolean, default=False)
+    ajuste_iva_porcentaje = db.Column(db.Numeric(6, 4), default=Decimal("0.00"))
+    has_presupuesto_maximo = db.Column(db.Boolean, default=False)
+    monto_maximo = db.Column(db.Numeric(14, 2), default=Decimal("0.00"))
 
-    class Meta:
-        ordering = ["partida", "concepto"]
-        unique_together = ("partida", "concepto")
+    partidas = db.relationship("Partida", backref="proyecto", cascade="all, delete-orphan")
 
-    def save(self, *args, **kwargs):
-        if self.precio_unitario_calculado is None:
-            self.precio_unitario_calculado = calcular_precio_unitario(self.concepto_id)
-        super().save(*args, **kwargs)
-
-    @property
-    def importe_total(self) -> Decimal:
-        return (self.cantidad_obra * self.precio_unitario_calculado).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
-
-    def __str__(self) -> str:
-        return f"{self.partida} | {self.concepto.clave}"
-
-
-def calcular_precio_unitario(concepto_id: int) -> Decimal:
-    """Calcula el precio unitario completo para un concepto."""
-
-    insumos = MatrizInsumo.objects.filter(concepto_id=concepto_id)
-    if not insumos.exists():
-        return Decimal("0.0000")
-
-    cd_base = Decimal("0.0000")
-    costo_mano_obra = Decimal("0.0000")
-    material_cache: dict[int, Decimal] = {}
-    mano_obra_cache: dict[int, Decimal] = {}
-    equipo_cache: dict[int, Decimal] = {}
-
-    for insumo in insumos:
-        costo_unitario = _obtener_costo_insumo(
-            insumo.tipo_insumo,
-            insumo.id_insumo,
-            material_cache,
-            mano_obra_cache,
-            equipo_cache,
-        )
-        importe = insumo.cantidad * costo_unitario
-        cd_base += importe
-        if insumo.tipo_insumo == MatrizInsumo.TipoInsumo.MANO_OBRA:
-            costo_mano_obra += importe
-
-    herramienta_menor = costo_mano_obra * Decimal("0.03")
-    cd_total = cd_base + herramienta_menor
-    precio_unitario = cd_total * Decimal("1.12") * Decimal("1.02") * Decimal("1.08")
-    return precio_unitario.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "nombre_proyecto": self.nombre_proyecto,
+            "ubicacion": self.ubicacion,
+             "descripcion": self.descripcion or "",
+            "fecha_creacion": self.fecha_creacion.isoformat(),
+             "ajustes": {
+                 "mano_obra": {
+                     "activo": bool(self.ajuste_mano_obra_activo),
+                     "porcentaje": float(self.ajuste_mano_obra_porcentaje or 0),
+                 },
+                 "indirectos": {
+                     "activo": bool(self.ajuste_indirectos_activo),
+                     "porcentaje": float(self.ajuste_indirectos_porcentaje or 0),
+                 },
+                 "financiamiento": {
+                     "activo": bool(self.ajuste_financiamiento_activo),
+                     "porcentaje": float(self.ajuste_financiamiento_porcentaje or 0),
+                 },
+                 "utilidad": {
+                     "activo": bool(self.ajuste_utilidad_activo),
+                     "porcentaje": float(self.ajuste_utilidad_porcentaje or 0),
+                 },
+                 "iva": {
+                     "activo": bool(self.ajuste_iva_activo),
+                     "porcentaje": float(self.ajuste_iva_porcentaje or 0),
+                 },
+             },
+             "has_presupuesto_maximo": bool(self.has_presupuesto_maximo),
+             "monto_maximo": float(self.monto_maximo or 0),
+        }
 
 
-def _obtener_costo_insumo(
-    tipo: str,
-    insumo_id: int,
-    material_cache: dict[int, Decimal],
-    mano_obra_cache: dict[int, Decimal],
-    equipo_cache: dict[int, Decimal],
-) -> Decimal:
-    """Obtiene y cachea el costo unitario del insumo solicitado."""
+class Partida(db.Model):
+    __tablename__ = "partidas"
 
-    if tipo == MatrizInsumo.TipoInsumo.MATERIAL:
-        if insumo_id not in material_cache:
-            material_cache[insumo_id] = Material.objects.get(pk=insumo_id).precio_unitario
-        return material_cache[insumo_id]
-    if tipo == MatrizInsumo.TipoInsumo.MANO_OBRA:
-        if insumo_id not in mano_obra_cache:
-            mano_obra_cache[insumo_id] = ManoObra.objects.get(pk=insumo_id).costo_unitario
-        return mano_obra_cache[insumo_id]
-    if tipo == MatrizInsumo.TipoInsumo.EQUIPO:
-        if insumo_id not in equipo_cache:
-            equipo_cache[insumo_id] = Equipo.objects.get(pk=insumo_id).costo_hora_maq
-        return equipo_cache[insumo_id]
-    raise ValueError(f"Tipo de insumo desconocido: {tipo}")
+    id = db.Column(db.Integer, primary_key=True)
+    proyecto_id = db.Column(db.Integer, db.ForeignKey("proyectos.id"), nullable=False)
+    nombre_partida = db.Column(db.String(255), nullable=False)
+
+    detalles = db.relationship("DetallePresupuesto", backref="partida", cascade="all, delete-orphan")
+
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "proyecto": self.proyecto_id,
+            "nombre_partida": self.nombre_partida,
+        }
+
+
+class DetallePresupuesto(db.Model):
+    __tablename__ = "detalle_presupuesto"
+
+    id = db.Column(db.Integer, primary_key=True)
+    partida_id = db.Column(db.Integer, db.ForeignKey("partidas.id"), nullable=False)
+    concepto_id = db.Column(db.Integer, db.ForeignKey("conceptos.id"), nullable=False)
+    cantidad_obra = db.Column(db.Numeric(14, 4), nullable=False)
+    precio_unitario_calculado = db.Column(db.Numeric(14, 4), nullable=False)
+    costo_directo = db.Column(db.Numeric(14, 4), nullable=False, default=Decimal("0.0000"))
+
+    concepto = db.relationship("Concepto")
+
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "partida": self.partida_id,
+            "concepto": self.concepto_id,
+            "cantidad_obra": float(self.cantidad_obra),
+            "precio_unitario_calculado": float(self.precio_unitario_calculado),
+            "costo_directo": float(self.costo_directo or 0),
+            "concepto_detalle": {
+                "clave": self.concepto.clave,
+                "descripcion": self.concepto.descripcion,
+            },
+        }
