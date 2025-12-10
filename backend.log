@@ -1,0 +1,31 @@
+Usuario 'admin' creado.
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.0.2:8000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [10/Dec/2025 14:35:03] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "[31m[1mGET /api/auth/me HTTP/1.1[0m" 401 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "POST /api/auth/login HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/manoobra HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/materiales HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/equipo HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/materiales HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/maquinaria HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:03] "GET /api/conceptos HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/manoobra HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/maquinaria HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/equipo HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/conceptos HTTP/1.1" 200 -
+Error: GEMINI_API_KEY no configurada.
+127.0.0.1 - - [10/Dec/2025 14:35:04] "POST /api/ia/chat_apu HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/materiales HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/manoobra HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/equipo HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/materiales HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/maquinaria HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/manoobra HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/equipo HTTP/1.1" 200 -
+127.0.0.1 - - [10/Dec/2025 14:35:04] "GET /api/maquinaria HTTP/1.1" 200 -
