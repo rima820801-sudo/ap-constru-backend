@@ -6,6 +6,7 @@ from decimal import Decimal
 from backend.models import Material, ManoObra, Equipo, Maquinaria
 from backend.services.calculation_service import decimal_field
 from backend.config import Config
+import sys
 
 # Configure GenAI
 if Config.GEMINI_API_KEY:
@@ -43,6 +44,7 @@ def extraer_json_de_texto(contenido: str) -> Optional[str]:
 
 def generar_apu_con_gemini(descripcion: str, unidad: str) -> Optional[Dict]:
     if not Config.GEMINI_API_KEY:
+        print("Error: GEMINI_API_KEY no configurada.", file=sys.stderr)
         return None
 
     texto = (descripcion or "").strip()
@@ -100,10 +102,12 @@ Reglas:
         contenido = getattr(respuesta, "text", "") or ""
         bloque = extraer_json_de_texto(contenido)
         if not bloque:
+            print(f"Error Gemini APU: No se pudo extraer JSON de la respuesta: {contenido[:100]}...", file=sys.stderr)
             return None
 
         data = json.loads(bloque)
         if not isinstance(data, dict):
+            print("Error Gemini APU: El JSON devuelto no es un diccionario.", file=sys.stderr)
             return None
 
         # Basic validation
@@ -113,11 +117,12 @@ Reglas:
         return data
 
     except Exception as e:
-        print(f"Error Gemini APU: {e}")
+        print(f"Error Gemini APU Excepcion: {e}", file=sys.stderr)
         return None
 
 def cotizar_con_gemini(material: str) -> Optional[Dict]:
     if not Config.GEMINI_API_KEY:
+        print("Error: GEMINI_API_KEY no configurada.", file=sys.stderr)
         return None
 
     prompt = f"""
@@ -144,11 +149,12 @@ def cotizar_con_gemini(material: str) -> Optional[Dict]:
         contenido = getattr(respuesta, "text", "") or ""
         bloque = extraer_json_de_texto(contenido)
         if not bloque:
+            print(f"Error Gemini Cotizar: No se pudo extraer JSON de la respuesta: {contenido[:100]}...", file=sys.stderr)
             return None
 
         return json.loads(bloque)
     except Exception as e:
-        print(f"Error Gemini Cotizar: {e}")
+        print(f"Error Gemini Cotizar Excepcion: {e}", file=sys.stderr)
         return None
 
 
