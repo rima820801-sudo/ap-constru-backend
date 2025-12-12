@@ -61,68 +61,89 @@ def obtener_costo_insumo(
 ) -> Decimal:
     tipo = registro["tipo_insumo"]
     insumo_id = registro["id_insumo"]
+    precio_custom = decimal_field(registro.get("precio_custom")) if registro.get("precio_custom") is not None else None
+
     if tipo == "Material":
         material = material_cache.get(insumo_id)
-        if material is None:
+        if material is None and insumo_id:
             material = Material.query.get(insumo_id)
             if material:
                 material_cache[insumo_id] = material
-            else:
-                # Fallback if insumo missing
-                return Decimal("0")
+
+        # Determine base values from catalog or custom
+        base_precio = decimal_field(material.precio_unitario) if material else (precio_custom if precio_custom is not None else Decimal("0"))
+        base_merma = decimal_field(material.porcentaje_merma) if material else Decimal("0.03") # Default 3% if custom
+        base_flete = decimal_field(material.precio_flete_unitario) if material else Decimal("0")
 
         merma = (
             decimal_field(registro.get("porcentaje_merma"))
             if registro.get("porcentaje_merma") is not None
-            else decimal_field(material.porcentaje_merma)
+            else base_merma
         )
         flete = (
             decimal_field(registro.get("precio_flete_unitario"))
             if registro.get("precio_flete_unitario") is not None
-            else decimal_field(material.precio_flete_unitario)
+            else base_flete
         )
-        base = decimal_field(material.precio_unitario)
-        return base * (Decimal("1.0") + merma) + flete
+
+        return base_precio * (Decimal("1.0") + merma) + flete
 
     if tipo == "ManoObra":
         mano = mano_obra_cache.get(insumo_id)
-        if mano is None:
+        if mano is None and insumo_id:
             mano = ManoObra.query.get(insumo_id)
             if mano:
                 mano_obra_cache[insumo_id] = mano
-            else:
-                return Decimal("0")
 
-        rendimiento = decimal_field(mano.rendimiento_jornada or Decimal("1.0"))
+        # If custom price, assume it's already integrated or base, let's treat as base * fasar=1 for simplicity
+        # Or better: treat custom price as the final cost per unit (salario real) if no fasar info available
+
+        if mano:
+            rendimiento_base = decimal_field(mano.rendimiento_jornada or Decimal("1.0"))
+            salario_real = decimal_field(mano.salario_base) * decimal_field(mano.fasar)
+        else:
+            rendimiento_base = Decimal("1.0")
+            salario_real = precio_custom if precio_custom is not None else Decimal("0")
+
+        rendimiento = (
+            decimal_field(registro.get("rendimiento_jornada"))
+            if registro.get("rendimiento_jornada") is not None
+            else rendimiento_base
+        )
+
         if rendimiento <= 0:
             rendimiento = Decimal("1.0")
-        salario_real = decimal_field(mano.salario_base) * decimal_field(mano.fasar)
+
         return salario_real / rendimiento
 
     if tipo == "Equipo":
         equipo = equipo_cache.get(insumo_id)
-        if equipo is None:
+        if equipo is None and insumo_id:
             equipo = Equipo.query.get(insumo_id)
             if equipo:
                 equipo_cache[insumo_id] = equipo
-            else:
-                return Decimal("0")
-        return decimal_field(equipo.costo_hora_maq)
+
+        if equipo:
+            return decimal_field(equipo.costo_hora_maq)
+        return precio_custom if precio_custom is not None else Decimal("0")
 
     if tipo == "Maquinaria":
         maquina = maquinaria_cache.get(insumo_id)
-        if maquina is None:
+        if maquina is None and insumo_id:
             maquina = Maquinaria.query.get(insumo_id)
             if maquina:
                 maquinaria_cache[insumo_id] = maquina
-            else:
-                return Decimal("0")
 
-        rendimiento = decimal_field(maquina.rendimiento_horario or Decimal("1.0"))
-        if rendimiento <= 0:
-            rendimiento = Decimal("1.0")
-        costo_hora = decimal_field(maquina.costo_posesion_hora)
-        return costo_hora / rendimiento
+        if maquina:
+            rendimiento = decimal_field(maquina.rendimiento_horario or Decimal("1.0"))
+            if rendimiento <= 0:
+                rendimiento = Decimal("1.0")
+            costo_hora = decimal_field(maquina.costo_posesion_hora)
+            return costo_hora / rendimiento
+
+        # Custom logic for Maquinaria
+        # Assume custom price is cost per hour directly
+        return precio_custom if precio_custom is not None else Decimal("0")
 
     # Unknown type
     return Decimal("0")

@@ -1,9 +1,17 @@
 
 > precios-unitarios-frontend@0.1.0 dev
-> vite --port 3000 --host
+> vite --port 3000
 
 
-  VITE v5.4.21  ready in 291 ms
+  VITE v5.4.21  ready in 355 ms
 
   ➜  Local:   http://localhost:3000/
-  ➜  Network: http://192.168.0.2:3000/
+  ➜  Network: use --host to expose
+3:18:15 AM [vite] http proxy error: /api/auth/me
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:18:15 AM [vite] http proxy error: /api/auth/me
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)

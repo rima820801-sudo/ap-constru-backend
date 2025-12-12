@@ -182,7 +182,10 @@ export function ConceptoMatrizEditor({
 
     useEffect(() => {
         if (!iaRows || !iaRows.length) return;
-        setRows(iaRows);
+        // Solo aplicamos la sugerencia IA si la matriz esta vacia para no sobrescribir trabajo
+        if (rows.length === 0) {
+            setRows(iaRows);
+        }
     }, [iaRows]);
 
     useEffect(() => {
@@ -250,10 +253,11 @@ export function ConceptoMatrizEditor({
             return;
         }
         const matrizPayload = rows
-            .filter((row) => row.id_insumo !== "" && Number(row.cantidad) >= 0)
+            .filter((row) => (row.id_insumo !== "" || (row.precio_unitario_temp !== "" && row.precio_unitario_temp !== undefined)) && Number(row.cantidad) >= 0)
             .map((row) => ({
                 tipo_insumo: row.tipo_insumo,
-                id_insumo: Number(row.id_insumo),
+                id_insumo: row.id_insumo ? Number(row.id_insumo) : 0,
+                precio_custom: row.id_insumo ? undefined : Number(row.precio_unitario_temp),
                 cantidad: Number(row.cantidad),
                 porcentaje_merma:
                     row.tipo_insumo === "Material" && row.porcentaje_merma !== ""
@@ -762,7 +766,22 @@ export function ConceptoMatrizEditor({
     }
 
     function obtenerCostoUnitario(row: MatrizRow): number {
-        if (row.existe_en_catalogo === false) return 0;
+        // Fallback for manual/draft prices
+        if (row.existe_en_catalogo === false || !row.id_insumo) {
+            const precioBase = row.precio_unitario_temp ? Number(row.precio_unitario_temp) : 0;
+            if (row.tipo_insumo === "Material") {
+                const merma = row.porcentaje_merma ? Number(row.porcentaje_merma) : 0;
+                const flete = row.precio_flete_unitario ? Number(row.precio_flete_unitario) : 0;
+                return precioBase * (1 + merma) + flete;
+            }
+            if (row.tipo_insumo === "ManoObra") {
+                const rendimiento = row.rendimiento_jornada ? Number(row.rendimiento_jornada) : 1;
+                // Asumimos que precio manual es salario base integrado (real) para simplificar en draft
+                return rendimiento > 0 ? precioBase / rendimiento : precioBase;
+            }
+            return precioBase;
+        }
+
         if (!catalogos || !row.id_insumo) return 0;
         const id = Number(row.id_insumo);
         switch (row.tipo_insumo) {
