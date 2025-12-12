@@ -52,6 +52,9 @@ def matriz_create():
         tipo_insumo=payload["tipo_insumo"],
         id_insumo=payload["id_insumo"],
         cantidad=decimal_field(payload["cantidad"]),
+        porcentaje_merma=decimal_field(payload.get("porcentaje_merma")),
+        precio_flete_unitario=decimal_field(payload.get("precio_flete_unitario")),
+        precio_custom=decimal_field(payload.get("precio_custom")),
     )
     db.session.add(registro)
     db.session.commit()
@@ -64,7 +67,18 @@ def matriz_update(registro_id: int):
         db.session.delete(registro)
         db.session.commit()
         return "", 204
-    # PUT logic
+
+    payload = request.get_json(force=True)
+    if "cantidad" in payload:
+        registro.cantidad = decimal_field(payload["cantidad"])
+    if "porcentaje_merma" in payload:
+        registro.porcentaje_merma = decimal_field(payload["porcentaje_merma"])
+    if "precio_flete_unitario" in payload:
+        registro.precio_flete_unitario = decimal_field(payload["precio_flete_unitario"])
+    if "precio_custom" in payload:
+        registro.precio_custom = decimal_field(payload["precio_custom"])
+
+    db.session.commit()
     return jsonify(registro.to_dict())
 
 @bp.route("/conceptos/calcular_pu", methods=["POST"])
