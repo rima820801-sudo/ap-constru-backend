@@ -7,3 +7,8 @@ frontend/dist/
 .env
 backend/.env
 .DS_Store
+__pycache__/
+*.pyc
+*.sqlite3
+.vscode/
+frontend/.venv/

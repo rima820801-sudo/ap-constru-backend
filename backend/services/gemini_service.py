@@ -1,16 +1,19 @@
 import json
 import re
-import google.generativeai as genai
+import google.genai as genai
 from typing import Optional, Dict, List
-from decimal import Decimal
 from backend.models import Material, ManoObra, Equipo, Maquinaria
-from backend.services.calculation_service import decimal_field
 from backend.config import Config
 import sys
 
-# Configure GenAI
-if Config.GEMINI_API_KEY:
-    genai.configure(api_key=Config.GEMINI_API_KEY)
+GENAI_CLIENT: Optional[genai.Client] = (
+    genai.Client(api_key=Config.GEMINI_API_KEY) if Config.GEMINI_API_KEY else None
+)
+
+def _get_genai_client() -> Optional[genai.Client]:
+    if not GENAI_CLIENT:
+        print("Error: GEMINI_API_KEY no configurada.", file=sys.stderr)
+    return GENAI_CLIENT
 
 def extraer_json_de_texto(contenido: str) -> Optional[str]:
     texto = (contenido or "").strip()
@@ -42,14 +45,16 @@ def extraer_json_de_texto(contenido: str) -> Optional[str]:
 
     return None
 
-def generar_apu_con_gemini(descripcion: str, unidad: str) -> Optional[Dict]:
-    if not Config.GEMINI_API_KEY:
-        print("Error: GEMINI_API_KEY no configurada.", file=sys.stderr)
-        return None
-
+def generar_apu_con_gemini(descripcion: str, unidad: str, calcular_por_m2: bool = True) -> Optional[Dict]:
     texto = (descripcion or "").strip()
     if not texto:
         return None
+
+    enfoque = (
+        "Calcula el costo por metro cuadrado de construcción. Usa las dimensiones disponibles para determinar la superficie exacta y genera resultados centrados en el precio por m2."
+        if calcular_por_m2
+        else "Calcula el costo total del proyecto descrito, enfocándote en el monto global requerido para ejecutar la obra."
+    )
 
     prompt_completo = f"""
 Eres un ingeniero de costos experto en analisis de precios unitarios (APU) para construccion en Mexico.
@@ -67,6 +72,8 @@ Instrucciones CRITICAS para cantidades y volumetria:
    - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas.
 3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, calcula los materiales TOTALES.
 4. Si la descripcion tiene dimensiones especificas (ej. 22m x 16m), USALAS para validar si se pide un precio unitario o un costo total segun la unidad.
+
+{enfoque}
 
 Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
 
@@ -92,11 +99,15 @@ Reglas:
 - NO incluyas ningun comentario fuera del JSON.
 """
 
+    client = _get_genai_client()
+    if not client:
+        return None
+
     try:
-        model = genai.GenerativeModel(model_name=Config.GEMINI_MODEL)
-        respuesta = model.generate_content(
-            prompt_completo,
-            generation_config={"temperature": 0.2},
+        respuesta = client.models.generate_content(
+            model=Config.GEMINI_MODEL,
+            contents=prompt_completo,
+            config={"temperature": 0.2},
         )
 
         contenido = getattr(respuesta, "text", "") or ""
@@ -131,19 +142,28 @@ def cotizar_con_gemini(material: str) -> Optional[Dict]:
 
     Material: "{material}"
 
+    Para cada tienda debes incluir:
+    - El nombre exacto de la tienda.
+    - El precio actual del artículo (en MXN).
+    - La URL directa del producto concreto dentro del portal de la tienda (no la página general). Si no encuentras un enlace exacto, deja ese campo vacío.
+
     Responde EXCLUSIVAMENTE en JSON con esta estructura exacta:
     {{
-        "tienda1": "Nombre Tienda 1", "precio1": 100.00,
-        "tienda2": "Nombre Tienda 2", "precio2": 105.50,
-        "tienda3": "Nombre Tienda 3", "precio3": 98.00
+        "tienda1": "Nombre Tienda 1", "precio1": 100.00, "tienda1_url": "https://...",
+        "tienda2": "Nombre Tienda 2", "precio2": 105.50, "tienda2_url": "https://...",
+        "tienda3": "Nombre Tienda 3", "precio3": 98.00, "tienda3_url": "https://..."
     }}
     """
 
+    client = _get_genai_client()
+    if not client:
+        return None
+
     try:
-        model = genai.GenerativeModel(model_name=Config.GEMINI_MODEL)
-        respuesta = model.generate_content(
-            prompt,
-            generation_config={"temperature": 0.2},
+        respuesta = client.models.generate_content(
+            model=Config.GEMINI_MODEL,
+            contents=prompt,
+            config={"temperature": 0.2},
         )
 
         contenido = getattr(respuesta, "text", "") or ""
@@ -152,10 +172,35 @@ def cotizar_con_gemini(material: str) -> Optional[Dict]:
             print(f"Error Gemini Cotizar: No se pudo extraer JSON de la respuesta: {contenido[:100]}...", file=sys.stderr)
             return None
 
-        return json.loads(bloque)
+        raw = json.loads(bloque)
+        if not isinstance(raw, dict):
+            print("Error Gemini Cotizar: El JSON devuelto no es un diccionario.", file=sys.stderr)
+            return None
+
+        return _normalizar_cotizacion(raw)
     except Exception as e:
         print(f"Error Gemini Cotizar Excepcion: {e}", file=sys.stderr)
         return None
+
+
+def _normalizar_cotizacion(data: Dict) -> Dict:
+    resultado: Dict[str, object] = {}
+    for idx in range(1, 4):
+        tienda_key = f"tienda{idx}"
+        precio_key = f"precio{idx}"
+        url_key = f"{tienda_key}_url"
+        lugar = data.get(tienda_key) or ""
+        precio_raw = data.get(precio_key, 0)
+        precio = 0.0
+        try:
+            precio = float(precio_raw)
+        except (TypeError, ValueError):
+            precio = 0.0
+        url = data.get(url_key) or data.get(f"url{idx}") or ""
+        resultado[tienda_key] = lugar
+        resultado[precio_key] = precio
+        resultado[url_key] = url
+    return resultado
 
 
 def construir_sugerencia_apu(descripcion: str, concepto_id: Optional[int] = None) -> List[Dict]:

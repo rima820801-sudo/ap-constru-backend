@@ -14,6 +14,7 @@ export type MatrizRow = {
     nombre_sugerido?: string;
     justificacion_breve?: string;
     precio_unitario_temp?: number | "";
+    unidad?: string;
 };
 
 type MaterialDTO = {
@@ -115,6 +116,7 @@ type IASugerencia = {
     existe_en_catalogo?: boolean;
     nombre?: string | null;
     justificacion_breve?: string | null;
+    unidad?: string | null;
 };
 
 export function ConceptoMatrizEditor({
@@ -705,6 +707,9 @@ export function ConceptoMatrizEditor({
         : "Genera una sugerencia con el asistente para ver el detalle aqui.";
 
     function obtenerUnidad(row: MatrizRow): string {
+        if (row.unidad && row.unidad.trim()) {
+            return row.unidad;
+        }
         if (row.existe_en_catalogo === false) return "-";
         if (!catalogos || !row.id_insumo) return "-";
         const id = Number(row.id_insumo);
@@ -856,70 +861,33 @@ export function ConceptoMatrizEditor({
                 </div>
             )}
 
-            <div className="overflow-x-auto w-full">
-                <table className="concepto-editor__tabla min-w-full divide-y divide-gray-200">
+            <div className="overflow-hidden w-full">
+                <table className="w-full table-fixed divide-y divide-gray-200">
                     <thead>
-                        <tr>
-                            <th className="w-[120px]">
-                                Tipo Insumo
-                                {renderTooltip("Categoría del recurso (Material, Mano de Obra, Maquinaria) que compone el APU.")}
+                        <tr className="bg-gray-50">
+                            <th className="w-[10%] px-1 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">Tipo</th>
+                            <th className="w-[30%] px-1 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">Insumo / Descripci�n</th>
+                            <th className="w-[5%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Unid.</th>
+                            <th className="w-[8%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Cant.</th>
+                            <th className="w-[9%] px-1 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-gray-500">P. Unit</th>
+                            <th className="w-[7%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Merma</th>
+                            <th className="w-[7%] px-1 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-gray-500">Flete</th>
+                            <th className="w-[7%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Rend.</th>
+                            <th className="w-[9%] px-1 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-gray-500">Total</th>
+                            <th className="w-[8%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                <span className="sr-only">Acciones</span>
                             </th>
-                            <th className="min-w-[300px]">
-                                Insumo
-                                {renderTooltip("Recurso específico extraído del Catálogo.")}
-                            </th>
-                            <th className="w-[80px]">
-                                Unidad
-                                {renderTooltip("Unidad de medida del insumo (ej., saco, m3, jornada).")}
-                            </th>
-                            <th className="w-[100px]">
-                                Cantidad
-                                {renderTooltip(
-                                    "Consumo unitario del insumo necesario para ejecutar una unidad del concepto (ej., sacos de cemento por m³ de muro)."
-                                )}
-                            </th>
-                            <th className="w-[120px]">
-                                Precio Unitario
-                                {renderTooltip("Costo base del insumo por unidad. Si es nuevo, ingrésalo aquí para agregarlo.")}
-                            </th>
-                            <th className="w-[100px]">
-                                Merma (%)
-                                {renderTooltip(
-                                    "Porcentaje de desperdicio que se suma al consumo teórico del material (ej., 3% de pérdida por manejo). Este porcentaje incrementa el Costo Total del insumo."
-                                )}
-                            </th>
-                            <th className="w-[120px]">
-                                Flete Unitario
-                                {renderTooltip("Costo de transporte o acarreo del material hasta el sitio de la obra, prorrateado por la unidad del insumo.")}
-                            </th>
-                            <th className="w-[120px]">
-                                Rendimiento Diario
-                                {renderTooltip(
-                                    "Productividad de la cuadrilla o máquina, expresada en unidades del concepto por jornada u hora. Es el factor que reduce el costo de Mano de Obra/Maquinaria a nivel unitario."
-                                )}
-                            </th>
-                            <th className="w-[120px] text-right">
-                                Costo Total
-                                {renderTooltip("Costo del insumo para producir una unidad del concepto (Cantidad × Costo Unitario).")}
-                            </th>
-                            <th className="w-[100px]">
-                                Acciones
-                                {renderTooltip("Acciones disponibles para el insumo (Eliminar).")}
-                            </th>
-                        </tr >
-                    </thead >
-                    <tbody>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
                         {rows.map((row, index) => (
                             <tr key={row.id ?? `tmp-${index}`}>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle">
                                     <select
-                                        id={`${idPrefix}-tipo-${index}`}
-                                        name={`${idPrefix}-tipo-${index}`}
-                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 transition-all duration-200"
-                                        aria-label="Tipo de insumo"
+                                        className="block w-full rounded border-gray-300 bg-white !bg-white py-1 pl-1 pr-4 text-[11px] font-semibold !text-slate-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs"
                                         value={row.tipo_insumo}
-                                        onChange={(event) => {
-                                            const nextType = event.target.value as MatrizRow["tipo_insumo"];
+                                        onChange={(e) => {
+                                            const nextType = e.target.value as MatrizRow["tipo_insumo"];
                                             handleRowChange(index, {
                                                 tipo_insumo: nextType,
                                                 id_insumo: "",
@@ -929,269 +897,138 @@ export function ConceptoMatrizEditor({
                                             });
                                         }}
                                     >
-                                        <option value="Material">Material</option>
-                                        <option value="ManoObra">Mano de Obra</option>
-                                        <option value="Equipo">Equipo</option>
-                                        <option value="Maquinaria">Maquinaria</option>
+                                        <option value="Material">Mat.</option>
+                                        <option value="ManoObra">M.O.</option>
+                                        <option value="Equipo">Eq.</option>
+                                        <option value="Maquinaria">Maq.</option>
                                     </select>
                                 </td>
-                                <td className="p-2">{renderInsumoSelect(row, index)}</td>
-                                <td className="p-2">
-                                    <div className="flex items-center h-10 px-3 bg-gray-50 rounded border border-gray-200 text-gray-700 text-sm">
-                                        {obtenerUnidad(row)}
-                                    </div>
+                                <td className="px-1 py-1 align-middle">
+                                    {renderInsumoSelect(row, index)}
                                 </td>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle text-center text-[11px] text-gray-600 truncate">
+                                    {obtenerUnidad(row)}
+                                </td>
+                                <td className="px-1 py-1 align-middle">
                                     <input
-                                        id={`${idPrefix}-cantidad-${index}`}
-                                        name={`${idPrefix}-cantidad-${index}`}
-                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
-                                        aria-label="Cantidad"
                                         type="number"
-                                        min="0"
-                                        step="0.0001"
+                                        className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
                                         value={row.cantidad}
-                                        onChange={(event) =>
-                                            handleRowChange(index, {
-                                                cantidad: Number(event.target.value) || 0,
-                                            })
-                                        }
+                                        onChange={(e) => handleRowChange(index, { cantidad: Number(e.target.value) || 0 })}
                                     />
                                 </td>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle">
                                     <input
                                         type="number"
-                                        className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
+                                        className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="0.00"
                                         defaultValue={row.existe_en_catalogo ? obtenerPrecioUnitarioBase(row) : (row.precio_unitario_temp ?? "")}
-                                        onChange={(e) => {
-                                            // Si existe en catalogo, podriamos querer actualizar el precio temporal o manejarlo diferente
-                                            // Por ahora, permitimos la edicion local en precio_unitario_temp
-                                            handleRowChange(index, {
-                                                precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value),
-                                            })
-                                        }}
+                                        onChange={(e) => handleRowChange(index, { precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value) })}
                                     />
                                 </td>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle">
                                     {row.tipo_insumo === "Material" ? (
                                         <input
-                                            id={`${idPrefix}-merma-${index}`}
-                                            name={`${idPrefix}-merma-${index}`}
-                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
-                                            aria-label="Porcentaje de merma"
                                             type="number"
-                                            step="0.0001"
+                                            className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
+                                            placeholder="%"
                                             value={row.porcentaje_merma ?? ""}
-                                            onChange={(event) =>
-                                                handleRowChange(index, {
-                                                    porcentaje_merma: event.target.value === "" ? "" : Number(event.target.value),
-                                                })
-                                            }
+                                            onChange={(e) => handleRowChange(index, { porcentaje_merma: e.target.value === "" ? "" : Number(e.target.value) })}
                                         />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                    )}
+                                    ) : <div className="text-center text-gray-300 text-[10px]">-</div>}
                                 </td>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle">
                                     {row.tipo_insumo === "Material" ? (
                                         <input
-                                            id={`${idPrefix}-flete-${index}`}
-                                            name={`${idPrefix}-flete-${index}`}
-                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
-                                            aria-label="Precio flete unitario"
                                             type="number"
-                                            step="0.01"
+                                            className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
+                                            placeholder="$"
                                             value={row.precio_flete_unitario ?? ""}
-                                            onChange={(event) =>
-                                                handleRowChange(index, {
-                                                    precio_flete_unitario:
-                                                        event.target.value === "" ? "" : Number(event.target.value),
-                                                })
-                                            }
+                                            onChange={(e) => handleRowChange(index, { precio_flete_unitario: e.target.value === "" ? "" : Number(e.target.value) })}
                                         />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                    )}
+                                    ) : <div className="text-center text-gray-300 text-[10px]">-</div>}
                                 </td>
-                                <td className="p-2">
+                                <td className="px-1 py-1 align-middle">
                                     {row.tipo_insumo === "ManoObra" ? (
                                         <input
-                                            id={`${idPrefix}-rendimiento-${index}`}
-                                            name={`${idPrefix}-rendimiento-${index}`}
-                                            className="bg-transparent border-transparent hover:bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded text-sm w-full h-9 text-right transition-all duration-200"
-                                            aria-label="Rendimiento jornada"
                                             type="number"
-                                            min="0"
-                                            step="0.0001"
+                                            className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
                                             value={row.rendimiento_jornada ?? ""}
-                                            onChange={(event) =>
-                                                handleRowChange(index, {
-                                                    rendimiento_jornada:
-                                                        event.target.value === "" ? "" : Number(event.target.value),
-                                                })
-                                            }
+                                            onChange={(e) => handleRowChange(index, { rendimiento_jornada: e.target.value === "" ? "" : Number(e.target.value) })}
                                         />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                    )}
+                                    ) : <div className="text-center text-gray-300 text-[10px]">-</div>}
                                 </td>
-                                <td className="p-2 text-right font-medium text-gray-900">
+                                <td className="px-1 py-1 align-middle text-right text-[11px] font-bold text-gray-900 truncate">
                                     {formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}
                                 </td>
-                                <td className="p-2">
-                                    <div className="flex gap-1">
-                                        {!row.existe_en_catalogo && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleQuickAdd(index)}
-                                                className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded h-10 w-full font-medium"
-                                            >
-                                                Guardar
-                                            </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteRow(row.id, index)}
-                                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2 py-1 rounded h-10 w-full font-medium"
-                                        >
-                                            Eliminar
-                                        </button>
-                                    </div>
+                                <td className="px-1 py-1 align-middle text-center">
+                                    <button
+                                        onClick={() => handleDeleteRow(row.id, index)}
+                                        className="text-red-500 hover:text-red-700 transition-colors"
+                                        title="Eliminar"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                    </button>
                                 </td>
                             </tr>
-                        ))}
-                        <tr className="bg-gray-50">
-                            <td className="p-2">
+                        ))} 
+                        <tr className="bg-indigo-50/30 border-t-2 border-indigo-100">
+                             <td className="px-1 py-2 align-middle">
                                 <select
-                                    id={`${idPrefix}-draft-tipo`}
-                                    name={`${idPrefix}-draft-tipo`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10"
-                                    aria-label="Tipo de insumo"
+                                    className="block w-full rounded border-gray-300 bg-white !bg-white !text-slate-900 py-1 pl-1 pr-4 text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
                                     value={draftRow.tipo_insumo}
-                                    onChange={(event) =>
-                                        setDraftRow((prev) => ({
-                                            ...prev,
-                                            tipo_insumo: event.target.value as MatrizRow["tipo_insumo"],
-                                            id_insumo: "",
-                                            porcentaje_merma: event.target.value === "Material" ? prev.porcentaje_merma : "",
-                                            precio_flete_unitario: event.target.value === "Material" ? prev.precio_flete_unitario : "",
-                                            rendimiento_jornada: event.target.value === "ManoObra" ? prev.rendimiento_jornada : "",
-                                        }))
-                                    }
+                                    onChange={(e) => setDraftRow(prev => ({ ...prev, tipo_insumo: e.target.value as any, id_insumo: "" }))}
                                 >
-                                    <option value="Material">Material</option>
-                                    <option value="ManoObra">Mano de Obra</option>
-                                    <option value="Equipo">Equipo</option>
-                                    <option value="Maquinaria">Maquinaria</option>
+                                    <option value="Material">Mat.</option>
+                                    <option value="ManoObra">M.O.</option>
+                                    <option value="Equipo">Eq.</option>
+                                    <option value="Maquinaria">Maq.</option>
                                 </select>
                             </td>
-                            <td className="p-2">
-                                {renderInsumoSelect(draftRow, -1, (updates) =>
-                                    setDraftRow((prev) => ({ ...prev, ...updates }))
-                                )}
+                            <td className="px-1 py-2 align-middle">
+                                {renderInsumoSelect(draftRow, -1, (updates) => setDraftRow(prev => ({ ...prev, ...updates })))}
                             </td>
-                            <td className="p-2">
-                                <div className="flex items-center h-10 px-3 bg-gray-100 rounded border border-gray-200 text-gray-500 text-sm">
-                                    {obtenerUnidad(draftRow)}
-                                </div>
-                            </td>
-                            <td className="p-2">
+                            <td className="px-1 py-2 text-center text-[10px] text-gray-500">{obtenerUnidad(draftRow)}</td>
+                            <td className="px-1 py-2 align-middle">
                                 <input
-                                    id={`${idPrefix}-draft-cantidad`}
-                                    name={`${idPrefix}-draft-cantidad`}
-                                    className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
-                                    aria-label="Cantidad"
                                     type="number"
-                                    min="0"
-                                    step="0.0001"
-                                    value={draftRow.cantidad}
-                                    onChange={(event) =>
-                                        setDraftRow((prev) => ({ ...prev, cantidad: Number(event.target.value) || 0 }))
-                                    }
+                                    className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px]"
+                                    placeholder="0"
+                                    value={draftRow.cantidad || ""}
+                                    onChange={(e) => setDraftRow(prev => ({ ...prev, cantidad: Number(e.target.value) }))}
                                 />
                             </td>
-                            <td className="p-2">
-                                {/* Draft Row Precio Unitario - No editable aquí, solo al agregar */}
-                                <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                            </td>
-                            <td className="p-2">
+                             <td className="px-1 py-2 text-center text-[10px] text-gray-400">-</td>
+                             <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "Material" ? (
-                                    <input
-                                        id={`${idPrefix}-draft-merma`}
-                                        name={`${idPrefix}-draft-merma`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
-                                        aria-label="Porcentaje de merma"
-                                        type="number"
-                                        step="0.0001"
-                                        value={draftRow.porcentaje_merma ?? ""}
-                                        onChange={(event) =>
-                                            setDraftRow((prev) => ({
-                                                ...prev,
-                                                porcentaje_merma: event.target.value === "" ? "" : Number(event.target.value),
-                                            }))
-                                        }
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                )}
-                            </td>
-                            <td className="p-2">
+                                    <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px]" placeholder="%"
+                                     value={draftRow.porcentaje_merma ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, porcentaje_merma: Number(e.target.value) }))} />
+                                ) : null}
+                             </td>
+                             <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "Material" ? (
-                                    <input
-                                        id={`${idPrefix}-draft-flete`}
-                                        name={`${idPrefix}-draft-flete`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
-                                        aria-label="Precio flete unitario"
-                                        type="number"
-                                        step="0.01"
-                                        value={draftRow.precio_flete_unitario ?? ""}
-                                        onChange={(event) =>
-                                            setDraftRow((prev) => ({
-                                                ...prev,
-                                                precio_flete_unitario: event.target.value === "" ? "" : Number(event.target.value),
-                                            }))
-                                        }
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                )}
-                            </td>
-                            <td className="p-2">
+                                    <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px]" placeholder="$"
+                                     value={draftRow.precio_flete_unitario ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, precio_flete_unitario: Number(e.target.value) }))} />
+                                ) : null}
+                             </td>
+                             <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "ManoObra" ? (
-                                    <input
-                                        id={`${idPrefix}-draft-rendimiento`}
-                                        name={`${idPrefix}-draft-rendimiento`}
-                                        className="bg-white text-gray-900 border-gray-300 rounded text-sm w-full h-10 text-right"
-                                        aria-label="Rendimiento jornada"
-                                        type="number"
-                                        min="0"
-                                        step="0.0001"
-                                        value={draftRow.rendimiento_jornada ?? ""}
-                                        onChange={(event) =>
-                                            setDraftRow((prev) => ({
-                                                ...prev,
-                                                rendimiento_jornada: event.target.value === "" ? "" : Number(event.target.value),
-                                            }))
-                                        }
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center h-10 text-gray-400">-</div>
-                                )}
-                            </td>
-                            <td className="p-2 text-right font-medium text-gray-900">
+                                    <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px]" placeholder="R"
+                                     value={draftRow.rendimiento_jornada ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, rendimiento_jornada: Number(e.target.value) }))} />
+                                ) : null}
+                             </td>
+                             <td className="px-1 py-2 text-right font-bold text-[11px] text-indigo-600">
                                 {formatearMoneda(obtenerCostoUnitario(draftRow) * draftRow.cantidad)}
-                            </td>
-                            <td className="p-2 text-center">
-                                <button
-                                    type="button"
+                             </td>
+                             <td className="px-1 py-2 text-center">
+                                 <button
                                     onClick={handleAgregarDraft}
                                     disabled={!puedeAgregarDraft()}
-                                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 rounded h-10 w-full text-xs font-medium transition-colors disabled:opacity-50"
-                                >
-                                    Agregar
-                                </button>
-                            </td>
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded p-1 shadow-sm disabled:opacity-50"
+                                 >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                 </button>
+                             </td>
                         </tr>
                     </tbody>
                 </table>
@@ -1328,6 +1165,7 @@ export function mapearSugerenciasDesdeIA(insumos: IASugerencia[] = [], conceptoI
             existe_en_catalogo: item.existe_en_catalogo ?? Boolean(idInsumo),
             nombre_sugerido: item.nombre ?? undefined,
             justificacion_breve: item.justificacion_breve ?? undefined,
+            unidad: item.unidad ?? undefined,
         };
     });
 }

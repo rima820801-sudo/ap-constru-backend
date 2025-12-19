@@ -83,5 +83,6 @@ La API REST corre en `http://localhost:8000/api` y devuelve JSON. Todos los endp
   }
   ```
 - `GET /ia/explicar_sugerencia`: acepta `concepto_id` y/o `descripcion_concepto` como query params y devuelve `{"explicacion": "..."}` basada en la heuristica local.
+ - `POST /ia/preguntas_clarificadoras`: recibe `{ "descripcion": "..." }` y devuelve hasta cinco preguntas específicas con contexto y opciones sugeridas para clarificar un APU antes de generarlo. El servicio consulta Gemini si hay `GEMINI_API_KEY` y disminuye la repetición usando heurísticas locales cuando no encuentra respuesta válida.
 - `POST /ventas/crear_nota_venta`: body `{ "descripcion": "...", "unidad": "m2", "matriz": [ ... ], "concepto_id": 1 }`. Usa `calcular_precio_unitario` para derivar `costo_directo_unitario`, `precio_unitario_final` e `importe_total`, que se envian junto con un mensaje y la descripcion del concepto.
 - `GET /ventas/descargar_nota_venta_pdf/<concepto_id>`: genera y descarga un PDF con la matriz, costos y nota legal usando ReportLab. Requiere que el concepto exista y tenga renglones en `MatrizInsumo`.

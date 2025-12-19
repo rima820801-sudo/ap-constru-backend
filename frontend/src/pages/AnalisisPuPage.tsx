@@ -12,6 +12,12 @@ import { NotaVentaModalFixed as NotaVentaModal, type NotaVenta } from "../compon
 import { Navbar } from "../components/layout/Navbar";
 import { GeminiLoader } from "../components/ui/GeminiLoader";
 import { ConceptoSelectorModal } from "../components/conceptos/ConceptoSelectorModal";
+import { PreguntasClarificadorasModal } from "../components/ui/PreguntasClarificadorasModal";
+import { SaveProjectModal } from "../components/ui/SaveProjectModal";
+import { OpenSavedProjectModal } from "../components/ui/OpenSavedProjectModal";
+import type { ClarifyingHistoryEntry, ClarifyingQuestion } from "../types/clarification";
+import type { SavedProjectRecord, SavedProjectType } from "../utils/savedProjects";
+import { loadSavedProjects, persistSavedProjects } from "../utils/savedProjects";
 
 type Concepto = {
     id: number;
@@ -47,6 +53,10 @@ type ChatApuResponse = {
     insumos: ChatApuInsumo[];
 };
 
+const CLARIFICATION_HISTORY_STORAGE_KEY = "apu_clarification_history";
+const CLARIFICATION_LAST_DESCRIPTION_STORAGE_KEY = "apu_clarification_last_description";
+const DESCRIPTION_SIMILARITY_THRESHOLD = 0.45;
+
 const SOBRECOSTO_FIELDS: Record<FactorToggleKey, { label: string; description: string }> = {
     indirectos: {
         label: "Costos indirectos",
@@ -77,7 +87,7 @@ const emptyConceptoForm = (): ConceptoForm => ({
     id: null,
     clave: "",
     descripcion: "",
-    unidad_concepto: "",
+    unidad_concepto: "m2",
 });
 
 export function AnalisisPuPage() {
@@ -98,10 +108,25 @@ export function AnalisisPuPage() {
     const [textoDetalles, setTextoDetalles] = useState<string>(() => {
         return localStorage.getItem("apu_draft_texto_detalles") || "";
     });
+    const [calcularPorMetro, setCalcularPorMetro] = useState<boolean>(() => {
+        if (typeof window === "undefined") return true;
+        const saved = localStorage.getItem("apu_draft_calcular_por_metro");
+        return saved !== null ? saved === "true" : true;
+    });
     const [metrosCuadrados, setMetrosCuadrados] = useState<number>(() => {
         const saved = localStorage.getItem("apu_draft_metros_cuadrados");
         return saved ? Number(saved) : 0;
     });
+    const [preguntasClarificadoras, setPreguntasClarificadoras] = useState<ClarifyingQuestion[]>([]);
+    const [showPreguntasClarificadoras, setShowPreguntasClarificadoras] = useState(false);
+    const [cargandoPreguntasClarificadoras, setCargandoPreguntasClarificadoras] = useState(false);
+    const [clarificationHistory, setClarificationHistory] = useState<ClarifyingHistoryEntry[]>(() =>
+        loadClarificationHistoryFromStorage()
+    );
+    const [clarificationInitialAnswers, setClarificationInitialAnswers] = useState<string[]>([]);
+    const [lastClarificationDescription, setLastClarificationDescription] = useState<string>(() =>
+        loadLastClarificationDescriptionFromStorage()
+    );
 
     const idPrefix = useId().replace(/:/g, "");
     const [cargandoIA, setCargandoIA] = useState(false);
@@ -115,6 +140,10 @@ export function AnalisisPuPage() {
         const saved = localStorage.getItem("apu_draft_sobrecostos");
         return saved ? JSON.parse(saved) : initialSobrecostos();
     });
+    const [showSelector, setShowSelector] = useState(false);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [showOpenModal, setShowOpenModal] = useState(false);
+    const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
 
     // Persistence Effects
     useEffect(() => {
@@ -143,10 +172,13 @@ export function AnalisisPuPage() {
     }, [textoDetalles]);
 
     useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem("apu_draft_calcular_por_metro", String(calcularPorMetro));
+    }, [calcularPorMetro]);
+
+    useEffect(() => {
         localStorage.setItem("apu_draft_metros_cuadrados", String(metrosCuadrados));
     }, [metrosCuadrados]);
-    const [showSelector, setShowSelector] = useState(false);
-
     useEffect(() => {
         void loadConceptos();
     }, []);
@@ -204,6 +236,10 @@ export function AnalisisPuPage() {
     }, [conceptoForm]);
 
     useEffect(() => {
+        setCalcularPorMetro(conceptoForm.unidad_concepto === "m2");
+    }, [conceptoForm.unidad_concepto]);
+
+    useEffect(() => {
         if (iaRows) {
             localStorage.setItem("apu_builder_ia_rows", JSON.stringify(iaRows));
         }
@@ -221,6 +257,33 @@ export function AnalisisPuPage() {
         }
     }, [selectedConceptId]);
 
+    useEffect(() => {
+        persistSavedProjects(savedProjects);
+    }, [savedProjects]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(CLARIFICATION_HISTORY_STORAGE_KEY, JSON.stringify(clarificationHistory));
+    }, [clarificationHistory]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(CLARIFICATION_LAST_DESCRIPTION_STORAGE_KEY, lastClarificationDescription);
+    }, [lastClarificationDescription]);
+
+    const handleCerrarPreguntas = () => {
+        setShowPreguntasClarificadoras(false);
+        setPreguntasClarificadoras([]);
+        setClarificationInitialAnswers([]);
+    };
+
+    useEffect(() => {
+        if (!conceptoForm.descripcion) return;
+        if (shouldRefreshClarification(lastClarificationDescription, conceptoForm.descripcion)) {
+            handleCerrarPreguntas();
+        }
+    }, [conceptoForm.descripcion, lastClarificationDescription]);
+
     async function loadConceptos() {
         const data = await apiFetch<Concepto[]>(`/conceptos`);
         const hasLocalDraft = localStorage.getItem("apu_builder_form");
@@ -237,6 +300,7 @@ export function AnalisisPuPage() {
             descripcion: data.descripcion,
             unidad_concepto: data.unidad_concepto,
         });
+        setCalcularPorMetro(data.unidad_concepto === "m2");
     }
 
     function handleSobrecostoToggle(key: FactorToggleKey, checked: boolean) {
@@ -254,15 +318,22 @@ export function AnalisisPuPage() {
         }));
     }
 
-    async function handleGuardarConcepto() {
-        if (!conceptoForm.clave || !conceptoForm.descripcion || !conceptoForm.unidad_concepto) {
-            alert("Por favor completa los campos obligatorios (Nombre, Descripción, Unidad).");
-            return;
+    function handleCalculoPorMetroChange(checked: boolean) {
+        setCalcularPorMetro(checked);
+        handleChange("unidad_concepto", checked ? "m2" : "proyecto");
+    }
+
+    async function handleGuardarConcepto(): Promise<boolean> {
+        if (!conceptoForm.clave || !conceptoForm.descripcion) {
+            alert("Por favor completa los campos obligatorios (Nombre y Descripción).");
+            return false;
         }
+        const unidadConceptoActual = calcularPorMetro ? "m2" : "proyecto";
+        handleChange("unidad_concepto", unidadConceptoActual);
         const payload = {
             clave: conceptoForm.clave,
             descripcion: conceptoForm.descripcion,
-            unidad_concepto: conceptoForm.unidad_concepto,
+            unidad_concepto: unidadConceptoActual,
         };
 
         try {
@@ -287,9 +358,11 @@ export function AnalisisPuPage() {
             setGuardarTrigger((prev) => prev + 1);
             await loadConceptos();
             alert("Concepto guardado correctamente.");
+            return true;
         } catch (error) {
             console.error("Error al guardar concepto:", error);
             alert("Error al guardar el concepto.");
+            return false;
         }
     }
 
@@ -325,21 +398,145 @@ export function AnalisisPuPage() {
         setShowSelector(false);
     }
 
+    function handleAbrirProyectoGuardado() {
+        setShowOpenModal(true);
+    }
+
+    function handleCerrarOpenModal() {
+        setShowOpenModal(false);
+    }
+
+    function handleProyectoSeleccionado(project: SavedProjectRecord) {
+        setConceptoForm((prev) => ({
+            ...prev,
+            descripcion: project.descripcion,
+            unidad_concepto: project.unidad_concepto ?? prev.unidad_concepto,
+        }));
+        if (project.rows) {
+            setIaRows(project.rows);
+            setMatrizDraft(project.rows);
+        }
+        if (project.ia_explanation) {
+            setIaExplanation(project.ia_explanation);
+            setTextoDetalles(project.ia_explanation);
+        }
+        setCalcularPorMetro((project.unidad_concepto ?? "").toLowerCase() === "m2");
+        setShowOpenModal(false);
+    }
+
     function handleChange<K extends keyof ConceptoForm>(field: K, value: ConceptoForm[K]) {
         setConceptoForm((prev) => ({ ...prev, [field]: value }));
     }
 
-    async function handleSugerirAPUConIA() {
-        if (!conceptoForm.descripcion) return;
-        setCargandoIA(true);
+    async function prepararPreguntasClarificadoras() {
+        const descripcionActual = (conceptoForm.descripcion || "").trim();
+        if (!descripcionActual) return;
+        const needsRefresh = shouldRefreshClarification(lastClarificationDescription, descripcionActual);
+        const historyMap = new Map(clarificationHistory.map((entry) => [entry.pregunta, entry.respuesta]));
+        if (needsRefresh) {
+            setClarificationHistory([]);
+        }
+        setCargandoPreguntasClarificadoras(true);
+        setPreguntasClarificadoras([]);
         try {
-            const data = await apiFetch<ChatApuResponse & { metros_cuadrados_construccion?: number }>(`/ia/chat_apu`, {
+            const data = await apiFetch<{ preguntas: ClarifyingQuestion[] }>(`/ia/preguntas_clarificadoras`, {
                 method: "POST",
                 body: {
                     descripcion: conceptoForm.descripcion,
-                    unidad: conceptoForm.unidad_concepto,
-                    concepto_id: conceptoForm.id,
                 },
+            });
+            const nuevasPreguntas = data.preguntas ?? [];
+            const initialAnswers = nuevasPreguntas.map((pregunta) => historyMap.get(pregunta.pregunta) ?? "");
+            setPreguntasClarificadoras(nuevasPreguntas);
+            setClarificationInitialAnswers(initialAnswers);
+            setLastClarificationDescription(descripcionActual);
+            setShowPreguntasClarificadoras(true);
+        } catch (error) {
+            console.error("Error al obtener preguntas clarificadoras:", error);
+            alert("No se pudieron generar las preguntas clarificadoras. Intenta nuevamente.");
+        } finally {
+            setCargandoPreguntasClarificadoras(false);
+        }
+    }
+
+    function handleAbrirGuardarProyecto() {
+        setShowSaveModal(true);
+    }
+
+    function handleCerrarSaveModal() {
+        setShowSaveModal(false);
+    }
+
+    const rowsParaGuardar = (): MatrizRow[] => {
+        const sourceRows = iaRows ?? matrizDraft;
+        return sourceRows.map((row) => ({ ...row }));
+    };
+
+    async function handleGuardarProyecto(tipo: SavedProjectType) {
+        const guardado = await handleGuardarConcepto();
+        if (!guardado) return;
+        const nombre = conceptoForm.clave || conceptoForm.descripcion.slice(0, 60);
+        const unidadConceptoActual = calcularPorMetro ? "m2" : "proyecto";
+        const config = {
+            apu: true,
+            iva: !!sobrecostos.iva.activo,
+            indirectos: !!sobrecostos.indirectos.activo,
+            utilidad: !!sobrecostos.utilidad.activo,
+            financiamiento: !!sobrecostos.financiamiento.activo,
+        };
+        const nuevo: SavedProjectRecord = {
+            id: String(Date.now()),
+            nombre,
+            descripcion: conceptoForm.descripcion,
+            tipo_documento: tipo,
+            fecha: new Date().toISOString(),
+            unidad_concepto: unidadConceptoActual,
+            rows: rowsParaGuardar(),
+            ia_explanation: iaExplanation,
+            config,
+            total: resumen.precio_unitario || resumen.costo_directo,
+        };
+        setSavedProjects((prev) => [...prev, nuevo]);
+        alert(`Guardado como ${tipo}`);
+        setShowSaveModal(false);
+    }
+
+    const persistClarificationHistory = (respuestas: string[]) => {
+        if (preguntasClarificadoras.length === 0) {
+            setClarificationHistory([]);
+            return;
+        }
+        const entries = preguntasClarificadoras.map((pregunta, index) => ({
+            pregunta: pregunta.pregunta,
+            respuesta: respuestas[index] ?? "",
+        }));
+        setClarificationHistory(entries);
+    };
+
+    async function handleSugerirAPUConIA(respuestasClarificadoras?: string[]): Promise<string | null> {
+        if (!conceptoForm.descripcion) {
+            return "Describe el concepto antes de solicitar la sugerencia.";
+        }
+        setCargandoIA(true);
+        try {
+            const unidadPreferida = calcularPorMetro ? "m2" : "proyecto";
+            const payload: Record<string, unknown> = {
+                descripcion: conceptoForm.descripcion,
+                unidad: unidadPreferida,
+                calcular_por_m2: calcularPorMetro,
+                concepto_id: conceptoForm.id,
+            };
+            const providedResponses = Array.isArray(respuestasClarificadoras)
+                ? respuestasClarificadoras.map((respuesta) => respuesta.trim())
+                : [];
+            const respuestasLimpias = providedResponses.filter((respuesta) => respuesta.length > 0);
+            if (respuestasLimpias.length > 0) {
+                payload.respuestas_clarificadoras = respuestasLimpias;
+            }
+
+            const data = await apiFetch<ChatApuResponse & { metros_cuadrados_construccion?: number }>(`/ia/chat_apu`, {
+                method: "POST",
+                body: payload,
             });
             const mappedRows = mapearSugerenciasDesdeIA(data.insumos ?? [], conceptoForm.id ?? 0);
             setIaRows(mappedRows);
@@ -347,8 +544,11 @@ export function AnalisisPuPage() {
             setIaExplanation(explicacion);
             setTextoDetalles(explicacion);
             setMetrosCuadrados(data.metros_cuadrados_construccion || 0);
+            persistClarificationHistory(providedResponses);
+            return null;
         } catch (error) {
             console.error("Error al solicitar /ia/chat_apu", error);
+            return "No se pudo generar el APU. Intenta nuevamente.";
         } finally {
             setCargandoIA(false);
         }
@@ -421,7 +621,7 @@ export function AnalisisPuPage() {
 
         const payload: any = {
             descripcion: conceptoForm.descripcion,
-            unidad: conceptoForm.unidad_concepto,
+            unidad: calcularPorMetro ? "m2" : "proyecto",
             matriz: matrizParaEnviar,
             concepto_id: conceptoForm.id,
         };
@@ -445,7 +645,7 @@ export function AnalisisPuPage() {
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
             <Navbar />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] gap-6">
                 {/* Columna Izquierda */}
                 <div className="lg:col-span-1 space-y-6">
                     {/* Tarjeta Detalle */}
@@ -469,17 +669,6 @@ export function AnalisisPuPage() {
                                 />
                             </div>
                             <div>
-                                <label htmlFor={`${idPrefix}-unidad`} className="block text-sm font-medium text-gray-700 mb-1">Unidad</label>
-                                <input
-                                    id={`${idPrefix}-unidad`}
-                                    name={`${idPrefix}-unidad`}
-                                    className="w-full bg-white text-gray-900 border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    value={conceptoForm.unidad_concepto}
-                                    onChange={(event) => handleChange("unidad_concepto", event.target.value)}
-                                    placeholder="Ej. m2, Lote, Pza"
-                                />
-                            </div>
-                            <div>
                                 <label htmlFor={`${idPrefix}-descripcion`} className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                                 <textarea
                                     id={`${idPrefix}-descripcion`}
@@ -491,21 +680,42 @@ export function AnalisisPuPage() {
                                     placeholder="Describe la actividad y especificaciones"
                                 />
                             </div>
+                            <div className="flex items-start gap-3">
+                                <input
+                                    id={`${idPrefix}-cost-m2`}
+                                    type="checkbox"
+                                    checked={calcularPorMetro}
+                                    onChange={(event) => handleCalculoPorMetroChange(event.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <div>
+                                    <label htmlFor={`${idPrefix}-cost-m2`} className="text-sm font-medium text-gray-700">Calcular por el costo de m² de construcción</label>
+                                    <p className="text-xs text-gray-500">Si no está marcado, el proyecto se calculará por el costo total de la obra.</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="mt-4 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleSugerirAPUConIA}
-                                disabled={!conceptoForm.descripcion}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm w-full justify-center sm:w-auto"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                                Sugerencia Gemini
-                            </button>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-2 italic">
+                        <div className="mt-4 space-y-2">
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={prepararPreguntasClarificadoras}
+                                    disabled={!conceptoForm.descripcion || cargandoIA || cargandoPreguntasClarificadoras}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm w-full justify-center sm:w-auto"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                                    {cargandoPreguntasClarificadoras ? "Generando preguntas..." : "Sugerencia Gemini"}
+                                </button>
+                            </div>
+                        <p className="text-xs text-gray-400 italic">
                             Mientras más completa sea la descripción, mejor será la sugerencia de la IA.
                         </p>
+                        {cargandoIA && (
+                            <div className="text-xs text-indigo-500 font-semibold flex items-center gap-2">
+                                <span className="h-3 w-3 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
+                                <span>La IA está generando el APU. Por favor espera unos segundos.</span>
+                            </div>
+                        )}
+                    </div>
                     </section>
 
                     {/* Tarjeta Resumen */}
@@ -602,19 +812,19 @@ export function AnalisisPuPage() {
                 </div>
 
                 {/* Columna Derecha */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-1 space-y-6 min-w-0">
                     {/* Botones de Acción (Reacomodados) */}
                     <div className="flex flex-wrap gap-2 justify-end">
                         <button
                             type="button"
-                            onClick={handleAbrirConcepto}
+                            onClick={handleAbrirProyectoGuardado}
                             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
                         >
                             <span>📂</span> Abrir
                         </button>
                         <button
                             type="button"
-                            onClick={handleGuardarConcepto}
+                            onClick={handleAbrirGuardarProyecto}
                             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
@@ -659,6 +869,35 @@ export function AnalisisPuPage() {
                 </div>
             </div >
 
+            <PreguntasClarificadorasModal
+                open={showPreguntasClarificadoras}
+                descripcion={conceptoForm.descripcion}
+                preguntas={preguntasClarificadoras}
+                loading={cargandoPreguntasClarificadoras}
+                onClose={handleCerrarPreguntas}
+                history={clarificationHistory}
+                initialAnswers={clarificationInitialAnswers}
+                onSubmit={(respuestas) => handleSugerirAPUConIA(respuestas)}
+                onSkip={() => {
+                    handleCerrarPreguntas();
+                    setClarificationHistory([]);
+                    void handleSugerirAPUConIA();
+                }}
+            />
+
+            <SaveProjectModal
+                open={showSaveModal}
+                descripcion={conceptoForm.descripcion}
+                onClose={handleCerrarSaveModal}
+                onSave={handleGuardarProyecto}
+            />
+            <OpenSavedProjectModal
+                open={showOpenModal}
+                projects={savedProjects}
+                onClose={handleCerrarOpenModal}
+                onSelect={handleProyectoSeleccionado}
+            />
+
             <NotaVentaModal nota={notaVentaData} matriz={matrizNotaVenta} onClose={() => setNotaVentaData(null)} />
 
             {
@@ -671,4 +910,50 @@ export function AnalisisPuPage() {
             }
         </div >
     );
+}
+
+function loadClarificationHistoryFromStorage(): ClarifyingHistoryEntry[] {
+    if (typeof window === "undefined") return [];
+    const stored = localStorage.getItem(CLARIFICATION_HISTORY_STORAGE_KEY);
+    if (!stored) return [];
+    try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+    } catch {
+        // ignore
+    }
+    return [];
+}
+
+function loadLastClarificationDescriptionFromStorage(): string {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(CLARIFICATION_LAST_DESCRIPTION_STORAGE_KEY) ?? "";
+}
+
+function buildWordSet(dest: string): Set<string> {
+    const tokens = (dest || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .match(/[a-z0-9ñ]+/g) ?? [];
+    return new Set(tokens);
+}
+
+function calculateDescriptionSimilarity(a: string, b: string): number {
+    if (!a || !b) return 0;
+    const setA = buildWordSet(a);
+    const setB = buildWordSet(b);
+    if (!setA.size || !setB.size) return 0;
+    const intersection = [...setA].filter((token) => setB.has(token)).length;
+    const union = new Set([...setA, ...setB]).size;
+    if (!union) return 0;
+    return intersection / union;
+}
+
+function shouldRefreshClarification(lastDesc: string, currentDesc: string): boolean {
+    if (!lastDesc || !currentDesc) return false;
+    const similarity = calculateDescriptionSimilarity(lastDesc, currentDesc);
+    return similarity < DESCRIPTION_SIMILARITY_THRESHOLD;
 }

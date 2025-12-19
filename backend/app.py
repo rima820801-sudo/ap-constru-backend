@@ -1,9 +1,13 @@
 import sys
 import os
 
+from dotenv import load_dotenv
+
 # Add the parent directory to sys.path to allow absolute imports (e.g., 'from backend.config ...')
 # even when running from inside the 'backend' directory (common in Render/Gunicorn setups).
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+load_dotenv()
 
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix

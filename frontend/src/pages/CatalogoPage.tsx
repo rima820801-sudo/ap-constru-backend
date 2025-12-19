@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search, Plus, Save, Trash2, Edit3, Package, HardHat, Truck, Wrench,
     FolderOpen, FileText, ArrowUpRight, BoxSelect, X, Eye, Tag, CheckCircle2,
@@ -7,6 +7,7 @@ import {
 import { Navbar } from '../components/layout/Navbar';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { loadSavedProjects, persistSavedProjects, type SavedProjectRecord, type SavedProjectType } from '../utils/savedProjects';
 
 function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
@@ -18,7 +19,86 @@ const CATALOG_UNITS = [
 
 // Tipos de pestañas
 type TabType = 'materiales' | 'mano_obra' | 'equipos' | 'maquinaria' | 'proyectos_guardados';
-type FolderType = 'Presupuesto' | 'Factura' | 'Nota de Venta' | null;
+type FolderType = SavedProjectType | null;
+
+type CatalogSampleProject = {
+    id: number;
+    nombre: string;
+    tipo_documento: SavedProjectType;
+    descripcion: string;
+    config: {
+        apu?: boolean;
+        iva?: boolean;
+        indirectos?: boolean;
+        utilidad?: boolean;
+        financiamiento?: boolean;
+    };
+    total: number;
+    fecha: string;
+    insumos: unknown[];
+};
+
+const INITIAL_PROJECTS: CatalogSampleProject[] = [
+    {
+        id: 1,
+        nombre: 'Muro Perimetral Norte',
+        tipo_documento: 'Presupuesto',
+        descripcion: 'Muro de block con dalas',
+        config: { apu: true, iva: true, indirectos: true, utilidad: true, financiamiento: false },
+        total: 154200.5,
+        fecha: '2024-02-20',
+        insumos: [],
+    },
+    {
+        id: 2,
+        nombre: 'Losa Casa Habitación',
+        tipo_documento: 'Presupuesto',
+        descripcion: 'Losa maciza 10cm',
+        config: { apu: true, iva: true, indirectos: false, utilidad: true, financiamiento: false },
+        total: 89350,
+        fecha: '2024-02-18',
+        insumos: [],
+    },
+    {
+        id: 3,
+        nombre: 'Suministro Block',
+        tipo_documento: 'Nota de Venta',
+        descripcion: 'Venta de block 15x20x40',
+        config: { apu: false, iva: true, indirectos: false, utilidad: false, financiamiento: false },
+        total: 12500,
+        fecha: '2024-02-15',
+        insumos: [],
+    },
+];
+
+type CatalogProject = CatalogSampleProject | SavedProjectRecord;
+
+const STORAGE_KEYS = {
+    materiales: "apu_catalog_materiales",
+    manoobra: "apu_catalog_manoobra",
+    equipos: "apu_catalog_equipos",
+    maquinaria: "apu_catalog_maquinaria",
+};
+
+function loadList<T>(key: string, fallback: T[]): T[] {
+    if (typeof window === "undefined") return fallback;
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+    } catch {
+        //
+    }
+    return fallback;
+}
+
+type MaterialEntry = { id: number; nombre: string; unidad: string; precio: number; fecha: string };
+type ManoObraEntry = { id: number; puesto: string; salario: number; antiguedad: number; rendimiento: number; fecha: string };
+type EquipoEntry = { id: number; nombre: string; unidad: string; costo_hora: number; fecha: string };
+type MaquinariaEntry = { id: number; nombre: string; costo_adq: number; vida_util: number; tasa: number; rendimiento: number; fecha: string };
 
 export default function CatalogoPage() {
     const [activeTab, setActiveTab] = useState<TabType>('materiales');
@@ -33,40 +113,35 @@ export default function CatalogoPage() {
         costo_adq: '', vida_util: '', tasa: '',
     });
 
-    const [materiales, setMateriales] = useState([
+    const defaultMateriales: MaterialEntry[] = [
         { id: 1, nombre: 'Cemento Gris 50kg', unidad: 'bulto', precio: 210.50, fecha: '2023-10-15' },
         { id: 2, nombre: 'Arena de Rio', unidad: 'm3', precio: 450.00, fecha: '2023-11-01' },
-    ]);
-    const [manoObra, setManoObra] = useState([
+    ];
+    const defaultManoObra: ManoObraEntry[] = [
         { id: 1, puesto: 'Oficial Albañil', salario: 450.00, antiguedad: 2, rendimiento: 0.1, fecha: '2024-01-10' },
-    ]);
-    const [equipos, setEquipos] = useState([
+    ];
+    const defaultEquipos: EquipoEntry[] = [
         { id: 1, nombre: 'Andamio tubular', unidad: 'día', costo_hora: 15.00, fecha: '2023-09-20' },
-    ]);
-    const [maquinaria, setMaquinaria] = useState([
+    ];
+    const defaultMaquinaria: MaquinariaEntry[] = [
         { id: 1, nombre: 'Revolvedora 1 saco', costo_adq: 25000, vida_util: 2000, tasa: 12, rendimiento: 5, fecha: '2023-05-15' },
-    ]);
+    ];
 
-    const [proyectos, setProyectos] = useState([
-        {
-            id: 1, nombre: 'Muro Perimetral Norte', tipo_documento: 'Presupuesto',
-            descripcion: 'Muro de block con dalas',
-            config: { apu: true, iva: true, indirectos: true, utilidad: true, financiamiento: false },
-            total: 154200.50, fecha: '2024-02-20', insumos: []
-        },
-        {
-            id: 2, nombre: 'Losa Casa Habitación', tipo_documento: 'Presupuesto',
-            descripcion: 'Losa maciza 10cm',
-            config: { apu: true, iva: true, indirectos: false, utilidad: true, financiamiento: false },
-            total: 89350.00, fecha: '2024-02-18', insumos: []
-        },
-        {
-            id: 3, nombre: 'Suministro Block', tipo_documento: 'Nota de Venta',
-            descripcion: 'Venta de block 15x20x40',
-            config: { apu: false, iva: true, indirectos: false, utilidad: false, financiamiento: false },
-            total: 12500.00, fecha: '2024-02-15', insumos: []
-        },
-    ]);
+    const [materiales, setMateriales] = useState<MaterialEntry[]>(() => loadList(STORAGE_KEYS.materiales, defaultMateriales));
+    const [manoObra, setManoObra] = useState<ManoObraEntry[]>(() => loadList(STORAGE_KEYS.manoobra, defaultManoObra));
+    const [equipos, setEquipos] = useState<EquipoEntry[]>(() => loadList(STORAGE_KEYS.equipos, defaultEquipos));
+    const [maquinaria, setMaquinaria] = useState<MaquinariaEntry[]>(() => loadList(STORAGE_KEYS.maquinaria, defaultMaquinaria));
+
+    const [proyectos, setProyectos] = useState<CatalogSampleProject[]>(INITIAL_PROJECTS);
+    const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
+    const [storedProjectsDetected, setStoredProjectsDetected] = useState(() => Boolean(localStorage.getItem("apu_saved_projects")));
+
+    const activeProjects = storedProjectsDetected ? savedProjects : proyectos;
+    const countByType = (tipo: SavedProjectType) =>
+        activeProjects.filter((project) => project.tipo_documento === tipo).length;
+    const projectsInFolder = currentFolder
+        ? activeProjects.filter((project) => project.tipo_documento === currentFolder)
+        : [];
 
     // --- Lógica de Guardado ---
     const handleInputChange = (field: string, value: string) => setNewItem(prev => ({ ...prev, [field]: value }));
@@ -90,11 +165,37 @@ export default function CatalogoPage() {
         setNewItem({ nombre: '', unidad: '', precio: '', puesto: '', salario: '', antiguedad: '', rendimiento: '', costo_hora: '', costo_adq: '', vida_util: '', tasa: '' });
     };
 
-    const handleDelete = (id: number, listSetter: React.Dispatch<React.SetStateAction<any[]>>) => {
-        if (window.confirm('¿Estás seguro de eliminar este item?')) {
-            listSetter(prev => prev.filter(item => item.id !== id));
-        }
+    const handleDelete = (id: number | string, endpoint: string | null, listSetter: React.Dispatch<React.SetStateAction<any[]>>) => {
+        if (!window.confirm('¿Estás seguro de eliminar este item?')) return;
+        listSetter(prev => prev.filter(item => item.id !== id));
     };
+
+    useEffect(() => {
+        persistSavedProjects(savedProjects);
+        if (!storedProjectsDetected) {
+            setStoredProjectsDetected(true);
+        }
+    }, [savedProjects, storedProjectsDetected]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(STORAGE_KEYS.materiales, JSON.stringify(materiales));
+    }, [materiales]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(STORAGE_KEYS.manoobra, JSON.stringify(manoObra));
+    }, [manoObra]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(STORAGE_KEYS.equipos, JSON.stringify(equipos));
+    }, [equipos]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(STORAGE_KEYS.maquinaria, JSON.stringify(maquinaria));
+    }, [maquinaria]);
 
     // Helper Badges
     const ConfigBadges = ({ config }: { config: any }) => (
@@ -197,15 +298,15 @@ export default function CatalogoPage() {
                         {currentFolder === null ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                                 <div onClick={() => setCurrentFolder('Presupuesto')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 cursor-pointer transition-all group">
-                                    <div className="flex items-start justify-between mb-4"><div className="bg-blue-100 p-3 rounded-lg text-blue-600"><Calculator className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{proyectos.filter(p => p.tipo_documento === 'Presupuesto').length}</span></div>
+                                <div className="flex items-start justify-between mb-4"><div className="bg-blue-100 p-3 rounded-lg text-blue-600"><Calculator className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Presupuesto')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-blue-700">Presupuestos</h3>
                                 </div>
                                 <div onClick={() => setCurrentFolder('Factura')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 cursor-pointer transition-all group">
-                                    <div className="flex items-start justify-between mb-4"><div className="bg-purple-100 p-3 rounded-lg text-purple-600"><Receipt className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{proyectos.filter(p => p.tipo_documento === 'Factura').length}</span></div>
+                                <div className="flex items-start justify-between mb-4"><div className="bg-purple-100 p-3 rounded-lg text-purple-600"><Receipt className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Factura')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-700">Facturas</h3>
                                 </div>
                                 <div onClick={() => setCurrentFolder('Nota de Venta')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-orange-300 cursor-pointer transition-all group">
-                                    <div className="flex items-start justify-between mb-4"><div className="bg-orange-100 p-3 rounded-lg text-orange-600"><ScrollText className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{proyectos.filter(p => p.tipo_documento === 'Nota de Venta').length}</span></div>
+                                <div className="flex items-start justify-between mb-4"><div className="bg-orange-100 p-3 rounded-lg text-orange-600"><ScrollText className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Nota de Venta')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-orange-700">Notas de Venta</h3>
                                 </div>
                             </div>
@@ -218,18 +319,21 @@ export default function CatalogoPage() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Descripción / Config</th><th className="px-6 py-3 text-right">Total</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {proyectos.filter(p => p.tipo_documento === currentFolder).map(p => (
-                                            <tr key={p.id} className="hover:bg-gray-50 group">
-                                                <td className="px-6 py-4 align-top"><span className="font-medium text-gray-900 flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-400" />{p.nombre}</span></td>
-                                                <td className="px-6 py-4 align-top"><div className="text-gray-500 truncate max-w-xs mb-1">{p.descripcion}</div><ConfigBadges config={p.config} /></td>
-                                                <td className="px-6 py-4 text-right font-bold text-indigo-700 align-top">${p.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
-                                                <td className="px-6 py-4 text-gray-400 text-xs align-top">{p.fecha}</td>
-                                                <td className="px-6 py-4 text-right align-top">
-                                                    <button onClick={() => setSelectedProject(p)} title="Ver Detalles" className="text-gray-400 hover:text-indigo-600 mx-1 p-1 hover:bg-indigo-50 rounded transition-colors"><Eye className="w-4 h-4" /></button>
-                                                    <button onClick={() => handleDelete(p.id, setProyectos)} title="Eliminar" className="text-gray-400 hover:text-red-600 mx-1 p-1 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {projectsInFolder.map(project => {
+                                            const isSavedProject = typeof project.id === 'string';
+                                            return (
+                                                <tr key={project.id} className="hover:bg-gray-50 group">
+                                                    <td className="px-6 py-4 align-top"><span className="font-medium text-gray-900 flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-400" />{project.nombre}</span></td>
+                                                    <td className="px-6 py-4 align-top"><div className="text-gray-500 truncate max-w-xs mb-1">{project.descripcion}</div><ConfigBadges config={project.config} /></td>
+                                                    <td className="px-6 py-4 text-right font-bold text-indigo-700 align-top">${project.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                                                    <td className="px-6 py-4 text-gray-400 text-xs align-top">{project.fecha}</td>
+                                                    <td className="px-6 py-4 text-right align-top">
+                                                        <button onClick={() => setSelectedProject(project)} title="Ver Detalles" className="text-gray-400 hover:text-indigo-600 mx-1 p-1 hover:bg-indigo-50 rounded transition-colors"><Eye className="w-4 h-4" /></button>
+                                                        <button onClick={() => handleDelete(project.id, null, isSavedProject ? setSavedProjects : setProyectos)} title="Eliminar" className="text-gray-400 hover:text-red-600 mx-1 p-1 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -251,7 +355,7 @@ export default function CatalogoPage() {
                                     <table className="w-full text-sm text-left min-w-[600px]">
                                         <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Precio</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {materiales.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 text-gray-500">{m.unidad}</td><td className="px-6 py-3 font-bold">${m.precio}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMateriales)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar material"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                            {materiales.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 text-gray-500">{m.unidad}</td><td className="px-6 py-3 font-bold">${m.precio}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, null, setMateriales)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar material"><Trash2 className="w-4 h-4" /></button></td></tr>))}
                                         </tbody>
                                     </table>
                                 )}
@@ -259,7 +363,7 @@ export default function CatalogoPage() {
                                     <table className="w-full text-sm text-left min-w-[600px]">
                                         <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Puesto</th><th className="px-6 py-3">Salario</th><th className="px-6 py-3">Antigüedad</th><th className="px-6 py-3">Rendimiento</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {manoObra.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.puesto}</td><td className="px-6 py-3 font-bold">${m.salario}</td><td className="px-6 py-3 text-gray-500">{m.antiguedad} años</td><td className="px-6 py-3 text-gray-500">{m.rendimiento}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setManoObra)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar mano de obra"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                            {manoObra.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.puesto}</td><td className="px-6 py-3 font-bold">${m.salario}</td><td className="px-6 py-3 text-gray-500">{m.antiguedad} años</td><td className="px-6 py-3 text-gray-500">{m.rendimiento}</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, null, setManoObra)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar mano de obra"><Trash2 className="w-4 h-4" /></button></td></tr>))}
                                         </tbody>
                                     </table>
                                 )}
@@ -267,15 +371,15 @@ export default function CatalogoPage() {
                                     <table className="w-full text-sm text-left min-w-[600px]">
                                         <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Unidad</th><th className="px-6 py-3">Costo Hora</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {equipos.map(e => (<tr key={e.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{e.nombre}</td><td className="px-6 py-3 text-gray-500">{e.unidad}</td><td className="px-6 py-3 font-bold">${e.costo_hora}</td><td className="px-6 py-3 text-gray-400 text-xs">{e.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(e.id, setEquipos)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar equipo"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                            {equipos.map(e => (<tr key={e.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{e.nombre}</td><td className="px-6 py-3 text-gray-500">{e.unidad}</td><td className="px-6 py-3 font-bold">${e.costo_hora}</td><td className="px-6 py-3 text-gray-400 text-xs">{e.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(e.id, null, setEquipos)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar equipo"><Trash2 className="w-4 h-4" /></button></td></tr>))}
                                         </tbody>
                                     </table>
                                 )}
                                 {activeTab === 'maquinaria' && (
                                     <table className="w-full text-sm text-left min-w-[600px]">
-                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Costo Adq.</th><th className="px-6 py-3">Vida Útil</th><th className="px-6 py-3">Tasa</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
+                                        <thead className="bg-gray-50 text-gray-500 font-semibold uppercase text-xs"><tr><th className="px-6 py-3">Nombre</th><th className="px-6 py-3">Costo Adq.</th><th className="px-6 py-3">Vida útil</th><th className="px-6 py-3">Tasa</th><th className="px-6 py-3">Fecha</th><th className="px-6 py-3 text-right">Acciones</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {maquinaria.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 font-bold">${m.costo_adq.toLocaleString()}</td><td className="px-6 py-3 text-gray-500">{m.vida_util} hrs</td><td className="px-6 py-3 text-gray-500">{m.tasa}%</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, setMaquinaria)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar maquinaria"><Trash2 className="w-4 h-4" /></button></td></tr>))}
+                                            {maquinaria.map(m => (<tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-medium">{m.nombre}</td><td className="px-6 py-3 font-bold">${m.costo_adq.toLocaleString()}</td><td className="px-6 py-3 text-gray-500">{m.vida_util} hrs</td><td className="px-6 py-3 text-gray-500">{m.tasa}%</td><td className="px-6 py-3 text-gray-400 text-xs">{m.fecha}</td><td className="px-6 py-3 text-right"><button onClick={() => handleDelete(m.id, null, setMaquinaria)} className="text-gray-400 hover:text-red-600" aria-label="Eliminar maquinaria"><Trash2 className="w-4 h-4" /></button></td></tr>))}
                                         </tbody>
                                     </table>
                                 )}

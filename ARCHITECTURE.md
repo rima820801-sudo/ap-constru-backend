@@ -2,19 +2,20 @@
 
 ## Backend (`catalogos/`)
 1. **Configuracion y arranque**: `app.py` carga las variables de entorno con `python-dotenv`, arma la ruta a `data.sqlite3`, inicializa Flask + SQLAlchemy y aplica CORS solo para `http://localhost:3000`. Lee `GEMINI_API_KEY`, `GEMINI_MODEL` (por defecto `gemini-2.5-flash`) y `PRECIOS_OBSOLETOS_DIAS` (90) para habilitar las rutas de IA y marcar precios obsoletos.
-2. **Modelos y persistencia**: El mismo archivo define todos los modelos (`ConstantesFASAR`, `Material`, `ManoObra`, `Equipo`, `Maquinaria`, `Concepto`, `MatrizInsumo`, `Proyecto`, `Partida`, `DetallePresupuesto`) con sus `to_dict`. Cada `to_dict` ajusta tipos (`Decimal` a `float`) y calcula campos derivados como `obsoleto`. A pesar de existir `catalogos/models.py` con versiones Django de estos modelos, el backend real solo usa las clases SQLAlchemy del archivo principal.
-3. **Servicios y utilidades**: `app.py` tambien contiene helpers como `decimal_field`, `is_precio_obsoleto`, `calcular_costo_posesion`, `calcular_fasar_valor`, `obtener_costo_insumo` (con caches por tipo), `calcular_precio_unitario` (suma costo directo, aplica ajustes y multiplicadores) y `normalizar_factores`. La logica de IA incluye:
+2. **Modelos y persistencia**: El mismo archivo define todos los modelos (`ConstantesFASAR`, `Material`, `ManoObra`, `Equipo`, `Maquinaria`, `Concepto`, `MatrizInsumo`, `Proyecto`, `Partida`, `DetallePresupuesto`) con sus `to_dict`. Cada `to_dict` ajusta tipos (`Decimal` a `float`) y calcula campos derivados como `obsoleto`. A pesar de existir `backend/models.py` (una copia con Django ORM), la lógica viva utiliza las clases SQLAlchemy directamente.
+3. **Servicios y utilidades**: `app.py` también contiene helpers como `decimal_field`, `is_precio_obsoleto`, `calcular_costo_posesion`, `calcular_fasar_valor`, `obtener_costo_insumo` (con caches por tipo), `calcular_precio_unitario` (suma costo directo y aplica los multiplicadores) y `normalizar_factores`. La lógica de IA incluye:
    - `construir_sugerencia_apu`: heuristica local que arma matrices basadas en palabras clave (barda, concreto, etc.) y en catalogos existentes.
    - `generar_apu_con_gemini` + `construir_matriz_desde_gemini`: cuando hay API key consulta Gemini y reconcilia la respuesta a JSON valido.
    - `sugerir_precio_mercado`: intenta primero el costo real del catalogo, luego busquedas por nombre, despues un diccionario de precios simulados y finalmente Gemini.
    - Generacion de PDF: `/api/ventas/descargar_nota_venta_pdf/<id>` usa ReportLab para producir la nota de venta desde la matriz.
-4. **Rutas REST**: Todo esta concentrado en un unico modulo:
+4. **Servicios complementarios**: Además de las rutas de IA ya descritas, se agregó `backend/services/clarification_service.py`, que expone heurísticas y llamados a Gemini para producir un conjunto de preguntas clarificadoras (hasta cinco) y evitar duplicados antes de generar un APU. Este servicio se utiliza desde `/api/ia/preguntas_clarificadoras`, `chat_apu` y en la UI de Analisis PU para solicitar datos adicionales antes de disparar la cotización.
+5. **Rutas REST**: Todo esta concentrado en un unico modulo:
    - **Catalogos**: `/api/materiales`, `/api/manoobra`, `/api/equipo`, `/api/maquinaria` con CRUD completo y calculo de `obsoleto`.
    - **Conceptos y matrices**: `/api/conceptos`, `/api/matriz`, `/api/conceptos/<id>/matriz`, `/api/conceptos/calcular_pu`.
    - **Presupuestos**: `/api/proyectos`, `/api/proyectos/<id>/partidas`, `/api/partidas`, `/api/partidas/<id>/detalles`, `/api/detalles-presupuesto`.
    - **Calculos auxiliares**: `/api/fasar/calcular`, `/api/catalogos/sugerir_precio_mercado`, `/api/catalogos/actualizar_precios_masivo`.
    - **IA y ventas**: `/api/ia/generar_apu_sugerido`, `/api/ia/chat_apu`, `/api/ia/explicar_sugerencia`, `/api/ventas/crear_nota_venta`, `/api/ventas/descargar_nota_venta_pdf/<id>`.
-5. **Datos iniciales y pruebas**: `seed_data.py` se ejecuta en el bloque `if __name__ == "__main__"` para crear constantes FASAR y un APU ejemplo. `test_app.py` levanta una base en memoria y valida `calcular_pu` junto con `match_mano_obra` para prevenir regresiones.
+6. **Datos iniciales y pruebas**: `seed_data.py` se ejecuta en el bloque `if __name__ == "__main__"` para crear constantes FASAR y un APU ejemplo. `test_app.py` levanta una base en memoria y valida `calcular_pu` junto con `match_mano_obra` para prevenir regresiones.
 
 ## Frontend (`frontend/`)
 1. **Shell y rutas**: `src/main.tsx` monta React en modo estricto con `BrowserRouter`. `App.tsx` define la cabecera (`AppHeader`) y las rutas `/presupuesto`, `/catalogos` y `/analisis` (landea en Presupuesto por defecto).
@@ -22,9 +23,10 @@
 3. **Paginas**:
    - `PresupuestoPage` renderiza `PresupuestoManager`, componente que coordina proyectos, partidas y detalles (formularios de ajustes, selectores, resumen monetario).
    - `CatalogosPage` muestra `CatalogosDashboard`, una vista tabulada que reutiliza un CRUD generico por tipo y ofrece simulacion de actualizacion masiva.
-   - `AnalisisPuPage` controla el formulario del concepto, los toggles de sobrecostos, las llamadas a `/api/ia/chat_apu`, persistencia de la matriz y la generacion de notas de venta.
+   - `AnalisisPuPage` controla el formulario del concepto, los toggles de sobrecostos, las llamadas a `/api/ia/chat_apu` y `/api/ia/preguntas_clarificadoras`, persistencia de la matriz y la generacion de notas de venta.
+   - `ComparadorPage` agrupa la cotizacion asistida por IA, importacion/guardado de proyectos y conectores con los precios guardados del catalogo para poblar los tres proveedores sugeridos.
 4. **Componentes clave**:
-   - `CatalogosDashboard` (`components/catalogos/CatalogoCrud.tsx`): forma dinamicamente los campos segun el tipo, colorea registros obsoletos y permite editar/borrar desde la tabla.
+   - `CatalogosDashboard` (`components/catalogos/CatalogoCrud.tsx`): forma dinamicamente los campos segun el tipo, colorea registros obsoletos y permite editar/borrar desde la tabla; `CatalogoPage` persiste cada tabla (materiales, mano de obra, equipos, maquinaria) en `localStorage` contra `STORAGE_KEYS` para que altos y bajas no se pierdan al navegar.
    - `ConceptoMatrizEditor`: administra el estado de las filas de matriz, descarga catalogos en memoria, calcula el PU desde el backend cada vez que cambia la tabla, intenta conciliar sugerencias IA con registros reales y expone un modal para registrar insumos faltantes dentro del catalogo. Tambien puede pedir precios de referencia a `/api/catalogos/sugerir_precio_mercado`.
    - `PresupuestoManager`: sincroniza proyectos, partidas y detalles, arma payloads hacia `/api/proyectos` y `/api/detalles-presupuesto` y calcula un resumen comparando contra `monto_maximo`.
    - `NotaVentaModal` / `NotaVentaModalFixed`: presentan los resultados de `/api/ventas/crear_nota_venta` y permiten abrir el PDF del backend.

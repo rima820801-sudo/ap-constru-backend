@@ -1,17 +1,42 @@
 from flask import Blueprint, request, jsonify
 from backend.services.gemini_service import generar_apu_con_gemini, cotizar_con_gemini, construir_sugerencia_apu, construir_explicacion_para_chat, construir_matriz_desde_gemini
+from backend.services.clarification_service import generar_preguntas_clarificadoras
 from backend.models import Concepto
 
 bp = Blueprint('ia', __name__, url_prefix='/api/ia')
+
+
+@bp.route("/preguntas_clarificadoras", methods=["POST"])
+def preguntas_clarificadoras():
+    """
+    Genera preguntas clarificadoras antes de generar el APU
+    """
+    data = request.get_json() or {}
+    descripcion = data.get("descripcion", "")
+
+    preguntas = generar_preguntas_clarificadoras(descripcion)
+
+    return jsonify({
+        "descripcion_original": descripcion,
+        "preguntas": preguntas,
+        "cantidad": len(preguntas)
+    })
 
 @bp.route("/chat_apu", methods=["POST"])
 def chat_apu():
     data = request.get_json() or {}
     descripcion = data.get("descripcion", "")
-    unidad = data.get("unidad", "")
+    unidad = data.get("unidad", "") or ""
     concepto_id = data.get("concepto_id")
 
-    data_gemini = generar_apu_con_gemini(descripcion, unidad)
+    calcular_por_m2 = bool(data.get("calcular_por_m2")) if "calcular_por_m2" in data else unidad.lower() == "m2"
+    if not unidad and calcular_por_m2:
+        unidad = "m2"
+
+    # Verificar si vienen respuestas a preguntas clarificadoras
+    respuestas_clarificadoras = data.get("respuestas_clarificadoras", [])
+
+    data_gemini = generar_apu_con_gemini(descripcion, unidad, calcular_por_m2)
 
     metros_cuadrados = 0.0
     if data_gemini:
@@ -26,7 +51,8 @@ def chat_apu():
     return jsonify({
         "explicacion": explicacion,
         "insumos": sugerencias,
-        "metros_cuadrados_construccion": metros_cuadrados
+        "metros_cuadrados_construccion": metros_cuadrados,
+        "preguntas_clarificadoras": generar_preguntas_clarificadoras(descripcion) if not respuestas_clarificadoras else []
     })
 
 @bp.route("/cotizar", methods=["POST"])
@@ -36,15 +62,19 @@ def cotizar_material():
     if not material:
         return jsonify({"error": "Falta material"}), 400
 
+    fallback = {
+        "tienda1": "Generico A", "precio1": 0.0, "tienda1_url": "",
+        "tienda2": "Generico B", "precio2": 0.0, "tienda2_url": "",
+        "tienda3": "Generico C", "precio3": 0.0, "tienda3_url": "",
+    }
+
     resultado = cotizar_con_gemini(material)
     if not resultado:
-        return jsonify({
-                "tienda1": "Generico A", "precio1": 0.0,
-                "tienda2": "Generico B", "precio2": 0.0,
-                "tienda3": "Generico C", "precio3": 0.0
-            }), 200
+        return jsonify(fallback), 200
 
-    return jsonify(resultado), 200
+    # Ensure fallback keys exist even if Gemini omits them
+    merged = {**fallback, **resultado}
+    return jsonify(merged), 200
 
 @bp.route("/explicar_sugerencia", methods=["GET"])
 def explicar_sugerencia():
