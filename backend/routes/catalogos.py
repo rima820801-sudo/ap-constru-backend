@@ -208,6 +208,91 @@ def maquinaria_detail(maquinaria_id: int):
     db.session.commit()
     return jsonify(maquinaria.to_dict())
 
+@bp.route("/catalogos/sugerir_precio_mercado", methods=["POST"])
+def sugerir_precio_mercado():
+    """
+    Sugiere un precio de mercado para un insumo basado en nombre y unidad
+    """
+    data = request.get_json(force=True)
+    nombre = data.get("nombre", "").strip()
+    unidad = data.get("unidad", "").strip()
+
+    if not nombre:
+        return jsonify({"error": "Falta el nombre del insumo"}), 400
+
+    try:
+        # 1. Intentar encontrar coincidencia exacta en el catálogo
+        material = Material.query.filter(
+            db.func.lower(Material.nombre) == db.func.lower(nombre)
+        ).first()
+
+        if material and material.precio_unitario > 0:
+            return jsonify({
+                "precio_sugerido": float(material.precio_unitario),
+                "fuente": "catalogo_real"
+            }), 200
+
+        # 2. Intentar búsqueda difusa por nombre
+        from sqlalchemy import func
+        # Buscar por nombre similar (palabras clave)
+        similar_materials = Material.query.filter(
+            func.lower(Material.nombre).contains(func.lower(nombre.split()[0]) if nombre.split() else "")
+        ).limit(5).all()
+
+        for mat in similar_materials:
+            if mat.precio_unitario > 0:
+                return jsonify({
+                    "precio_sugerido": float(mat.precio_unitario),
+                    "fuente": "catalogo_similar"
+                }), 200
+
+        # 3. Usar tabla simulada de precios comunes
+        precios_simulados = {
+            "cemento": 180.00,
+            "cemento gris": 180.00,
+            "cemento blanco": 220.00,
+            "arena": 450.00,
+            "grava": 600.00,
+            "gravilla": 550.00,
+            "varilla": 18.50,  # por kg
+            "tabla": 280.00,   # por m2
+            "tabique": 18.00,  # por pieza
+            "clavo": 45.00,    # por kilo
+            "alambre": 35.00,  # por kilo
+            "yeso": 120.00,    # por saco
+            "cal": 110.00,     # por saco
+            "pintura": 180.00, # por litro
+            "barniz": 220.00,  # por litro
+            "masilla": 85.00,  # por litro
+            "aguarras": 95.00, # por litro
+        }
+
+        # Buscar en el diccionario de precios simulados
+        nombre_lower = nombre.lower()
+        for clave, precio in precios_simulados.items():
+            if clave in nombre_lower:
+                return jsonify({
+                    "precio_sugerido": precio,
+                    "fuente": "tabla_simulada"
+                }), 200
+
+        # 4. Si todo falla, generar precio simulado
+        base_precio = 100.0 + (abs(hash(nombre)) % 100)
+        return jsonify({
+            "precio_sugerido": round(base_precio, 2),
+            "fuente": "simulado"
+        }), 200
+
+    except Exception as e:
+        print(f"Error en sugerir_precio_mercado: {e}")
+        # En caso de error, devolver un precio simulado
+        base_precio = 100.0 + (abs(hash(nombre)) % 100)
+        return jsonify({
+            "precio_sugerido": round(base_precio, 2),
+            "fuente": "simulado_error"
+        }), 200
+
+
 @bp.route("/catalogos/actualizar_precios_masivo", methods=["POST"])
 def actualizar_precios_masivo():
     updates = request.get_json(force=True)

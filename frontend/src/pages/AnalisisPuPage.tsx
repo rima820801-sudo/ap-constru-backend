@@ -252,10 +252,12 @@ export function AnalisisPuPage() {
     }, [iaExplanation]);
 
     useEffect(() => {
-        if (selectedConceptId) {
+        // Solo limpiar matrizDraft cuando se selecciona un concepto existente diferente
+        // No limpiar cuando se guarda un nuevo concepto
+        if (selectedConceptId && conceptoForm.id !== selectedConceptId) {
             setMatrizDraft([]);
         }
-    }, [selectedConceptId]);
+    }, [selectedConceptId, conceptoForm.id]);
 
     useEffect(() => {
         persistSavedProjects(savedProjects);
@@ -350,7 +352,8 @@ export function AnalisisPuPage() {
                 // Si es nuevo, guardamos la matriz draft inicial
                 if (matrizDraft.length > 0) {
                     await guardarMatrizRemota(created.id, matrizDraft);
-                    setMatrizDraft([]);
+                    // No limpiar matrizDraft aquí para evitar que desaparezca la matriz en la UI
+                    // La matriz se cargará desde el backend automáticamente
                 }
             }
 
@@ -387,6 +390,14 @@ export function AnalisisPuPage() {
         localStorage.removeItem("apu_draft_ia_explanation");
         localStorage.removeItem("apu_draft_texto_detalles");
         localStorage.removeItem("apu_draft_metros_cuadrados");
+        localStorage.removeItem("apu_draft_calcular_por_metro");
+        // También limpiar los elementos "apu_builder_*" que se usan en la inicialización
+        localStorage.removeItem("apu_builder_form");
+        localStorage.removeItem("apu_builder_ia_rows");
+        localStorage.removeItem("apu_builder_ia_explanation");
+        // Y también los de clarificación
+        localStorage.removeItem(CLARIFICATION_HISTORY_STORAGE_KEY);
+        localStorage.removeItem(CLARIFICATION_LAST_DESCRIPTION_STORAGE_KEY);
     }
 
     function handleAbrirConcepto() {

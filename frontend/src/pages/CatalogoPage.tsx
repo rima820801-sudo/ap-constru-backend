@@ -5,9 +5,62 @@ import {
     Folder, ChevronLeft, Calculator, Receipt, ScrollText
 } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
+import { apiFetch } from '../api/client';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { loadSavedProjects, persistSavedProjects, type SavedProjectRecord, type SavedProjectType } from '../utils/savedProjects';
+
+// Definir tipos DTO para la API
+type MaterialDTO = {
+    id: number;
+    nombre: string;
+    unidad: string;
+    precio_unitario: number;
+    fecha_actualizacion: string;
+    disciplina?: string;
+    calidad?: string;
+    obsoleto: boolean;
+    porcentaje_merma: number;
+    precio_flete_unitario: number;
+};
+
+type ManoObraDTO = {
+    id: number;
+    puesto: string;
+    salario_base: number;
+    antiguedad_anios: number;
+    fasar: number;
+    rendimiento_jornada: number;
+    disciplina?: string;
+    calidad?: string;
+    fecha_actualizacion: string;
+    obsoleto: boolean;
+};
+
+type EquipoDTO = {
+    id: number;
+    nombre: string;
+    unidad: string;
+    disciplina?: string;
+    calidad?: string;
+    fecha_actualizacion: string;
+    obsoleto: boolean;
+    costo_hora_maq: number;
+};
+
+type MaquinariaDTO = {
+    id: number;
+    nombre: string;
+    costo_adquisicion: number;
+    vida_util_horas: number;
+    tasa_interes_anual: number;
+    rendimiento_horario: number;
+    costo_posesion_hora: number;
+    disciplina?: string;
+    calidad?: string;
+    fecha_actualizacion: string;
+    obsoleto: boolean;
+};
 
 function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
@@ -135,6 +188,77 @@ export default function CatalogoPage() {
     const [proyectos, setProyectos] = useState<CatalogSampleProject[]>(INITIAL_PROJECTS);
     const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
     const [storedProjectsDetected, setStoredProjectsDetected] = useState(() => Boolean(localStorage.getItem("apu_saved_projects")));
+
+    // Cargar datos desde la API solo si no hay datos locales guardados
+    useEffect(() => {
+        const cargarDatosDesdeAPI = async () => {
+            try {
+                // Solo cargar desde la API si no hay datos guardados localmente
+                const hayMaterialesLocales = localStorage.getItem(STORAGE_KEYS.materiales);
+                const hayManoObraLocales = localStorage.getItem(STORAGE_KEYS.manoobra);
+                const hayEquiposLocales = localStorage.getItem(STORAGE_KEYS.equipos);
+                const hayMaquinariaLocales = localStorage.getItem(STORAGE_KEYS.maquinaria);
+
+                // Cargar materiales desde la API si no hay datos locales
+                if (!hayMaterialesLocales) {
+                    const materialesAPI = await apiFetch<MaterialDTO[]>('/materiales');
+                    const materialesFormateados = materialesAPI.map(m => ({
+                        id: m.id,
+                        nombre: m.nombre,
+                        unidad: m.unidad,
+                        precio: m.precio_unitario,
+                        fecha: m.fecha_actualizacion
+                    }));
+                    setMateriales(materialesFormateados);
+                }
+
+                // Cargar otros insumos desde la API si no hay datos locales
+                if (!hayManoObraLocales) {
+                    const manoObraAPI = await apiFetch<ManoObraDTO[]>('/manoobra');
+                    const manoObraFormateados = manoObraAPI.map(m => ({
+                        id: m.id,
+                        puesto: m.puesto,
+                        salario: m.salario_base,
+                        antiguedad: m.antiguedad_anios || 0,
+                        rendimiento: m.rendimiento_jornada || 0,
+                        fecha: m.fecha_actualizacion
+                    }));
+                    setManoObra(manoObraFormateados);
+                }
+
+                if (!hayEquiposLocales) {
+                    const equiposAPI = await apiFetch<EquipoDTO[]>('/equipo');
+                    const equiposFormateados = equiposAPI.map(e => ({
+                        id: e.id,
+                        nombre: e.nombre,
+                        unidad: e.unidad,
+                        costo_hora: e.costo_hora_maq,
+                        fecha: e.fecha_actualizacion
+                    }));
+                    setEquipos(equiposFormateados);
+                }
+
+                if (!hayMaquinariaLocales) {
+                    const maquinariaAPI = await apiFetch<MaquinariaDTO[]>('/maquinaria');
+                    const maquinariaFormateados = maquinariaAPI.map(m => ({
+                        id: m.id,
+                        nombre: m.nombre,
+                        costo_adq: m.costo_adquisicion,
+                        vida_util: m.vida_util_horas,
+                        tasa: m.tasa_interes_anual,
+                        rendimiento: m.rendimiento_horario,
+                        fecha: m.fecha_actualizacion
+                    }));
+                    setMaquinaria(maquinariaFormateados);
+                }
+            } catch (error) {
+                console.error('Error al cargar datos desde la API:', error);
+                // Si hay error, continuar con los valores locales o por defecto
+            }
+        };
+
+        cargarDatosDesdeAPI();
+    }, []);
 
     const activeProjects = storedProjectsDetected ? savedProjects : proyectos;
     const countByType = (tipo: SavedProjectType) =>

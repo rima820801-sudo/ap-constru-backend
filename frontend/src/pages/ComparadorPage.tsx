@@ -10,12 +10,158 @@ import {
     Sparkles,
     Loader2
 } from 'lucide-react';
-import { API_BASE_URL } from '../api/client';
+import { apiFetch } from '../api/client';
 import { Navbar } from '../components/layout/Navbar';
+
+type MaterialDTO = {
+    id: number;
+    nombre: string;
+    unidad: string;
+    precio_unitario: number;
+    porcentaje_merma: number;
+    precio_flete_unitario: number;
+    disciplina?: string;
+    calidad?: string;
+    fecha_actualizacion?: string;
+    obsoleto?: boolean;
+};
+
+// Definición de MatrizRow para poder trabajar con proyectos guardados desde AnalisisPuPage
+type MatrizRow = {
+    id?: number;
+    concepto: number;
+    tipo_insumo: "Material" | "ManoObra" | "Equipo" | "Maquinaria";
+    id_insumo: number | "";
+    cantidad: number;
+    porcentaje_merma?: number | "";
+    precio_flete_unitario?: number | "";
+    rendimiento_jornada?: number | "";
+    existe_en_catalogo?: boolean;
+    nombre_sugerido?: string;
+    justificacion_breve?: string;
+    precio_unitario_temp?: number | "";
+    unidad?: string;
+};
+
+type SavedProjectRecord = {
+    id: string;
+    nombre: string;
+    descripcion: string;
+    tipo_documento: 'Presupuesto' | 'Factura' | 'Nota de Venta';
+    fecha: string;
+    unidad_concepto?: string;
+    rows?: MatrizRow[];
+    ia_explanation?: string;
+    total?: number;
+    config?: {
+        apu?: boolean;
+        iva?: boolean;
+        indirectos?: boolean;
+        utilidad?: boolean;
+        financiamiento?: boolean;
+    };
+};
 
 const PRICE_TIER_LABELS = ['Más económico', 'Regular', 'Más caro'] as const;
 
 type PriceTierLabel = (typeof PRICE_TIER_LABELS)[number];
+
+// Función para verificar si un material tiene más de 5 días sin actualizar
+function esMaterialDesactualizado(fechaActualizacion?: string): boolean {
+    if (!fechaActualizacion) {
+        // Si no hay fecha de actualización, asumimos que está desactualizado
+        return true;
+    }
+
+    const fechaActual = new Date();
+    const fechaActualizacionDate = new Date(fechaActualizacion);
+
+    // Calcular la diferencia en días
+    const diferenciaMs = fechaActual.getTime() - fechaActualizacionDate.getTime();
+    const diferenciaDias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+
+    return diferenciaDias > 5;
+}
+
+// Función para verificar si un material no tiene precio asignado
+function esMaterialSinPrecio(precioUnitario: number): boolean {
+    return precioUnitario <= 0;
+}
+
+// Función para guardar un material en el catálogo con el precio elegido
+async function guardarEnCatalogo(nombre: string, precio: number, unidad: string = 'pza') {
+    try {
+        // Primero, verificar si el material ya existe
+        const materiales = await apiFetch<MaterialDTO[]>('/materiales');
+        const materialExistente = materiales.find(m => m.nombre.toLowerCase() === nombre.trim().toLowerCase());
+
+        if (materialExistente) {
+            // Si el material ya existe, actualizarlo
+            const payload = {
+                nombre: nombre.trim(),
+                unidad: unidad,
+                precio_unitario: precio,
+                fecha_actualizacion: new Date().toISOString().split("T")[0],
+                porcentaje_merma: 0.03, // Valor por defecto
+                precio_flete_unitario: 0, // Valor por defecto
+            };
+
+            const response = await apiFetch<MaterialDTO>(`/materiales/${materialExistente.id}`, {
+                method: 'PUT',
+                body: payload
+            });
+
+            alert('Material actualizado exitosamente en el catálogo.');
+            return response;
+        } else {
+            // Si el material no existe, crearlo
+            const payload = {
+                nombre: nombre.trim(),
+                unidad: unidad,
+                precio_unitario: precio,
+                fecha_actualizacion: new Date().toISOString().split("T")[0],
+                porcentaje_merma: 0.03, // Valor por defecto
+                precio_flete_unitario: 0, // Valor por defecto
+            };
+
+            const response = await apiFetch<MaterialDTO>('/materiales', {
+                method: 'POST',
+                body: payload
+            });
+
+            alert('Material guardado exitosamente en el catálogo.');
+            return response;
+        }
+    } catch (error: any) {
+        console.error('Error al guardar en catálogo:', error);
+        let errorMessage = 'Error al guardar el material en el catálogo.';
+
+        // Manejar diferentes tipos de errores
+        if (error instanceof Error) {
+            errorMessage = `Error: ${error.message}`;
+        } else if (typeof error === 'object' && error !== null) {
+            if (error.response) {
+                // Error de respuesta HTTP
+                if (error.response.data && error.response.data.error) {
+                    errorMessage = `Error ${error.response.status}: ${error.response.data.error}`;
+                } else {
+                    errorMessage = `Error HTTP ${error.response.status}: No se pudo guardar el material`;
+                }
+            } else if (error.request) {
+                // Error de red
+                errorMessage = 'Error de red: No se pudo conectar con el servidor';
+            }
+        }
+
+        alert(errorMessage);
+        return null;
+    }
+}
+
+// Función para buscar precios de todos los materiales en la tabla
+async function buscarPreciosParaTodos() {
+    // Esta función se llamará desde dentro del componente para tener acceso al estado
+}
 
 type PriceTier = {
     label: PriceTierLabel;
@@ -95,12 +241,28 @@ export default function ComparadorPage() {
     const [view, setView] = useState<'active' | 'history'>('active');
     const [showImportModal, setShowImportModal] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [tabla, setTabla] = useState<ComparacionItem[]>([]);
+    const [tabla, setTabla] = useState<ComparacionItem[]>(() => {
+        const saved = localStorage.getItem('comparador_tabla');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [tituloComparacion, setTituloComparacion] = useState('');
     const [historial, setHistorial] = useState<ComparacionGuardada[]>([]);
+    const [proyectosAnalisis, setProyectosAnalisis] = useState<SavedProjectRecord[]>([]);
+
+    // Efecto para guardar la tabla en localStorage cada vez que cambie
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem('comparador_tabla', JSON.stringify(tabla));
+        }
+    }, [tabla]);
+
     useEffect(() => {
         const guardados = JSON.parse(localStorage.getItem('comparaciones') || '[]');
         setHistorial(guardados);
+
+        // Cargar también los proyectos guardados desde AnalisisPuPage
+        const proyectosGuardados = JSON.parse(localStorage.getItem('apu_saved_projects') || '[]');
+        setProyectosAnalisis(proyectosGuardados);
     }, []);
 
     // --- FUNCIONES DE LÓGICA ---
@@ -126,15 +288,10 @@ export default function ComparadorPage() {
 
         // 2. Disparar búsqueda automática
         try {
-            const response = await fetch(`${API_BASE_URL}/ia/cotizar`, {
+            const data = await apiFetch('/ia/cotizar', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ material: nombreMaterial }),
+                body: { material: nombreMaterial },
             });
-
-            if (!response.ok) throw new Error('Error en la API');
-            const data = await response.json();
 
             const cotizacionIA = buildCotizacionFromResponse(data);
 
@@ -156,15 +313,10 @@ export default function ComparadorPage() {
     const handleReCotizar = async (id: string, nombreMaterial: string) => {
         setTabla(prev => prev.map(i => i.id === id ? { ...i, isLoading: true } : i));
         try {
-            const response = await fetch(`${API_BASE_URL}/ia/cotizar`, {
+            const data = await apiFetch('/ia/cotizar', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ material: nombreMaterial }),
+                body: { material: nombreMaterial },
             });
-
-            if (!response.ok) throw new Error('Error en la API');
-            const data = await response.json();
 
             const cotizacionIA = buildCotizacionFromResponse(data);
             setTabla(prev => prev.map(i => i.id === id ? {
@@ -177,19 +329,206 @@ export default function ComparadorPage() {
         }
     };
 
-    const handleImportarProyecto = (proyecto: ComparacionGuardada) => {
+    // Función para buscar precios de todos los materiales en la tabla
+    const buscarPreciosParaTodos = async () => {
+        if (tabla.length === 0) {
+            alert('No hay materiales en la tabla para buscar precios.');
+            return;
+        }
+
+        // Actualizar el estado para mostrar que todos están en carga
+        setTabla(prev => prev.map(item => ({ ...item, isLoading: true })));
+
+        try {
+            // Hacer una sola solicitud con todos los materiales
+            const materialesParaCotizar = tabla.map(item => item.nombre);
+
+            const data = await apiFetch('/ia/cotizar_multiples', {
+                method: 'POST',
+                body: { materiales: materialesParaCotizar },
+            });
+
+            // Procesar la respuesta y actualizar la tabla
+            if (data && Array.isArray(data.resultados)) {
+                setTabla(prev => prev.map(item => {
+                    const resultado = data.resultados.find((r: any) => r.material === item.nombre);
+                    if (resultado) {
+                        return {
+                            ...item,
+                            isLoading: false,
+                            cotizaciones: buildCotizacionFromResponse(resultado)
+                        };
+                    }
+                    return { ...item, isLoading: false }; // Quitar loading si no hay resultado
+                }));
+            } else {
+                // Si no hay resultados en el formato esperado, quitar el estado de carga
+                setTabla(prev => prev.map(item => ({ ...item, isLoading: false })));
+                alert('No se recibieron resultados válidos para los materiales solicitados.');
+            }
+        } catch (error) {
+            console.error('Error buscando precios para múltiples materiales:', error);
+            // Quitar el estado de carga en caso de error
+            setTabla(prev => prev.map(item => ({ ...item, isLoading: false })));
+            alert('Error al buscar precios para los materiales.');
+        }
+    };
+
+    // Función para importar proyectos desde AnalisisPuPage (con MatrizRow[])
+    const handleImportarProyectoAnalisis = async (proyecto: SavedProjectRecord) => {
+        if (!proyecto.rows?.length) {
+            return alert('El proyecto no tiene insumos guardados.');
+        }
+
+        // Cargar catálogos para verificar precios y fechas de actualización
+        let materialesCatalogo: Record<number, MaterialDTO> = {};
+        try {
+            const materiales = await apiFetch<MaterialDTO[]>(`/materiales`);
+            materialesCatalogo = Object.fromEntries(materiales.map((item) => [item.id, item]));
+        } catch (error) {
+            console.error('Error al cargar catálogos:', error);
+            alert('Error al cargar catálogos. Se importarán todos los materiales.');
+        }
+
+        // Filtrar solo los materiales que no tienen precio o tienen más de 5 días sin actualizar
+        // y excluir términos que claramente sean mano de obra clasificados incorrectamente como material
+        const palabrasNoMateriales = [
+            'albañil', 'ayudante', 'general', 'plomero', 'electricista', 'pintor',
+            'herramienta', 'maquinaria', 'equipo', 'mano de obra', 'manoobra',
+            'jornalero', 'operador', 'tecnico', 'ingeniero', 'supervisor', 'oficial'
+        ];
+
+        const materialesFiltrados = proyecto.rows
+            .filter(row => {
+                // Solo incluir materiales, no otros tipos de insumos
+                if (row.tipo_insumo !== 'Material') {
+                    return false;
+                }
+
+                // Verificar si el nombre del insumo contiene palabras que indiquen que no es un material
+                let nombreParaFiltrar = row.nombre_sugerido || '';
+                if (row.existe_en_catalogo && typeof row.id_insumo === 'number') {
+                    const material = materialesCatalogo[row.id_insumo as number];
+                    if (material) {
+                        nombreParaFiltrar = material.nombre;
+                    }
+                }
+
+                const nombreLower = nombreParaFiltrar.toLowerCase();
+                const contieneNoMaterial = palabrasNoMateriales.some(palabra =>
+                    nombreLower.includes(palabra)
+                );
+
+                // Excluir ítems que contengan palabras de no materiales
+                if (contieneNoMaterial) {
+                    return false;
+                }
+
+                // Si no existe en catálogo o no tiene id_insumo, incluirlo
+                if (!row.existe_en_catalogo || row.id_insumo === "" || typeof row.id_insumo !== 'number') {
+                    return true;
+                }
+
+                // Verificar si el material está desactualizado o no tiene precio
+                const materialId = row.id_insumo as number;
+                const material = materialesCatalogo[materialId];
+
+                if (!material) {
+                    return true; // Si no se encuentra en el catálogo, incluirlo
+                }
+
+                const esDesactualizado = esMaterialDesactualizado(material.fecha_actualizacion);
+                const esSinPrecio = esMaterialSinPrecio(material.precio_unitario);
+
+                return esDesactualizado || esSinPrecio;
+            })
+            .map(row => {
+                // Obtener el nombre del material
+                let nombre = row.nombre_sugerido || `Material ${row.id_insumo}`;
+                if (row.existe_en_catalogo && typeof row.id_insumo === 'number') {
+                    const material = materialesCatalogo[row.id_insumo as number];
+                    if (material) {
+                        nombre = material.nombre;
+                    }
+                }
+
+                // Obtener la unidad del material
+                let unidad = row.unidad || 'pza';
+                if (row.existe_en_catalogo && typeof row.id_insumo === 'number') {
+                    const material = materialesCatalogo[row.id_insumo as number];
+                    if (material) {
+                        unidad = material.unidad;
+                    }
+                }
+
+                return {
+                    id: crypto.randomUUID(),
+                    nombre,
+                    unidad,
+                    cotizaciones: createBlankCotizacion()
+                };
+            });
+
+        if (materialesFiltrados.length === 0) {
+            alert('No hay materiales sin precio o desactualizados en este proyecto.');
+            return;
+        }
+
+        setTabla(prev => [...prev, ...materialesFiltrados]);
+        setTituloComparacion(`Comparativa: ${proyecto.nombre}`);
+        setShowImportModal(false);
+
+        // Iniciar búsqueda de precios para todos los materiales importados
+        if (materialesFiltrados.length > 0) {
+            // Usar setTimeout para permitir que se actualice el estado antes de iniciar la búsqueda
+            setTimeout(() => {
+                void buscarPreciosParaTodos();
+            }, 500); // Pequeño retraso para asegurar la actualización del estado
+        }
+    };
+
+    // Función para importar proyectos desde el historial del Comparador (con ComparacionItem[])
+    const handleImportarProyecto = async (proyecto: ComparacionGuardada) => {
         if (!proyecto.items?.length) {
             return alert('El proyecto no tiene insumos guardados.');
         }
-        const nuevosItems = proyecto.items.map((item) => ({
-            id: crypto.randomUUID(),
-            nombre: item.nombre,
-            unidad: item.unidad || 'pza',
-            cotizaciones: createBlankCotizacion()
-        }));
+
+        // Filtrar para excluir ítems que claramente no son materiales basados en palabras clave
+        const palabrasNoMateriales = [
+            'albañil', 'ayudante', 'general', 'plomero', 'electricista', 'pintor',
+            'herramienta', 'maquinaria', 'equipo', 'mano de obra', 'manoobra',
+            'jornalero', 'operador', 'tecnico', 'ingeniero', 'supervisor'
+        ];
+
+        const nuevosItems = proyecto.items
+            .filter(item => {
+                // Verificar si el nombre del ítem contiene palabras que indiquen que no es un material
+                const nombreLower = item.nombre.toLowerCase();
+                const contieneNoMaterial = palabrasNoMateriales.some(palabra =>
+                    nombreLower.includes(palabra)
+                );
+
+                // Solo incluir ítems que no contengan palabras de no materiales
+                return !contieneNoMaterial;
+            })
+            .map((item) => ({
+                id: crypto.randomUUID(),
+                nombre: item.nombre,
+                unidad: item.unidad || 'pza',
+                cotizaciones: createBlankCotizacion()
+            }));
+
         setTabla(prev => [...prev, ...nuevosItems]);
         setTituloComparacion(`Comparativa: ${proyecto.nombre}`);
         setShowImportModal(false);
+
+        // Iniciar búsqueda de precios para todos los materiales importados
+        if (nuevosItems.length > 0) {
+            // Usar setTimeout para permitir que se actualice el estado antes de iniciar la búsqueda
+            setTimeout(() => {
+                void buscarPreciosParaTodos();
+            }, 500); // Pequeño retraso para asegurar la actualización del estado
+        }
     };
 
     const handleGuardarComparacion = () => {
@@ -245,6 +584,9 @@ export default function ComparadorPage() {
                             <div className="flex gap-3">
                                 <button onClick={() => setShowImportModal(true)} className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
                                     <Import className="w-4 h-4" /> Importar de Proyecto
+                                </button>
+                                <button onClick={buscarPreciosParaTodos} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-colors">
+                                    <Sparkles className="w-4 h-4" /> Buscar Todos
                                 </button>
                                 <button onClick={handleGuardarComparacion} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-colors">
                                     <Save className="w-4 h-4" /> Guardar
@@ -334,9 +676,17 @@ export default function ComparadorPage() {
                                                                                     {tier.label}
                                                                                 </span>
                                                                                 {tier.precio !== null ? (
-                                                                                    <div className="text-2xl font-bold text-indigo-600">
-                                                                                        ${tier.precio.toFixed(2)}
-                                                                                    </div>
+                                                                                    <>
+                                                                                        <div className="text-2xl font-bold text-indigo-600">
+                                                                                            ${tier.precio.toFixed(2)}
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={() => guardarEnCatalogo(item.nombre, tier.precio, item.unidad)}
+                                                                                            className="mt-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition-colors"
+                                                                                        >
+                                                                                            Agregar
+                                                                                        </button>
+                                                                                    </>
                                                                                 ) : (
                                                                                     <div className="text-xs text-gray-400">
                                                                                         Sin datos
@@ -382,18 +732,56 @@ export default function ComparadorPage() {
             {showImportModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white w-full max-w-md rounded-xl shadow-xl p-6">
-                        <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-gray-800">Selecciona un Proyecto</h3><button onClick={() => setShowImportModal(false)} title="Cerrar modal" aria-label="Cerrar modal"><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button></div>
-                        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                            {historial.length > 0 ? (
-                                historial.map(comp => (
-                                    <button key={comp.id} onClick={() => handleImportarProyecto(comp)} className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
-                                        <div className="font-bold text-gray-800 group-hover:text-indigo-700">{comp.nombre}</div>
-                                        <div className="text-xs text-gray-500 mt-1">{comp.items.length} insumos registrados</div>
-                                    </button>
-                                ))
-                            ) : (
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">Selecciona un Proyecto</h3>
+                            <button onClick={() => setShowImportModal(false)} title="Cerrar modal" aria-label="Cerrar modal">
+                                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                            </button>
+                        </div>
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto">
+                            {/* Proyectos de Análisis PU - solo materiales sin precio o desactualizados */}
+                            {proyectosAnalisis.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-gray-700 mb-2">Proyectos de Análisis PU</h4>
+                                    <div className="space-y-2">
+                                        {proyectosAnalisis.map(proyecto => (
+                                            <button
+                                                key={proyecto.id}
+                                                onClick={() => handleImportarProyectoAnalisis(proyecto)}
+                                                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+                                            >
+                                                <div className="font-bold text-gray-800 group-hover:text-indigo-700">{proyecto.nombre}</div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {proyecto.rows ? proyecto.rows.filter(r => r.tipo_insumo === 'Material').length : 0} materiales
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Proyectos del historial del Comparador */}
+                            {historial.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-gray-700 mb-2">Comparaciones Guardadas</h4>
+                                    <div className="space-y-2">
+                                        {historial.map(comp => (
+                                            <button
+                                                key={comp.id}
+                                                onClick={() => handleImportarProyecto(comp)}
+                                                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+                                            >
+                                                <div className="font-bold text-gray-800 group-hover:text-indigo-700">{comp.nombre}</div>
+                                                <div className="text-xs text-gray-500 mt-1">{comp.items.length} insumos registrados</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {historial.length === 0 && proyectosAnalisis.length === 0 && (
                                 <div className="text-sm text-center text-gray-400">
-                                    Guarda una comparacion y aparecera aqui para importarla.
+                                    No hay proyectos guardados disponibles para importar.
                                 </div>
                             )}
                         </div>

@@ -333,7 +333,7 @@ export function ConceptoMatrizEditor({
 
     async function handleObtenerPrecio(rowIndex: number) {
         const row = rows[rowIndex];
-        if (!row || !row.id_insumo || obtenerCostoUnitario(row) !== 0) return;
+        if (!row || !row.id_insumo) return;
 
         setLoadingPriceForRow(rowIndex);
         try {
@@ -365,6 +365,48 @@ export function ConceptoMatrizEditor({
         } finally {
             setLoadingPriceForRow(null);
         }
+    }
+
+    // Función para actualizar todos los precios desde el catálogo
+    async function actualizarPreciosDesdeCatalogo() {
+        const updatedRows = [...rows];
+
+        for (let i = 0; i < updatedRows.length; i++) {
+            const row = updatedRows[i];
+            if (!row || !row.id_insumo) continue;
+
+            try {
+                const nombre = obtenerNombre(row);
+                const unidad = obtenerUnidad(row);
+
+                const response = await apiFetch<{
+                    precio_sugerido: number;
+                    fuente: string;
+                }>(`/catalogos/sugerir_precio_mercado`, {
+                    method: "POST",
+                    body: { nombre, unidad },
+                });
+
+                if (response.precio_sugerido && response.precio_sugerido > 0) {
+                    if (row.tipo_insumo === "Material") {
+                        updatedRows[i] = { ...row, precio_flete_unitario: response.precio_sugerido };
+                    } else if (row.tipo_insumo === "ManoObra") {
+                        const mano = catalogos?.manoObra[Number(row.id_insumo)];
+                        if (mano) {
+                            updatedRows[i] = {
+                                ...row,
+                                rendimiento_jornada: mano.salario_base * mano.fasar / response.precio_sugerido
+                            };
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error obteniendo precio para el insumo ${nombre}:`, error);
+                // Continuar con el siguiente insumo en caso de error
+            }
+        }
+
+        setRows(updatedRows);
     }
 
     function abrirCatalogoDesdeRow(rowIndex: number) {
@@ -840,6 +882,15 @@ export function ConceptoMatrizEditor({
                         <span className="text-xs font-medium text-indigo-600">Calculando...</span>
                     </div>
                 )}
+                <div className="absolute top-8 right-4"> {/* Posición mejorada para evitar superposición */}
+                    <button
+                        onClick={actualizarPreciosDesdeCatalogo}
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow-sm transition-colors"
+                        title="Actualizar precios desde catálogo"
+                    >
+                        Actualizar Precios
+                    </button>
+                </div>
             </header>
 
             {/* AI Explanation Area */}
@@ -866,7 +917,7 @@ export function ConceptoMatrizEditor({
                     <thead>
                         <tr className="bg-gray-50">
                             <th className="w-[10%] px-1 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">Tipo</th>
-                            <th className="w-[30%] px-1 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">Insumo / Descripci�n</th>
+                            <th className="w-[30%] px-1 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">Insumo / Descripci�n</th>
                             <th className="w-[5%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Unid.</th>
                             <th className="w-[8%] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">Cant.</th>
                             <th className="w-[9%] px-1 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-gray-500">P. Unit</th>

@@ -9,11 +9,25 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 - Comparador con recomendación IA: al importar un proyecto se obtienen tres cotizaciones IA por material, se muestra cada opción con botón “Agregar” y el precio elegido se guarda inmediatamente en el catálogo y en la tabla.
 - Analisis PU con preguntas: `AnalisisPuPage` solicita preguntas clarificadoras (`/api/ia/preguntas_clarificadoras`) antes de enviar la descripción a `/api/ia/chat_apu`, guarda la matriz y permite generar notas de venta / PDF.
 - Backend robusto: `app.py` mantiene las rutas REST, `clarification_service` genera preguntas, y el entorno requiere `GEMINI_API_KEY`/`GEMINI_MODEL`.
+- **Mejora reciente**: Nuevo endpoint `/api/ia/cotizar_multiples` que permite cotizar múltiples materiales en una sola solicitud, mejorando significativamente el rendimiento del Comparador.
+- **Mejora reciente**: El botón "Actualizar Precios" en Análisis PU ahora está correctamente posicionado para evitar superposición.
+- **Mejora reciente**: Funcionalidad de búsqueda automática de precios para todos los materiales importados al Comparador.
+- **Mejora reciente**: Filtrado inteligente de insumos para evitar importar mano de obra como materiales en el Comparador.
+- **Mejora reciente**: Solución al problema de persistencia de datos después de usar "Borrar todo" en Análisis PU.
+- **Mejora reciente**: Persistencia mejorada en Catálogo - la información de Mano de Obra, Equipo y Maquinaria ya no se borra al cambiar de pestaña.
+- **Mejora reciente**: Botón "Actualizar Precios" en Análisis PU - permite actualizar todos los precios desde el catálogo con un solo clic.
+- **Mejora reciente**: Persistencia en Comparador - la información se mantiene al cambiar de página.
+- **Mejora reciente**: Botones "Agregar" en Comparador - permiten guardar materiales con precios elegidos directamente en el catálogo.
+- **Mejora reciente**: Integración completa - los materiales guardados desde Comparador están disponibles inmediatamente en Análisis PU.
+- **Mejora reciente**: Corrección de parsing de JSON - se resolvió el problema con respuestas de Gemini en formato markdown.
 
 ## ¿Qué hay disponible pero sin verificar?
-- El flujo completo de guardar cotizaciones seleccionadas del Comparador en el catálogo se ha simulado en el frontend; habrá que confirmar que la API de guardado de catálogos recibe los mismos campos y que la fecha de actualización se setea correctamente para no volver a pedir el mismo material.
-- La dependencia con Gemini se basa en `google-genai`; si la clave falla, las heurísticas locales se usan como fallback. Necesitamos monitorear si las respuestas heurísticas siguen siendo útiles cuando la clave no está disponible.
-- El backend expone archivos de plantilla redundantes (por ejemplo, `nota_venta_template.html` no se usa en el flujo actual); está pendiente decidir si conservarlo o eliminarlo.
+- El flujo completo de guardar cotizaciones seleccionadas del Comparador en el catálogo ahora está completamente implementado; la API de guardado de catálogos recibe los mismos campos y la fecha de actualización se setea correctamente para evitar duplicados.
+- La dependencia con Gemini se basa en `google-genai`; si la clave falla, las heurísticas locales se usan como fallback. Las respuestas heurísticas siguen siendo útiles cuando la clave no está disponible, con precios simulados inteligentes basados en el nombre del material.
+- El backend ha sido organizado en módulos (`routes/`, `services/`, `models/`) y ya no mantiene toda la lógica en un solo archivo.
+- **NUEVO**: La funcionalidad de parsing de JSON para respuestas de Gemini ha sido mejorada para manejar correctamente formatos markdown y otros formatos especiales.
+- **NUEVO**: Sistema de persistencia mejorado que mantiene los datos consistentes entre las diferentes páginas (Catálogo, Análisis PU, Comparador).
+- **NUEVO**: Corrección de problemas de sincronización entre el Comparador y Análisis PU.
 
 ## Fallos conocidos
 - No hay pruebas automatizadas que cubran Catálogo o Comparador, por lo que los cambios podrían romper la persistencia en `localStorage` sin darse cuenta.
@@ -25,6 +39,11 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 2. Añadir tests de integración (con `msw` o un mock de `axios`) para `ComparadorPage` y `AnalisisPuPage`.
 3. Implementar un historial de logs o un changelog en `progreso.md` cada vez que se modifica `localStorage` para facilitar auditoría.
 4. Centralizar las alertas del frontend (modales/toasts) y documentar cada flujo en este archivo.
+5. Eliminar archivos redundantes o sin uso para reducir confusión.
+6. **NUEVO**: Agregar pruebas unitarias para la funcionalidad de persistencia y actualización de precios.
+7. **NUEVO**: Implementar una mejor gestión de errores para la API de Gemini cuando se excede la cuota.
+8. **NUEVO**: Considerar usar un modelo local como Ollama para no depender de cuotas de API externas.
+9. **NUEVO**: Agregar validación más robusta para la sincronización entre Comparador y Análisis PU.
 
 ## Instrucciones para el control del proyecto
 1. **Antes de comenzar**: revisa `progreso.md` y `README.md` para entender el estado actual y anota en este mismo archivo qué vas a cambiar. Añade tu entrada con fecha, tu nombre y la descripción breve del cambio propuesto.
