@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, useId, type FormEvent } from "react";
 import { apiFetch } from "../../api/client";
+import { useToast } from "../../context/ToastContext";
 
 export type MatrizRow = {
     id?: number;
@@ -140,6 +141,93 @@ export function ConceptoMatrizEditor({
     const [draftRow, setDraftRow] = useState<MatrizRow>(() => crearDraftRow(conceptoId));
     const [catalogModal, setCatalogModal] = useState<CatalogModalState | null>(null);
     const [loadingPriceForRow, setLoadingPriceForRow] = useState<number | null>(null);
+    const { addToast } = useToast();
+
+    // Auto-match logic when rows or catalogs change
+    useEffect(() => {
+        if (!catalogos || rows.length === 0) return;
+
+        setRows((prevRows) => {
+            let hasChanges = false;
+            const newRows = prevRows.map((row) => {
+                // If row already has a link to catalog, skip
+                if (row.id_insumo && row.existe_en_catalogo) return row;
+
+                // If it's a suggestion (no id_insumo or not in catalog)
+                if ((!row.id_insumo || !row.existe_en_catalogo) && row.nombre_sugerido) {
+                    // Try to find a match in the corresponding catalog using fuzzy keyword matching
+                    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, "");
+                    const getKeywords = (s: string) => normalize(s).split(/\s+/).filter(w => w.length > 2); // Filter out short words
+
+                    const suggestedName = row.nombre_sugerido!;
+                    const suggestedKeywords = getKeywords(suggestedName);
+
+                    const findBestMatch = (items: any[], nameField: string = 'nombre') => {
+                        let bestMatch = null;
+                        let maxScore = 0;
+
+                        for (const item of items) {
+                            const itemName = item[nameField];
+                            const itemKeywords = getKeywords(itemName);
+
+                            // Count strictly matching keywords
+                            let matchCount = 0;
+                            for (const k of suggestedKeywords) {
+                                if (itemKeywords.includes(k)) {
+                                    matchCount++;
+                                }
+                            }
+
+                            // Calculate score: Ratio of matched keywords to total keywords in the catalog item
+                            // We prioritize covering the catalog item's keywords to avoid matching "Block" to "Block 10x10" if input is "Block"
+                            // But here we want to match "Block hueco de concreto 15x..." to "Block hueco de 15x..."
+                            // Let's use Intersection over Union or simply Intersection count weighted by length
+
+                            // Simple approach: if more than 60% of the catalog item's meaningful keywords are present in the suggestion
+                            if (itemKeywords.length === 0) continue;
+                            const score = matchCount / Math.max(itemKeywords.length, suggestedKeywords.length); // Jaccard-ish
+
+                            // Threshold: 0.5 means half of the words match. 
+                            if (score > 0.4 && score > maxScore) {
+                                maxScore = score;
+                                bestMatch = item;
+                            }
+                        }
+                        return bestMatch;
+                    };
+
+                    let match: any = null;
+                    if (row.tipo_insumo === "Material") match = findBestMatch(Object.values(catalogos.materiales));
+                    else if (row.tipo_insumo === "ManoObra") match = findBestMatch(Object.values(catalogos.manoObra), 'puesto');
+                    else if (row.tipo_insumo === "Equipo") match = findBestMatch(Object.values(catalogos.equipos));
+                    else if (row.tipo_insumo === "Maquinaria") match = findBestMatch(Object.values(catalogos.maquinaria));
+
+                    if (match) {
+                        hasChanges = true;
+                        // Determine price based on type
+                        let price = 0;
+                        if (row.tipo_insumo === "Material") price = match.precio_unitario;
+                        else if (row.tipo_insumo === "ManoObra") price = match.salario_base; // Note: This might need adjustment based on how 'precio_unitario' is interpreted in the table for ManoObra
+                        else if (row.tipo_insumo === "Equipo") price = match.costo_hora_maq;
+                        else if (row.tipo_insumo === "Maquinaria") price = match.costo_hora_maq || match.costo_adquisicion; // Fallback
+
+                        return {
+                            ...row,
+                            id_insumo: match.id,
+                            existe_en_catalogo: true,
+                            precio_flete_unitario: 0, // Ensure flete is 0, do not copy unit price
+                            nombre_sugerido: undefined // Clear suggestion name as it's now linked
+                        };
+                    }
+                }
+                return row;
+            });
+
+            return hasChanges ? newRows : prevRows;
+        });
+    }, [catalogos, rows]); // Be careful with dependency loop here. 'rows' changes trigger this. creating a loop if we are not careful.
+    // The check `if (row.id_insumo && row.existe_en_catalogo) return row;` prevents re-processing already linked rows.
+    // The check `if (JSON.stringify(newRows) === JSON.stringify(prevRows))` inside setRows also helps.
 
     const idPrefix = useId().replace(/:/g, "");
 
@@ -242,8 +330,14 @@ export function ConceptoMatrizEditor({
             return;
         }
         if (!confirm("Eliminar el insumo de la matriz?")) return;
-        await apiFetch<void>(`/matriz/${rowId}`, { method: "DELETE" });
-        await loadMatriz();
+        try {
+            await apiFetch<void>(`/matriz/${rowId}`, { method: "DELETE" });
+            await loadMatriz();
+            addToast("Insumo eliminado correctamente", "success");
+        } catch (e) {
+            console.error(e);
+            addToast("Error al eliminar insumo", "error");
+        }
     }
 
     async function calcularPuRemoto() {
@@ -252,10 +346,10 @@ export function ConceptoMatrizEditor({
             return;
         }
         const matrizPayload = rows
-            .filter((row) => row.id_insumo !== "" && Number(row.cantidad) >= 0)
+            .filter((row) => (row.id_insumo !== "" || (typeof row.precio_unitario_temp === 'number' && row.precio_unitario_temp >= 0)) && Number(row.cantidad) >= 0)
             .map((row) => ({
                 tipo_insumo: row.tipo_insumo,
-                id_insumo: Number(row.id_insumo),
+                id_insumo: row.id_insumo ? Number(row.id_insumo) : null,
                 cantidad: Number(row.cantidad),
                 porcentaje_merma:
                     row.tipo_insumo === "Material" && row.porcentaje_merma !== ""
@@ -269,6 +363,7 @@ export function ConceptoMatrizEditor({
                     row.tipo_insumo === "ManoObra" && row.rendimiento_jornada !== ""
                         ? Number(row.rendimiento_jornada)
                         : undefined,
+                precio_custom: typeof row.precio_unitario_temp === 'number' ? row.precio_unitario_temp : undefined
             }));
         if (matrizPayload.length === 0) {
             setPuResumen({ costo_directo: 0, precio_unitario: 0 });
@@ -401,7 +496,7 @@ export function ConceptoMatrizEditor({
                     }
                 }
             } catch (error) {
-                console.error(`Error obteniendo precio para el insumo ${nombre}:`, error);
+                console.error(`Error obteniendo precio para el insumo ${row.nombre_sugerido || row.id_insumo}:`, error);
                 // Continuar con el siguiente insumo en caso de error
             }
         }
@@ -628,6 +723,97 @@ export function ConceptoMatrizEditor({
         setCatalogModal(null);
     }
 
+    async function handleQuickSaveInsumo(rowIndex: number) {
+        const row = rows[rowIndex];
+        if (!row.nombre_sugerido) return;
+
+        // Use temp price if available, otherwise 0
+        const precio = typeof row.precio_unitario_temp === 'number' ? row.precio_unitario_temp : 0;
+
+        let endpoint = "";
+        let payload: Record<string, unknown> = {};
+
+        switch (row.tipo_insumo) {
+            case "Material":
+                endpoint = "/materiales";
+                payload = {
+                    nombre: row.nombre_sugerido,
+                    unidad: row.unidad || "pza",
+                    precio_unitario: precio,
+                    fecha_actualizacion: new Date().toISOString().split("T")[0],
+                    porcentaje_merma: 0.0,
+                    precio_flete_unitario: 0,
+                };
+                break;
+            case "ManoObra":
+                endpoint = "/manoobra";
+                payload = {
+                    puesto: row.nombre_sugerido,
+                    salario_base: precio,
+                    rendimiento_jornada: 1.0,
+                };
+                break;
+            case "Equipo":
+                endpoint = "/equipo";
+                payload = {
+                    nombre: row.nombre_sugerido,
+                    unidad: row.unidad || "hora",
+                    costo_hora_maq: precio,
+                };
+                break;
+            case "Maquinaria":
+                // Maquinaria es mas complejo, mejor abrir modal completo
+                abrirCatalogoDesdeRow(rowIndex);
+                return;
+            default:
+                return;
+        }
+
+        try {
+            const creado = await apiFetch<{ id: number }>(endpoint, { method: "POST", body: payload });
+            await loadCatalogos();
+            setRows((prev) =>
+                prev.map((r, idx) =>
+                    idx === rowIndex
+                        ? {
+                            ...r,
+                            id_insumo: creado.id,
+                            existe_en_catalogo: true,
+                            nombre_sugerido: undefined,
+                            precio_unitario_temp: undefined,
+                        }
+                        : r
+                )
+            );
+            addToast("Insumo guardado en catálogo", "success");
+        } catch (error) {
+            console.error("Error al guardar rápido:", error);
+            addToast("Error al guardar. Intenta con el botón editar.", "error");
+        }
+    }
+
+    function handleExportarComparador() {
+        // Filter materials that are not in catalog OR have old prices (logic for old prices requires 'fecha_actualizacion' which we have in DTOs)
+        const materialesParaExportar = rows.filter(r =>
+            r.tipo_insumo === "Material" &&
+            (!r.existe_en_catalogo || !r.id_insumo) // New materials
+            // TODO: Add logic for old prices if needed, using catalogos.materiales[r.id_insumo].fecha_actualizacion
+        ).map(r => ({
+            nombre: r.nombre_sugerido || obtenerNombre(r),
+            unidad: obtenerUnidad(r),
+            cantidad: r.cantidad
+        }));
+
+        if (materialesParaExportar.length === 0) {
+            addToast("No hay materiales nuevos para cotizar.", "info");
+            return;
+        }
+
+        localStorage.setItem("comparador_import_items", JSON.stringify(materialesParaExportar));
+        // Navigate to Comparador (assuming we have a way to navigate, or just tell user)
+        window.location.href = "/comparador";
+    }
+
     async function handleQuickAdd(rowIndex: number) {
         const row = rows[rowIndex];
         if (!row.nombre_sugerido) return;
@@ -706,7 +892,7 @@ export function ConceptoMatrizEditor({
             );
         } catch (error) {
             console.error("Error al agregar al catalogo:", error);
-            alert("Error al guardar en catálogo. Intenta usar el botón de editar para ver más detalles.");
+            addToast("Error al guardar en catálogo. Intenta usar el botón de editar para ver más detalles.", "error");
         }
     }
 
@@ -809,7 +995,24 @@ export function ConceptoMatrizEditor({
     }
 
     function obtenerCostoUnitario(row: MatrizRow): number {
-        if (row.existe_en_catalogo === false) return 0;
+        if (row.existe_en_catalogo === false) {
+            // Logic for temporary items (not in catalog)
+            const precioBase = typeof row.precio_unitario_temp === 'number' ? row.precio_unitario_temp : 0;
+
+            if (row.tipo_insumo === "Material") {
+                const merma = row.porcentaje_merma !== "" && row.porcentaje_merma !== undefined ? Number(row.porcentaje_merma) : 0;
+                const flete = row.precio_flete_unitario !== "" && row.precio_flete_unitario !== undefined ? Number(row.precio_flete_unitario) : 0;
+                return precioBase * (1 + merma) + flete;
+            } else if (row.tipo_insumo === "ManoObra") {
+                // For temp ManoObra, we treat 'precio_unitario_temp' as the base cost (salario base * fasar equivalent)
+                const rendimiento = row.rendimiento_jornada !== "" && row.rendimiento_jornada !== undefined ? Number(row.rendimiento_jornada) : 1;
+                return rendimiento > 0 ? precioBase / rendimiento : precioBase;
+            } else {
+                // Maquinaria/Equipo
+                return precioBase;
+            }
+        }
+
         if (!catalogos || !row.id_insumo) return 0;
         const id = Number(row.id_insumo);
         switch (row.tipo_insumo) {
@@ -891,6 +1094,17 @@ export function ConceptoMatrizEditor({
                         Actualizar Precios
                     </button>
                 </div>
+                {/* Botón para enviar faltantes al comparador */}
+                <div className="absolute top-8 right-40 mr-2">
+                    <button
+                        onClick={handleExportarComparador}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs shadow-sm transition-colors flex items-center gap-1"
+                        title="Enviar materiales sin catálogo al Comparador para obtener precios de IA"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        Cotizar Faltantes
+                    </button>
+                </div>
             </header>
 
             {/* AI Explanation Area */}
@@ -969,13 +1183,23 @@ export function ConceptoMatrizEditor({
                                     />
                                 </td>
                                 <td className="px-1 py-1 align-middle">
-                                    <input
-                                        type="number"
-                                        className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
-                                        placeholder="0.00"
-                                        defaultValue={row.existe_en_catalogo ? obtenerPrecioUnitarioBase(row) : (row.precio_unitario_temp ?? "")}
-                                        onChange={(e) => handleRowChange(index, { precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value) })}
-                                    />
+                                    {row.existe_en_catalogo ? (
+                                        <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1.5 rounded border border-gray-100">
+                                            <span className="text-xs text-gray-400">$</span>
+                                            <span>{obtenerPrecioUnitarioBase(row).toFixed(2)}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">$</span>
+                                            <input
+                                                type="number"
+                                                className="block w-full rounded border-gray-300 py-1 pl-5 pr-2 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
+                                                placeholder="0.00"
+                                                value={row.precio_unitario_temp ?? ""}
+                                                onChange={(e) => handleRowChange(index, { precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value) })}
+                                            />
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-1 py-1 align-middle">
                                     {row.tipo_insumo === "Material" ? (
@@ -1013,18 +1237,30 @@ export function ConceptoMatrizEditor({
                                     {formatearMoneda(obtenerCostoUnitario(row) * row.cantidad)}
                                 </td>
                                 <td className="px-1 py-1 align-middle text-center">
-                                    <button
-                                        onClick={() => handleDeleteRow(row.id, index)}
-                                        className="text-red-500 hover:text-red-700 transition-colors"
-                                        title="Eliminar"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                                    </button>
+                                    <div className="flex items-center justify-center gap-1">
+                                        <button
+                                            onClick={() => handleDeleteRow(row.id, index)}
+                                            className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                            title="Eliminar"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                                        </button>
+                                        {!row.existe_en_catalogo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleQuickSaveInsumo(index)}
+                                                className="text-white bg-green-500 hover:bg-green-600 rounded-full transition-colors p-1 shadow-sm"
+                                                title="Guardar en catálogo"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
-                        ))} 
+                        ))}
                         <tr className="bg-indigo-50/30 border-t-2 border-indigo-100">
-                             <td className="px-1 py-2 align-middle">
+                            <td className="px-1 py-2 align-middle">
                                 <select
                                     className="block w-full rounded border-gray-300 bg-white !bg-white !text-slate-900 py-1 pl-1 pr-4 text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
                                     value={draftRow.tipo_insumo}
@@ -1049,37 +1285,37 @@ export function ConceptoMatrizEditor({
                                     onChange={(e) => setDraftRow(prev => ({ ...prev, cantidad: Number(e.target.value) }))}
                                 />
                             </td>
-                             <td className="px-1 py-2 text-center text-[10px] text-gray-400">-</td>
-                             <td className="px-1 py-2 align-middle">
+                            <td className="px-1 py-2 text-center text-[10px] text-gray-400">-</td>
+                            <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "Material" ? (
                                     <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px]" placeholder="%"
-                                     value={draftRow.porcentaje_merma ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, porcentaje_merma: Number(e.target.value) }))} />
+                                        value={draftRow.porcentaje_merma ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, porcentaje_merma: Number(e.target.value) }))} />
                                 ) : null}
-                             </td>
-                             <td className="px-1 py-2 align-middle">
+                            </td>
+                            <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "Material" ? (
                                     <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-right text-[11px]" placeholder="$"
-                                     value={draftRow.precio_flete_unitario ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, precio_flete_unitario: Number(e.target.value) }))} />
+                                        value={draftRow.precio_flete_unitario ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, precio_flete_unitario: Number(e.target.value) }))} />
                                 ) : null}
-                             </td>
-                             <td className="px-1 py-2 align-middle">
+                            </td>
+                            <td className="px-1 py-2 align-middle">
                                 {draftRow.tipo_insumo === "ManoObra" ? (
                                     <input type="number" className="block w-full rounded border-gray-300 py-1 px-1 text-center text-[11px]" placeholder="R"
-                                     value={draftRow.rendimiento_jornada ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, rendimiento_jornada: Number(e.target.value) }))} />
+                                        value={draftRow.rendimiento_jornada ?? ""} onChange={(e) => setDraftRow(prev => ({ ...prev, rendimiento_jornada: Number(e.target.value) }))} />
                                 ) : null}
-                             </td>
-                             <td className="px-1 py-2 text-right font-bold text-[11px] text-indigo-600">
+                            </td>
+                            <td className="px-1 py-2 text-right font-bold text-[11px] text-indigo-600">
                                 {formatearMoneda(obtenerCostoUnitario(draftRow) * draftRow.cantidad)}
-                             </td>
-                             <td className="px-1 py-2 text-center">
-                                 <button
+                            </td>
+                            <td className="px-1 py-2 text-center">
+                                <button
                                     onClick={handleAgregarDraft}
                                     disabled={!puedeAgregarDraft()}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white rounded p-1 shadow-sm disabled:opacity-50"
-                                 >
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                 </button>
-                             </td>
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -1135,6 +1371,9 @@ export function ConceptoMatrizEditor({
                     onChange={(event) =>
                         handler({
                             id_insumo: event.target.value ? Number(event.target.value) : "",
+                            existe_en_catalogo: !!event.target.value,
+                            nombre_sugerido: event.target.value ? undefined : row.nombre_sugerido,
+                            precio_unitario_temp: event.target.value ? undefined : row.precio_unitario_temp,
                             ...(row.tipo_insumo === "Material" && event.target.value
                                 ? obtenerDefaultMermaFlete(Number(event.target.value), catalogos)
                                 : row.tipo_insumo === "Material"

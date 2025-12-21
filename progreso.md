@@ -20,6 +20,10 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 - **Mejora reciente**: Botones "Agregar" en Comparador - permiten guardar materiales con precios elegidos directamente en el catálogo.
 - **Mejora reciente**: Integración completa - los materiales guardados desde Comparador están disponibles inmediatamente en Análisis PU.
 - **Mejora reciente**: Corrección de parsing de JSON - se resolvió el problema con respuestas de Gemini en formato markdown.
+- **Mejora reciente**: Implementación de búsqueda difusa (Fuzzy Matching) para relacionar sugerencias de IA con items del catálogo que tienen nombres similares (e.g., "Block de concreto" vs "Block").
+- **Mejora reciente**: Flujo "Cotizar Faltantes": integración directa desde la tabla de Análisis al Comparador, con auto-ejecución inmediata de cotizaciones al llegar a la página.
+- **Mejora reciente**: Corrección en persistencia real del Catálogo: ahora los items creados manualmente se guardan en backend (API) y no solo en caché local.
+- **Mejora reciente**: Ajuste en autocompletado de precios: el campo de Flete ya no hereda erróneamente el precio del material.
 
 ## ¿Qué hay disponible pero sin verificar?
 - El flujo completo de guardar cotizaciones seleccionadas del Comparador en el catálogo ahora está completamente implementado; la API de guardado de catálogos recibe los mismos campos y la fecha de actualización se setea correctamente para evitar duplicados.
@@ -28,11 +32,14 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 - **NUEVO**: La funcionalidad de parsing de JSON para respuestas de Gemini ha sido mejorada para manejar correctamente formatos markdown y otros formatos especiales.
 - **NUEVO**: Sistema de persistencia mejorado que mantiene los datos consistentes entre las diferentes páginas (Catálogo, Análisis PU, Comparador).
 - **NUEVO**: Corrección de problemas de sincronización entre el Comparador y Análisis PU.
+- **NUEVO**: Implementación de un sistema de notificaciones (Toast) para reemplazar las alertas del navegador y mejorar la experiencia de usuario.
+- **NUEVO**: Rediseño de los modales de guardar/abrir proyecto con mejor UI, iconos y feedback visual.
 
 ## Fallos conocidos
 - No hay pruebas automatizadas que cubran Catálogo o Comparador, por lo que los cambios podrían romper la persistencia en `localStorage` sin darse cuenta.
 - El backend mantiene toda la lógica en `backend/app.py`, lo que incrementa el tiempo de arranque y dificulta el testing aislado.
 - Los modales de guardado/abrir proyecto no tienen debounce ni validaciones extensas, así que un doble click podría crear registros duplicados.
+- Advertencia de SQLAlchemy "LegacyAPIWarning" en el backend pendiente de resolver.
 
 ## Cómo mejorar
 1. Extraer servicios del backend (`app.py`) en módulos más pequeños y cubrirlos con `pytest`.
@@ -44,6 +51,7 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 7. **NUEVO**: Implementar una mejor gestión de errores para la API de Gemini cuando se excede la cuota.
 8. **NUEVO**: Considerar usar un modelo local como Ollama para no depender de cuotas de API externas.
 9. **NUEVO**: Agregar validación más robusta para la sincronización entre Comparador y Análisis PU.
+10. **COMPLETADO**: Instalar `tailwindcss-animate` para mejorar las animaciones de entrada/salida de los Toasts.
 
 ## Instrucciones para el control del proyecto
 1. **Antes de comenzar**: revisa `progreso.md` y `README.md` para entender el estado actual y anota en este mismo archivo qué vas a cambiar. Añade tu entrada con fecha, tu nombre y la descripción breve del cambio propuesto.

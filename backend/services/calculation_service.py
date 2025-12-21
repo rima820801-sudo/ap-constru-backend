@@ -59,8 +59,27 @@ def obtener_costo_insumo(
     equipo_cache: Dict[int, Equipo],
     maquinaria_cache: Dict[int, Maquinaria],
 ) -> Decimal:
-    tipo = registro["tipo_insumo"]
-    insumo_id = registro["id_insumo"]
+    # If no ID or invalid ID, check for custom price
+    if not insumo_id:
+        custom_base = decimal_field(registro.get("precio_custom"))
+        if tipo == "Material":
+            merma = decimal_field(registro.get("porcentaje_merma"))
+            flete = decimal_field(registro.get("precio_flete_unitario"))
+            return custom_base * (Decimal("1.0") + merma) + flete
+        elif tipo == "ManoObra":
+            # For temporary ManoObra, we assume custom_base is the daily cost (salario_base * fasar)
+            # or the user enters the direct unit price.
+            # Usually users enter the Costo Directo Unitario directly or the Salario Base.
+            # Let's assume they enter the base price and we apply rendimiento.
+            rendimiento = decimal_field(registro.get("rendimiento_jornada"))
+            if rendimiento <= 0:
+                rendimiento = Decimal("1.0")
+            return custom_base / rendimiento
+        elif tipo in ["Equipo", "Maquinaria"]:
+            # For machine/equipment, custom price is hourly cost
+            return custom_base
+        return Decimal("0")
+
     if tipo == "Material":
         material = material_cache.get(insumo_id)
         if material is None:
@@ -68,7 +87,12 @@ def obtener_costo_insumo(
             if material:
                 material_cache[insumo_id] = material
             else:
-                # Fallback if insumo missing
+                # If ID exists but not found in DB, try custom price as fallback
+                custom_base = decimal_field(registro.get("precio_custom"))
+                if custom_base > 0:
+                     merma = decimal_field(registro.get("porcentaje_merma"))
+                     flete = decimal_field(registro.get("precio_flete_unitario"))
+                     return custom_base * (Decimal("1.0") + merma) + flete
                 return Decimal("0")
 
         merma = (
@@ -91,6 +115,11 @@ def obtener_costo_insumo(
             if mano:
                 mano_obra_cache[insumo_id] = mano
             else:
+                custom_base = decimal_field(registro.get("precio_custom"))
+                if custom_base > 0:
+                    rendimiento = decimal_field(registro.get("rendimiento_jornada"))
+                    if rendimiento <= 0: rendimiento = Decimal("1.0")
+                    return custom_base / rendimiento
                 return Decimal("0")
 
         rendimiento = decimal_field(mano.rendimiento_jornada or Decimal("1.0"))
@@ -106,7 +135,7 @@ def obtener_costo_insumo(
             if equipo:
                 equipo_cache[insumo_id] = equipo
             else:
-                return Decimal("0")
+                return decimal_field(registro.get("precio_custom"))
         return decimal_field(equipo.costo_hora_maq)
 
     if tipo == "Maquinaria":
@@ -116,7 +145,7 @@ def obtener_costo_insumo(
             if maquina:
                 maquinaria_cache[insumo_id] = maquina
             else:
-                return Decimal("0")
+                 return decimal_field(registro.get("precio_custom"))
 
         rendimiento = decimal_field(maquina.rendimiento_horario or Decimal("1.0"))
         if rendimiento <= 0:

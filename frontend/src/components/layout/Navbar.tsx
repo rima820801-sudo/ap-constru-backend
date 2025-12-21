@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, BoxSelect } from 'lucide-react';
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation();
+
+    const isActive = (path: string) => location.pathname === path;
 
     return (
         <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
@@ -20,15 +24,15 @@ export function Navbar() {
                         </div>
                         {/* Desktop Menu */}
                         <div className="hidden md:ml-8 md:flex md:space-x-4">
-                            <a href="/analisis" className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                            <Link to="/analisis" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/analisis') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
                                 Análisis APU
-                            </a>
-                            <a href="/catalogo" className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                            </Link>
+                            <Link to="/catalogo" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/catalogo') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
                                 Catálogo
-                            </a>
-                            <a href="/comparador" className="text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                            </Link>
+                            <Link to="/comparador" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/comparador') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
                                 Comparador
-                            </a>
+                            </Link>
                         </div>
                     </div>
 
@@ -66,15 +70,15 @@ export function Navbar() {
             {isOpen && (
                 <div className="md:hidden bg-white border-t border-gray-200">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        <a href="/analisis" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">
+                        <Link to="/analisis" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/analisis') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
                             Análisis APU
-                        </a>
-                        <a href="/catalogo" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">
+                        </Link>
+                        <Link to="/catalogo" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/catalogo') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
                             Catálogo
-                        </a>
-                        <a href="/comparador" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">
+                        </Link>
+                        <Link to="/comparador" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/comparador') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
                             Comparador
-                        </a>
+                        </Link>
                     </div>
                     <div className="pt-4 pb-4 border-t border-gray-200">
                         <div className="px-2">

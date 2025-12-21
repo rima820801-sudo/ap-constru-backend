@@ -18,6 +18,7 @@ import { OpenSavedProjectModal } from "../components/ui/OpenSavedProjectModal";
 import type { ClarifyingHistoryEntry, ClarifyingQuestion } from "../types/clarification";
 import type { SavedProjectRecord, SavedProjectType } from "../utils/savedProjects";
 import { loadSavedProjects, persistSavedProjects } from "../utils/savedProjects";
+import { useToast } from "../context/ToastContext";
 
 type Concepto = {
     id: number;
@@ -144,6 +145,7 @@ export function AnalisisPuPage() {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [showOpenModal, setShowOpenModal] = useState(false);
     const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
+    const { addToast } = useToast();
 
     // Persistence Effects
     useEffect(() => {
@@ -327,7 +329,7 @@ export function AnalisisPuPage() {
 
     async function handleGuardarConcepto(): Promise<boolean> {
         if (!conceptoForm.clave || !conceptoForm.descripcion) {
-            alert("Por favor completa los campos obligatorios (Nombre y Descripción).");
+            addToast("Por favor completa los campos obligatorios (Nombre y Descripción).", "warning");
             return false;
         }
         const unidadConceptoActual = calcularPorMetro ? "m2" : "proyecto";
@@ -360,11 +362,11 @@ export function AnalisisPuPage() {
             // Siempre disparamos el trigger para asegurar que el editor guarde cualquier cambio pendiente
             setGuardarTrigger((prev) => prev + 1);
             await loadConceptos();
-            alert("Concepto guardado correctamente.");
+            addToast("Concepto guardado correctamente.", "success");
             return true;
         } catch (error) {
             console.error("Error al guardar concepto:", error);
-            alert("Error al guardar el concepto.");
+            addToast("Error al guardar el concepto.", "error");
             return false;
         }
     }
@@ -464,7 +466,7 @@ export function AnalisisPuPage() {
             setShowPreguntasClarificadoras(true);
         } catch (error) {
             console.error("Error al obtener preguntas clarificadoras:", error);
-            alert("No se pudieron generar las preguntas clarificadoras. Intenta nuevamente.");
+            addToast("No se pudieron generar las preguntas clarificadoras. Intenta nuevamente.", "error");
         } finally {
             setCargandoPreguntasClarificadoras(false);
         }
@@ -508,7 +510,7 @@ export function AnalisisPuPage() {
             total: resumen.precio_unitario || resumen.costo_directo,
         };
         setSavedProjects((prev) => [...prev, nuevo]);
-        alert(`Guardado como ${tipo}`);
+        addToast(`Guardado como ${tipo}`, "success");
         setShowSaveModal(false);
     }
 
@@ -611,7 +613,7 @@ export function AnalisisPuPage() {
 
     async function handleGenerarNotaVenta() {
         if (!conceptoForm.id || matrizDraft.length === 0 && !selectedConceptId) {
-            alert("Guarda el concepto y su matriz de insumos antes de generar una nota de venta.");
+            addToast("Guarda el concepto y su matriz de insumos antes de generar una nota de venta.", "warning");
             return;
         }
 
@@ -620,13 +622,13 @@ export function AnalisisPuPage() {
             : matrizDraft;
 
         if (matrizParaEnviar.length === 0) {
-            alert("La matriz de insumos esta vacia. No se puede generar una nota de venta.");
+            addToast("La matriz de insumos esta vacia. No se puede generar una nota de venta.", "warning");
             return;
         }
 
         // Asegurarnos de que el concepto esté guardado antes de generar la nota
         if (!hayConceptoGuardado) {
-            alert("Por favor guarda el concepto antes de generar la nota de venta.");
+            addToast("Por favor guarda el concepto antes de generar la nota de venta.", "info");
             return;
         }
 
@@ -646,7 +648,7 @@ export function AnalisisPuPage() {
             setMatrizNotaVenta(matrizParaEnviar);
         } catch (error) {
             console.error("Error al generar la nota de venta:", error);
-            alert("Hubo un error al generar la nota de venta. Revisa la consola para mas detalles.");
+            addToast("Hubo un error al generar la nota de venta. Revisa la consola.", "error");
         }
     }
 
@@ -717,16 +719,16 @@ export function AnalisisPuPage() {
                                     {cargandoPreguntasClarificadoras ? "Generando preguntas..." : "Sugerencia Gemini"}
                                 </button>
                             </div>
-                        <p className="text-xs text-gray-400 italic">
-                            Mientras más completa sea la descripción, mejor será la sugerencia de la IA.
-                        </p>
-                        {cargandoIA && (
-                            <div className="text-xs text-indigo-500 font-semibold flex items-center gap-2">
-                                <span className="h-3 w-3 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
-                                <span>La IA está generando el APU. Por favor espera unos segundos.</span>
-                            </div>
-                        )}
-                    </div>
+                            <p className="text-xs text-gray-400 italic">
+                                Mientras más completa sea la descripción, mejor será la sugerencia de la IA.
+                            </p>
+                            {cargandoIA && (
+                                <div className="text-xs text-indigo-500 font-semibold flex items-center gap-2">
+                                    <span className="h-3 w-3 rounded-full border-2 border-transparent border-t-indigo-500 animate-spin" />
+                                    <span>La IA está generando el APU. Por favor espera unos segundos.</span>
+                                </div>
+                            )}
+                        </div>
                     </section>
 
                     {/* Tarjeta Resumen */}

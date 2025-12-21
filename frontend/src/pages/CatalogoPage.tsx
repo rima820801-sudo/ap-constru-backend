@@ -189,18 +189,12 @@ export default function CatalogoPage() {
     const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
     const [storedProjectsDetected, setStoredProjectsDetected] = useState(() => Boolean(localStorage.getItem("apu_saved_projects")));
 
-    // Cargar datos desde la API solo si no hay datos locales guardados
+    // Cargar datos desde la API siempre para mantener sincronía
     useEffect(() => {
         const cargarDatosDesdeAPI = async () => {
             try {
-                // Solo cargar desde la API si no hay datos guardados localmente
-                const hayMaterialesLocales = localStorage.getItem(STORAGE_KEYS.materiales);
-                const hayManoObraLocales = localStorage.getItem(STORAGE_KEYS.manoobra);
-                const hayEquiposLocales = localStorage.getItem(STORAGE_KEYS.equipos);
-                const hayMaquinariaLocales = localStorage.getItem(STORAGE_KEYS.maquinaria);
-
-                // Cargar materiales desde la API si no hay datos locales
-                if (!hayMaterialesLocales) {
+                // Fetch Materiales
+                try {
                     const materialesAPI = await apiFetch<MaterialDTO[]>('/materiales');
                     const materialesFormateados = materialesAPI.map(m => ({
                         id: m.id,
@@ -210,10 +204,12 @@ export default function CatalogoPage() {
                         fecha: m.fecha_actualizacion
                     }));
                     setMateriales(materialesFormateados);
+                } catch (e) {
+                    console.error("Error cargando materiales", e);
                 }
 
-                // Cargar otros insumos desde la API si no hay datos locales
-                if (!hayManoObraLocales) {
+                // Fetch Mano de Obra
+                try {
                     const manoObraAPI = await apiFetch<ManoObraDTO[]>('/manoobra');
                     const manoObraFormateados = manoObraAPI.map(m => ({
                         id: m.id,
@@ -224,9 +220,12 @@ export default function CatalogoPage() {
                         fecha: m.fecha_actualizacion
                     }));
                     setManoObra(manoObraFormateados);
+                } catch (e) {
+                    console.error("Error cargando mano de obra", e);
                 }
 
-                if (!hayEquiposLocales) {
+                // Fetch Equipos
+                try {
                     const equiposAPI = await apiFetch<EquipoDTO[]>('/equipo');
                     const equiposFormateados = equiposAPI.map(e => ({
                         id: e.id,
@@ -236,9 +235,12 @@ export default function CatalogoPage() {
                         fecha: e.fecha_actualizacion
                     }));
                     setEquipos(equiposFormateados);
+                } catch (e) {
+                    console.error("Error cargando equipos", e);
                 }
 
-                if (!hayMaquinariaLocales) {
+                // Fetch Maquinaria
+                try {
                     const maquinariaAPI = await apiFetch<MaquinariaDTO[]>('/maquinaria');
                     const maquinariaFormateados = maquinariaAPI.map(m => ({
                         id: m.id,
@@ -250,10 +252,12 @@ export default function CatalogoPage() {
                         fecha: m.fecha_actualizacion
                     }));
                     setMaquinaria(maquinariaFormateados);
+                } catch (e) {
+                    console.error("Error cargando maquinaria", e);
                 }
+
             } catch (error) {
-                console.error('Error al cargar datos desde la API:', error);
-                // Si hay error, continuar con los valores locales o por defecto
+                console.error('Error general al cargar datos desde la API:', error);
             }
         };
 
@@ -270,28 +274,122 @@ export default function CatalogoPage() {
     // --- Lógica de Guardado ---
     const handleInputChange = (field: string, value: string) => setNewItem(prev => ({ ...prev, [field]: value }));
 
-    const handleCreateItem = () => {
-        // (Simulación de guardado)
-        const id = Date.now();
-        if (activeTab === 'materiales') {
-            if (!newItem.nombre || !newItem.precio) return alert('Faltan datos');
-            setMateriales([...materiales, { id, nombre: newItem.nombre, unidad: newItem.unidad || 'pza', precio: parseFloat(newItem.precio) || 0, fecha: 'Hoy' }]);
-        } else if (activeTab === 'mano_obra') {
-            if (!newItem.puesto || !newItem.salario) return alert('Faltan datos');
-            setManoObra([...manoObra, { id, puesto: newItem.puesto, salario: parseFloat(newItem.salario) || 0, antiguedad: parseFloat(newItem.antiguedad) || 0, rendimiento: parseFloat(newItem.rendimiento) || 0, fecha: 'Hoy' }]);
-        } else if (activeTab === 'equipos') {
-            if (!newItem.nombre || !newItem.costo_hora) return alert('Faltan datos');
-            setEquipos([...equipos, { id, nombre: newItem.nombre, unidad: newItem.unidad || 'día', costo_hora: parseFloat(newItem.costo_hora) || 0, fecha: 'Hoy' }]);
-        } else if (activeTab === 'maquinaria') {
-            if (!newItem.nombre || !newItem.costo_adq) return alert('Faltan datos');
-            setMaquinaria([...maquinaria, { id, nombre: newItem.nombre, costo_adq: parseFloat(newItem.costo_adq) || 0, vida_util: parseFloat(newItem.vida_util) || 0, tasa: parseFloat(newItem.tasa) || 0, rendimiento: parseFloat(newItem.rendimiento) || 0, fecha: 'Hoy' }]);
+    const handleCreateItem = async () => {
+        try {
+            if (activeTab === 'materiales') {
+                if (!newItem.nombre || !newItem.precio) return alert('Faltan datos');
+                const nuevoMaterial = await apiFetch<MaterialDTO>('/materiales', {
+                    method: 'POST',
+                    body: {
+                        nombre: newItem.nombre,
+                        unidad: newItem.unidad || 'pza',
+                        precio_unitario: parseFloat(newItem.precio),
+                        fecha_actualizacion: new Date().toISOString().split('T')[0]
+                    }
+                });
+
+                setMateriales(prev => [...prev, {
+                    id: nuevoMaterial.id,
+                    nombre: nuevoMaterial.nombre,
+                    unidad: nuevoMaterial.unidad,
+                    precio: nuevoMaterial.precio_unitario,
+                    fecha: nuevoMaterial.fecha_actualizacion
+                }]);
+            } else if (activeTab === 'mano_obra') {
+                if (!newItem.puesto || !newItem.salario) return alert('Faltan datos');
+                const nuevaMO = await apiFetch<ManoObraDTO>('/manoobra', {
+                    method: 'POST',
+                    body: {
+                        puesto: newItem.puesto,
+                        salario_base: parseFloat(newItem.salario),
+                        antiguedad_anios: parseFloat(newItem.antiguedad) || 0,
+                        rendimiento_jornada: parseFloat(newItem.rendimiento) || 0,
+                        fecha_actualizacion: new Date().toISOString().split('T')[0]
+                    }
+                });
+
+                setManoObra(prev => [...prev, {
+                    id: nuevaMO.id,
+                    puesto: nuevaMO.puesto,
+                    salario: nuevaMO.salario_base,
+                    antiguedad: nuevaMO.antiguedad_anios,
+                    rendimiento: nuevaMO.rendimiento_jornada,
+                    fecha: nuevaMO.fecha_actualizacion
+                }]);
+            } else if (activeTab === 'equipos') {
+                if (!newItem.nombre || !newItem.costo_hora) return alert('Faltan datos');
+                const nuevoEquipo = await apiFetch<EquipoDTO>('/equipo', {
+                    method: 'POST',
+                    body: {
+                        nombre: newItem.nombre,
+                        unidad: newItem.unidad || 'día',
+                        costo_hora_maq: parseFloat(newItem.costo_hora),
+                        fecha_actualizacion: new Date().toISOString().split('T')[0]
+                    }
+                });
+
+                setEquipos(prev => [...prev, {
+                    id: nuevoEquipo.id,
+                    nombre: nuevoEquipo.nombre,
+                    unidad: nuevoEquipo.unidad,
+                    costo_hora: nuevoEquipo.costo_hora_maq,
+                    fecha: nuevoEquipo.fecha_actualizacion
+                }]);
+            } else if (activeTab === 'maquinaria') {
+                if (!newItem.nombre || !newItem.costo_adq) return alert('Faltan datos');
+                const nuevaMaq = await apiFetch<MaquinariaDTO>('/maquinaria', {
+                    method: 'POST',
+                    body: {
+                        nombre: newItem.nombre,
+                        costo_adquisicion: parseFloat(newItem.costo_adq),
+                        vida_util_horas: parseFloat(newItem.vida_util) || 0,
+                        tasa_interes_anual: parseFloat(newItem.tasa) || 0,
+                        rendimiento_horario: parseFloat(newItem.rendimiento) || 0,
+                        fecha_actualizacion: new Date().toISOString().split('T')[0]
+                    }
+                });
+
+                setMaquinaria(prev => [...prev, {
+                    id: nuevaMaq.id,
+                    nombre: nuevaMaq.nombre,
+                    costo_adq: nuevaMaq.costo_adquisicion,
+                    vida_util: nuevaMaq.vida_util_horas,
+                    tasa: nuevaMaq.tasa_interes_anual,
+                    rendimiento: nuevaMaq.rendimiento_horario,
+                    fecha: nuevaMaq.fecha_actualizacion
+                }]);
+            }
+            setNewItem({ nombre: '', unidad: '', precio: '', puesto: '', salario: '', antiguedad: '', rendimiento: '', costo_hora: '', costo_adq: '', vida_util: '', tasa: '' });
+        } catch (error) {
+            console.error("Error al guardar:", error);
+            alert("Error al guardar el ítem. Verifica la consola.");
         }
-        setNewItem({ nombre: '', unidad: '', precio: '', puesto: '', salario: '', antiguedad: '', rendimiento: '', costo_hora: '', costo_adq: '', vida_util: '', tasa: '' });
     };
 
-    const handleDelete = (id: number | string, endpoint: string | null, listSetter: React.Dispatch<React.SetStateAction<any[]>>) => {
+    const handleDelete = async (id: number | string, endpoint: string | null, listSetter: React.Dispatch<React.SetStateAction<any[]>>) => {
         if (!window.confirm('¿Estás seguro de eliminar este item?')) return;
-        listSetter(prev => prev.filter(item => item.id !== id));
+
+        // Determinar endpoint correcto si no se pasa explícitamente (el endpoint que venía como argumento era null en el código original)
+        let apiEndpoint = endpoint;
+        if (!apiEndpoint) {
+            if (activeTab === 'materiales') apiEndpoint = '/materiales';
+            else if (activeTab === 'mano_obra') apiEndpoint = '/manoobra';
+            else if (activeTab === 'equipos') apiEndpoint = '/equipo';
+            else if (activeTab === 'maquinaria') apiEndpoint = '/maquinaria';
+        }
+
+        if (apiEndpoint && typeof id === 'number') {
+            try {
+                await apiFetch(`${apiEndpoint}/${id}`, { method: 'DELETE' });
+                listSetter(prev => prev.filter(item => item.id !== id));
+            } catch (error) {
+                console.error("Error al eliminar:", error);
+                alert("Error al eliminar el ítem.");
+            }
+        } else {
+            // Fallback para items locales temporales (simulados) o proyectos guardados que no tienen endpoint de API estándar aquí
+            listSetter(prev => prev.filter(item => item.id !== id));
+        }
     };
 
     useEffect(() => {
@@ -422,15 +520,15 @@ export default function CatalogoPage() {
                         {currentFolder === null ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                                 <div onClick={() => setCurrentFolder('Presupuesto')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 cursor-pointer transition-all group">
-                                <div className="flex items-start justify-between mb-4"><div className="bg-blue-100 p-3 rounded-lg text-blue-600"><Calculator className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Presupuesto')}</span></div>
+                                    <div className="flex items-start justify-between mb-4"><div className="bg-blue-100 p-3 rounded-lg text-blue-600"><Calculator className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Presupuesto')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-blue-700">Presupuestos</h3>
                                 </div>
                                 <div onClick={() => setCurrentFolder('Factura')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-300 cursor-pointer transition-all group">
-                                <div className="flex items-start justify-between mb-4"><div className="bg-purple-100 p-3 rounded-lg text-purple-600"><Receipt className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Factura')}</span></div>
+                                    <div className="flex items-start justify-between mb-4"><div className="bg-purple-100 p-3 rounded-lg text-purple-600"><Receipt className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Factura')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-700">Facturas</h3>
                                 </div>
                                 <div onClick={() => setCurrentFolder('Nota de Venta')} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-orange-300 cursor-pointer transition-all group">
-                                <div className="flex items-start justify-between mb-4"><div className="bg-orange-100 p-3 rounded-lg text-orange-600"><ScrollText className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Nota de Venta')}</span></div>
+                                    <div className="flex items-start justify-between mb-4"><div className="bg-orange-100 p-3 rounded-lg text-orange-600"><ScrollText className="w-8 h-8" /></div><span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">{countByType('Nota de Venta')}</span></div>
                                     <h3 className="text-lg font-bold text-gray-800 group-hover:text-orange-700">Notas de Venta</h3>
                                 </div>
                             </div>

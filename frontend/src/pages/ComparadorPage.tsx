@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { Navbar } from '../components/layout/Navbar';
+import { useToast } from '../context/ToastContext';
 
 type MaterialDTO = {
     id: number;
@@ -248,6 +249,8 @@ export default function ComparadorPage() {
     const [tituloComparacion, setTituloComparacion] = useState('');
     const [historial, setHistorial] = useState<ComparacionGuardada[]>([]);
     const [proyectosAnalisis, setProyectosAnalisis] = useState<SavedProjectRecord[]>([]);
+    const [isQuotating, setIsQuotating] = useState(false);
+    const { addToast } = useToast();
 
     // Efecto para guardar la tabla en localStorage cada vez que cambie
     useEffect(() => {
@@ -263,7 +266,79 @@ export default function ComparadorPage() {
         // Cargar también los proyectos guardados desde AnalisisPuPage
         const proyectosGuardados = JSON.parse(localStorage.getItem('apu_saved_projects') || '[]');
         setProyectosAnalisis(proyectosGuardados);
+
+        // -------------------------------------------------------------------------
+        // AUTO-IMPORTACIÓN: Verificar si vienen materiales desde "Cotizar Faltantes"
+        // -------------------------------------------------------------------------
+        const importadosRaw = localStorage.getItem('comparador_import_items');
+        if (importadosRaw) {
+            try {
+                const importados = JSON.parse(importadosRaw);
+                if (Array.isArray(importados) && importados.length > 0) {
+                    // Convertir al formato de la tabla del comparador
+                    const nuevosItems: ComparacionItem[] = importados.map((item: any) => ({
+                        id: crypto.randomUUID(),
+                        nombre: item.nombre,
+                        unidad: item.unidad || 'pza',
+                        isLoading: true, // Marcar como cargando para la búsqueda auto
+                        cotizaciones: createBlankCotizacion()
+                    }));
+
+                    // Agregarlos a la tabla (limpiando lo anterior para enfocar en lo nuevo, o concatenando)
+                    // Decisión: Reemplazar tabla actual para una sesión de cotización limpia de faltantes
+                    setTabla(nuevosItems);
+
+                    // Limpiar el flag del storage para no recargar en F5
+                    localStorage.removeItem('comparador_import_items');
+
+                    // Disparar la cotización masiva automáticamente después de un breve delay
+                    // para asegurar que el estado se haya actualizado
+                    setTimeout(() => {
+                        void buscarPreciosParaLista(nuevosItems);
+                    }, 500);
+                }
+            } catch (e) {
+                console.error("Error importando items automáticos:", e);
+            }
+        }
     }, []);
+
+    // Función auxiliar dedicada para buscar precios de una lista específica de items
+    // (similar a buscarPreciosParaTodos pero recibe la lista para evitar problemas de closure con el estado 'tabla' vacío en el mount)
+    const buscarPreciosParaLista = async (items: ComparacionItem[]) => {
+        try {
+            const materialesParaCotizar = items.map(item => item.nombre);
+            // Definimos el tipo de respuesta esperado con 'resultados'
+            const data = await apiFetch<{ resultados: any[] }>('/ia/cotizar_multiples', {
+                method: 'POST',
+                body: { materiales: materialesParaCotizar },
+            });
+
+            if (data && Array.isArray(data.resultados)) {
+                setTabla(currentTabla => currentTabla.map(item => {
+                    // Buscamos si este item estaba en la lista de importados (por ID o nombre)
+                    // Como acabamos de setear la tabla con estos IDs, deberían coincidir
+                    const resultado = data.resultados.find((r: any) => r.material === item.nombre);
+                    if (resultado) {
+                        return {
+                            ...item,
+                            isLoading: false,
+                            cotizaciones: buildCotizacionFromResponse(resultado)
+                        };
+                    }
+                    // Si estaba cargando y no trajo resultado, quitamos loading
+                    if (item.isLoading) return { ...item, isLoading: false };
+                    return item;
+                }));
+            } else {
+                setTabla(prev => prev.map(i => ({ ...i, isLoading: false })));
+            }
+        } catch (error) {
+            console.error('Error auto-cotizando:', error);
+            setTabla(prev => prev.map(i => ({ ...i, isLoading: false })));
+            addToast('Hubo un error al intentar cotizar los materiales importados automáticamente.', 'error');
+        }
+    };
 
     // --- FUNCIONES DE LÓGICA ---
 
@@ -285,10 +360,11 @@ export default function ComparadorPage() {
 
         setTabla(prev => [nuevo, ...prev]); // Lo ponemos al principio para verlo rápido
         setInputValue('');
+        setIsQuotating(true);
 
         // 2. Disparar búsqueda automática
         try {
-            const data = await apiFetch('/ia/cotizar', {
+            const data = await apiFetch<any>('/ia/cotizar', {
                 method: 'POST',
                 body: { material: nombreMaterial },
             });
@@ -301,11 +377,14 @@ export default function ComparadorPage() {
                 isLoading: false,
                 cotizaciones: cotizacionIA
             } : i));
+            addToast("Cotización completada", "success");
 
         } catch (error) {
             console.error(error);
-            alert("Error al consultar IA");
+            addToast("Error al consultar IA", "error");
             setTabla(prev => prev.map(i => i.id === id ? { ...i, isLoading: false } : i));
+        } finally {
+            setIsQuotating(false);
         }
     };
 
@@ -313,7 +392,7 @@ export default function ComparadorPage() {
     const handleReCotizar = async (id: string, nombreMaterial: string) => {
         setTabla(prev => prev.map(i => i.id === id ? { ...i, isLoading: true } : i));
         try {
-            const data = await apiFetch('/ia/cotizar', {
+            const data = await apiFetch<any>('/ia/cotizar', {
                 method: 'POST',
                 body: { material: nombreMaterial },
             });
@@ -332,7 +411,7 @@ export default function ComparadorPage() {
     // Función para buscar precios de todos los materiales en la tabla
     const buscarPreciosParaTodos = async () => {
         if (tabla.length === 0) {
-            alert('No hay materiales en la tabla para buscar precios.');
+            addToast('No hay materiales en la tabla para buscar precios.', 'warning');
             return;
         }
 
@@ -343,7 +422,7 @@ export default function ComparadorPage() {
             // Hacer una sola solicitud con todos los materiales
             const materialesParaCotizar = tabla.map(item => item.nombre);
 
-            const data = await apiFetch('/ia/cotizar_multiples', {
+            const data = await apiFetch<{ resultados: any[] }>('/ia/cotizar_multiples', {
                 method: 'POST',
                 body: { materiales: materialesParaCotizar },
             });
@@ -364,13 +443,13 @@ export default function ComparadorPage() {
             } else {
                 // Si no hay resultados en el formato esperado, quitar el estado de carga
                 setTabla(prev => prev.map(item => ({ ...item, isLoading: false })));
-                alert('No se recibieron resultados válidos para los materiales solicitados.');
+                addToast('No se recibieron resultados válidos para los materiales solicitados.', 'warning');
             }
         } catch (error) {
             console.error('Error buscando precios para múltiples materiales:', error);
             // Quitar el estado de carga en caso de error
             setTabla(prev => prev.map(item => ({ ...item, isLoading: false })));
-            alert('Error al buscar precios para los materiales.');
+            addToast('Error al buscar precios para los materiales.', 'error');
         }
     };
 
@@ -542,7 +621,7 @@ export default function ComparadorPage() {
         const nuevoHistorial = [nuevaComparacion, ...historial];
         setHistorial(nuevoHistorial);
         localStorage.setItem('comparaciones', JSON.stringify(nuevoHistorial));
-        alert('✅ Comparación guardada exitosamente en el historial.');
+        addToast('Comparación guardada exitosamente en el historial.', 'success');
     };
 
     const handleCargarHistorial = (comp: ComparacionGuardada) => {
@@ -605,9 +684,11 @@ export default function ComparadorPage() {
                             />
                             <button
                                 onClick={handleAgregarYCotizar}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-md shadow-indigo-200 transition-all"
+                                disabled={isQuotating}
+                                className={`bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-md shadow-indigo-200 transition-all ${isQuotating ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                                <Sparkles className="w-4 h-4" /> Cotizar Ahora
+                                {isQuotating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                {isQuotating ? 'Cotizando...' : 'Cotizar Ahora'}
                             </button>
                         </div>
 
@@ -631,37 +712,37 @@ export default function ComparadorPage() {
                                                     <React.Fragment key={item.id}>
                                                         <tr className="hover:bg-gray-50 group">
                                                             <td className="px-6 py-3 align-top relative">
-                                                        {/* Loading Overlay para el item */}
-                                                        {item.isLoading && (
-                                                            <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center gap-2 text-indigo-600 text-xs font-medium">
-                                                                <Loader2 className="w-4 h-4 animate-spin" /> Buscando precios...
-                                                            </div>
-                                                        )}
+                                                                {/* Loading Overlay para el item */}
+                                                                {item.isLoading && (
+                                                                    <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center gap-2 text-indigo-600 text-xs font-medium">
+                                                                        <Loader2 className="w-4 h-4 animate-spin" /> Buscando precios...
+                                                                    </div>
+                                                                )}
 
-                                                        <input type="text" value={item.nombre} onChange={(e) => updateItem(item.id, 'nombre', e.target.value)} className="w-full font-medium text-gray-900 bg-transparent border-none p-0 focus:ring-0 mb-1" aria-label="Nombre del material" />
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs text-gray-400">{item.unidad}</span>
-                                                            <button
-                                                                onClick={() => handleReCotizar(item.id, item.nombre)}
-                                                                className="text-[10px] text-indigo-400 hover:text-indigo-600 hover:underline flex items-center gap-1"
-                                                            >
-                                                                <Sparkles className="w-3 h-3" /> Recotizar
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    {/* Opciones de Precios */}
-                                                    {['1', '2', '3'].map((n) => {
-                                                        const tiendaKey = `tienda${n}`;
-                                                        return (
-                                                            <td key={n} className={`px-4 py-3 border-l border-gray-100 ${n === '1' ? 'bg-blue-50/30' : ''}`}>
-                                                                <input type="text" placeholder={`Proveedor ${n}`} value={(item.cotizaciones as any)[tiendaKey]} onChange={(e) => updateItem(item.id, `tienda${n}`, e.target.value, true)} className="w-full text-xs mb-1 bg-white border border-gray-200 rounded px-2 py-1" />
-                                                                <div className="relative"><span className="absolute left-2 top-1 text-gray-400 text-xs">$</span><input type="number" placeholder="0.00" value={(item.cotizaciones as any)[`precio${n}`] || ''} onChange={(e) => updateItem(item.id, `precio${n}`, parseFloat(e.target.value), true)} className="w-full text-sm font-bold text-gray-800 pl-5 bg-white border border-gray-200 rounded px-2 py-1" /></div>
+                                                                <input type="text" value={item.nombre} onChange={(e) => updateItem(item.id, 'nombre', e.target.value)} className="w-full font-medium text-gray-900 bg-transparent border-none p-0 focus:ring-0 mb-1" aria-label="Nombre del material" />
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs text-gray-400">{item.unidad}</span>
+                                                                    <button
+                                                                        onClick={() => handleReCotizar(item.id, item.nombre)}
+                                                                        className="text-[10px] text-indigo-400 hover:text-indigo-600 hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <Sparkles className="w-3 h-3" /> Recotizar
+                                                                    </button>
+                                                                </div>
                                                             </td>
-                                                        );
-                                                    })}
-                                                    <td className="px-2 py-3 text-center align-middle">
-                                                        <button onClick={() => setTabla(t => t.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500 p-1" title="Eliminar fila" aria-label="Eliminar fila"><Trash2 className="w-4 h-4" /></button>
-                                                    </td>
+                                                            {/* Opciones de Precios */}
+                                                            {['1', '2', '3'].map((n) => {
+                                                                const tiendaKey = `tienda${n}`;
+                                                                return (
+                                                                    <td key={n} className={`px-4 py-3 border-l border-gray-100 ${n === '1' ? 'bg-blue-50/30' : ''}`}>
+                                                                        <input type="text" placeholder={`Proveedor ${n}`} value={(item.cotizaciones as any)[tiendaKey]} onChange={(e) => updateItem(item.id, `tienda${n}`, e.target.value, true)} className="w-full text-xs mb-1 bg-white border border-gray-200 rounded px-2 py-1" />
+                                                                        <div className="relative"><span className="absolute left-2 top-1 text-gray-400 text-xs">$</span><input type="number" placeholder="0.00" value={(item.cotizaciones as any)[`precio${n}`] || ''} onChange={(e) => updateItem(item.id, `precio${n}`, parseFloat(e.target.value), true)} className="w-full text-sm font-bold text-gray-800 pl-5 bg-white border border-gray-200 rounded px-2 py-1" /></div>
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                            <td className="px-2 py-3 text-center align-middle">
+                                                                <button onClick={() => setTabla(t => t.filter(i => i.id !== item.id))} className="text-gray-300 hover:text-red-500 p-1" title="Eliminar fila" aria-label="Eliminar fila"><Trash2 className="w-4 h-4" /></button>
+                                                            </td>
                                                         </tr>
                                                         {topOptions.some((tier) => tier.precio !== null) && (
                                                             <tr>
@@ -681,7 +762,7 @@ export default function ComparadorPage() {
                                                                                             ${tier.precio.toFixed(2)}
                                                                                         </div>
                                                                                         <button
-                                                                                            onClick={() => guardarEnCatalogo(item.nombre, tier.precio, item.unidad)}
+                                                                                            onClick={() => guardarEnCatalogo(item.nombre, tier.precio ?? 0, item.unidad)}
                                                                                             className="mt-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition-colors"
                                                                                         >
                                                                                             Agregar

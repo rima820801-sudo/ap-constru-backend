@@ -49,17 +49,29 @@ export function SaveProjectModal({ open, descripcion, onClose, onSave }: SavePro
                     <p>{descripcion || "Guarda el análisis actual para retomarlo después o generar documentos."}</p>
                     <div className="space-y-2">
                         {OPTIONS.map((option) => (
-                            <label key={option} className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 cursor-pointer hover:border-indigo-500">
+                            <label
+                                key={option}
+                                className={`flex items-center gap-4 border rounded-xl px-4 py-4 cursor-pointer transition-all duration-200 ${selected === option
+                                        ? "border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600"
+                                        : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                                    }`}
+                            >
+                                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${selected === option ? "bg-indigo-600 text-white" : "bg-indigo-100 text-indigo-600"
+                                    }`}>
+                                    {option === "Presupuesto" && <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2 14 8 20 8" /><path d="M3 15h6" /><path d="M3 18h6" /><path d="M3 12h6" /></svg>}
+                                    {option === "Factura" && <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.78 4.78 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.78 4 4 0 0 1 0-6.74Z" /><path d="m9 12 2 2 4-4" /></svg>}
+                                    {option === "Nota de Venta" && <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>}
+                                </div>
                                 <input
                                     type="radio"
                                     name="save-project-option"
                                     checked={selected === option}
                                     onChange={() => setSelected(option)}
-                                    className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300"
+                                    className="sr-only"
                                 />
                                 <div>
-                                    <p className="font-semibold text-slate-800">{option}</p>
-                                    <p className="text-xs text-slate-500">Genera un {option.toLowerCase()} con los insumos actuales.</p>
+                                    <p className={`font-semibold ${selected === option ? "text-indigo-900" : "text-gray-900"}`}>{option}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">Genera un documento tipo {option.toLowerCase()}.</p>
                                 </div>
                             </label>
                         ))}
