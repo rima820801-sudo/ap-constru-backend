@@ -46,6 +46,20 @@ def create_app(config_class=Config):
     app.register_blueprint(ia.bp)
     app.register_blueprint(admin.bp)
 
+    @app.route("/", methods=["GET"])
+    def index():
+        return """
+        <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #f8fafc; color: #1e293b; height: 100vh;">
+            <div style="background: white; padding: 40px; border-radius: 20px; display: inline-block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                <h1 style="color: #4f46e5; margin-bottom: 10px;">🚀 API de AP-Constru está Activa</h1>
+                <p style="font-size: 1.1rem; color: #64748b;">El backend está encendido y listo para trabajar.</p>
+                <div style="margin-top: 20px; font-size: 0.9rem; color: #94a3b8;">
+                    Puedes cerrar esta pestaña y volver a la <a href="https://ap-constru-backend-1.onrender.com" style="color: #4f46e5; text-decoration: none; font-weight: bold;">Aplicación Principal</a>.
+                </div>
+            </div>
+        </div>
+        """, 200
+
     # Health Check Endpoint
     @app.route("/api/health", methods=["GET"])
     def health_check():
