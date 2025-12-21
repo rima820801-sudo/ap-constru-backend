@@ -703,25 +703,30 @@ export function AnalisisPuPage() {
                         </div>
                     </section>
 
-                    {/* Tarjeta Resumen */}
+
+                </div>
+
+                {/* Columna Derecha */}
+                <div className="lg:col-span-1 space-y-6 min-w-0">
+                    {/* Tarjeta Resumen principal */}
                     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                         <header className="mb-6 flex items-center justify-between">
                             <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">Resumen Financiero</p>
                             {cargandoIA && <span className="text-xs text-indigo-500 animate-pulse font-medium">Actualizando...</span>}
                         </header>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             {/* 1. Construcción Estimada */}
-                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col justify-between h-full relative overflow-hidden">
+                            <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100 flex flex-col justify-between h-full relative overflow-hidden">
                                 <div className="z-10 relative">
-                                    <span className="block text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">
+                                    <span className="block text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-2 text-center sm:text-left">
                                         Construcción Estimada
                                     </span>
-                                    <div className="flex items-baseline gap-1">
-                                        <strong className="text-2xl text-gray-800 font-bold">
-                                            {metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}
+                                    <div className="flex items-baseline justify-center sm:justify-start gap-1">
+                                        <strong className="text-3xl text-gray-800 font-extrabold tracking-tight">
+                                            {metrosCuadrados > 0 ? metrosCuadrados.toLocaleString('en-US') : "--"}
                                         </strong>
-                                        <span className="text-xs text-gray-500 font-medium">m²</span>
+                                        <span className="text-sm text-gray-500 font-semibold italic">m²</span>
                                     </div>
                                 </div>
                                 <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
@@ -730,15 +735,18 @@ export function AnalisisPuPage() {
                             </div>
 
                             {/* 2. Costo Total de la Obra */}
-                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col justify-between h-full relative overflow-hidden">
+                            <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex flex-col justify-between h-full relative overflow-hidden min-w-0">
                                 <div className="z-10 relative">
-                                    <span className="block text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-1">
+                                    <span className="block text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-2 text-center sm:text-left">
                                         Costo Total de la Obra
                                     </span>
-                                    <strong className="text-2xl text-indigo-700">
-                                        ${resumen.precio_unitario.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </strong>
-                                    <p className="text-[10px] text-indigo-400 mt-1">Incluye indirectos y utilidad</p>
+                                    <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-1 overflow-hidden">
+                                        <span className="text-xl font-black text-indigo-700">$</span>
+                                        <strong className="text-2xl sm:text-2xl md:text-3xl text-indigo-700 font-black tracking-tighter leading-none break-all sm:break-normal">
+                                            {resumen.precio_unitario.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </strong>
+                                    </div>
+                                    <p className="text-[10px] text-indigo-400 mt-2 italic font-medium text-center sm:text-left">Incluye indirectos y utilidad</p>
                                 </div>
                                 <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.48 2.61 1.48 1.55 0 2.22-.57 2.22-1.34 0-.89-.69-1.31-2.47-1.73-2.13-.51-3.69-1.28-3.69-3.24 0-2.02 1.5-3.17 3.32-3.46V4.37h2.67v1.9c1.43.33 2.65 1.25 2.8 3.1h-1.98c-.1-1.01-1.03-1.46-2.41-1.46-1.35 0-2.17.65-2.17 1.39 0 .96.79 1.34 2.62 1.77 2.15.51 3.52 1.41 3.52 3.25 0 2.15-1.57 3.28-3.52 3.56z" /></svg>
@@ -746,15 +754,18 @@ export function AnalisisPuPage() {
                             </div>
 
                             {/* 3. Costo por m² */}
-                            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col justify-between h-full relative overflow-hidden">
+                            <div className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col justify-between h-full relative overflow-hidden min-w-0">
                                 <div className="z-10 relative">
-                                    <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">
+                                    <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-2 text-center sm:text-left">
                                         Costo por m²
                                     </span>
-                                    <strong className="text-2xl text-emerald-700">
-                                        ${(metrosCuadrados > 0 ? (resumen.precio_unitario / metrosCuadrados) : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </strong>
-                                    <p className="text-[10px] text-emerald-500 mt-1">Costo unitario paramétrico</p>
+                                    <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-1">
+                                        <span className="text-xl font-black text-emerald-700">$</span>
+                                        <strong className="text-2xl sm:text-2xl md:text-3xl text-emerald-700 font-black tracking-tighter leading-none">
+                                            {(metrosCuadrados > 0 ? (resumen.precio_unitario / metrosCuadrados) : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </strong>
+                                    </div>
+                                    <p className="text-[10px] text-emerald-500 mt-2 italic font-medium text-center sm:text-left">Costo unitario paramétrico</p>
                                 </div>
                                 <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17h18v2H3zm0-7h18v5H3zm0-4h18v2H3z" /></svg>
@@ -762,60 +773,42 @@ export function AnalisisPuPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-3">Factores de Sobrecosto</p>
-                            {(Object.keys(SOBRECOSTO_FIELDS) as FactorToggleKey[]).map((key) => {
-                                const config = sobrecostos[key];
-                                const meta = SOBRECOSTO_FIELDS[key];
-                                return (
-                                    <div key={key} className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${config.activo ? 'bg-white border-indigo-100 shadow-sm' : 'bg-gray-50/50 border-transparent hover:bg-gray-50'}`}>
-                                        <div className="flex items-center gap-3">
-                                            {/* Custom Switch */}
-                                            <button
-                                                type="button"
-                                                role="switch"
-                                                aria-checked={config.activo}
-                                                onClick={() => handleSobrecostoToggle(key, !config.activo)}
-                                                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${config.activo ? 'bg-indigo-600' : 'bg-gray-200'}`}
-                                            >
-                                                <span
-                                                    aria-hidden="true"
-                                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${config.activo ? 'translate-x-4' : 'translate-x-0'}`}
-                                                />
-                                            </button>
-
-                                            <div className="flex flex-col">
-                                                <span className={`text-sm font-medium transition-colors ${config.activo ? 'text-gray-900' : 'text-gray-500'}`}>{meta.label}</span>
-                                                <span className="text-[10px] text-gray-400 hidden sm:block">{meta.description}</span>
+                        {/* Factores de Sobrecosto */}
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                            <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-4 text-center sm:text-left">Ajustes de Sobrecosto (FASAR, Indirectos, Utilidad)</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {(Object.keys(SOBRECOSTO_FIELDS) as FactorToggleKey[]).map((key) => {
+                                    const config = sobrecostos[key];
+                                    const meta = SOBRECOSTO_FIELDS[key];
+                                    return (
+                                        <div key={key} className={`flex flex-col p-3 rounded-xl border transition-all duration-200 ${config.activo ? 'bg-white border-indigo-100 shadow-sm' : 'bg-gray-50/50 border-transparent'}`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className={`text-[10px] font-black tracking-wide transition-colors ${config.activo ? 'text-gray-900' : 'text-gray-400'}`}>{meta.label.toUpperCase()}</span>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={config.activo}
+                                                    onClick={() => handleSobrecostoToggle(key, !config.activo)}
+                                                    className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${config.activo ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                                >
+                                                    <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${config.activo ? 'translate-x-3' : 'translate-x-0'}`} />
+                                                </button>
                                             </div>
-                                        </div>
-
-                                        <div className={`flex items-center gap-2 transition-all duration-300 ${config.activo ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}`}>
-                                            <div className="relative">
+                                            <div className={`relative transition-opacity duration-300 ${config.activo ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
                                                 <input
                                                     type="number"
-                                                    id={`${idPrefix}-porcentaje-${key}`}
-                                                    name={`${idPrefix}-porcentaje-${key}`}
-                                                    min={0}
-                                                    step={0.1}
                                                     value={config.porcentaje}
                                                     onChange={(event) => handleSobrecostoPorcentaje(key, event.target.value)}
-                                                    disabled={!config.activo}
-                                                    className="w-16 text-right text-sm font-medium bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 py-1.5 pr-6 text-gray-900 placeholder:text-gray-300"
-                                                    placeholder="0"
+                                                    className="w-full text-right text-lg font-black bg-transparent border-0 border-b-2 border-gray-100 focus:border-indigo-500 focus:ring-0 p-0 pr-5 text-gray-900"
                                                 />
-                                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">%</span>
+                                                <span className="absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-black">%</span>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </section>
-                </div>
-
-                {/* Columna Derecha */}
-                <div className="lg:col-span-1 space-y-6 min-w-0">
                     {/* Botones de Acción (Reacomodados) */}
                     <div className="flex flex-wrap gap-2 justify-end">
                         <button
