@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquarePlus, X, Send, AlertTriangle, Lightbulb } from 'lucide-react';
-import { apiFetch } from '../api/client';
+import { apiFetch } from '../../api/client';
 
 export const FeedbackModal = () => {
     const [isOpen, setIsOpen] = useState(false);
