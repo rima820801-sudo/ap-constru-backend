@@ -69,33 +69,54 @@ class ConstantesFASAR(db.Model):
     __tablename__ = "constantes_fasar"
 
     id = db.Column(db.Integer, primary_key=True, default=1)
+    
+    # Valores de Referencia Nacional
+    valor_uma = db.Column(db.Numeric(10, 2), default=Decimal("108.57"))  # Valor 2024
+    salario_minimo_general = db.Column(db.Numeric(10, 2), default=Decimal("248.93")) # Valor 2024
+    
+    # Calendario y Prestaciones
     dias_del_anio = db.Column(db.Integer, default=365)
-    dias_festivos_obligatorios = db.Column(db.Numeric(6, 2), default=Decimal("7.0"))
-    dias_riesgo_trabajo_promedio = db.Column(db.Numeric(6, 2), default=Decimal("1.5"))
-    dias_vacaciones_minimos = db.Column(db.Integer, default=12)
-    prima_vacacional_porcentaje = db.Column(db.Numeric(4, 2), default=Decimal("0.25"))
     dias_aguinaldo_minimos = db.Column(db.Integer, default=15)
-    suma_cargas_sociales = db.Column(db.Numeric(5, 4), default=Decimal("0.15"))
-
+    prima_vacacional_porcentaje = db.Column(db.Numeric(4, 2), default=Decimal("0.25"))
+    
+    # Días No Laborables (Incapacidad/Calendario)
+    dias_festivos_obligatorios = db.Column(db.Numeric(6, 2), default=Decimal("7.0"))
+    dias_festivos_costumbre = db.Column(db.Numeric(6, 2), default=Decimal("3.0")) # Jueves/Viernes santo, etc.
+    dias_mal_tiempo = db.Column(db.Numeric(6, 2), default=Decimal("2.0"))
+    dias_riesgo_trabajo_promedio = db.Column(db.Numeric(6, 2), default=Decimal("1.5")) # Incapacidades
+    dias_permisos_sindicales = db.Column(db.Numeric(6, 2), default=Decimal("2.0"))
+    
+    # Factores Patronales (IMSS/INFONAVIT)
+    prima_riesgo_trabajo_patronal = db.Column(db.Numeric(10, 6), default=Decimal("7.58875")) # Varía por empresa (Clase V usualmente)
+    impuesto_sobre_nomina = db.Column(db.Numeric(6, 4), default=Decimal("0.03")) # Varía por estado
+    
     @classmethod
     def get_singleton(cls) -> "ConstantesFASAR":
         instancia = cls.query.get(1)
         if not instancia:
             instancia = cls(id=1)
             db.session.add(instancia)
-            db.session.commit()
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
         return instancia
 
     def to_dict(self) -> Dict:
         return {
             "id": self.id,
+            "valor_uma": float(self.valor_uma),
+            "salario_minimo_general": float(self.salario_minimo_general),
             "dias_del_anio": self.dias_del_anio,
-            "dias_festivos_obligatorios": float(self.dias_festivos_obligatorios),
-            "dias_riesgo_trabajo_promedio": float(self.dias_riesgo_trabajo_promedio),
-            "dias_vacaciones_minimos": self.dias_vacaciones_minimos,
-            "prima_vacacional_porcentaje": float(self.prima_vacacional_porcentaje),
             "dias_aguinaldo_minimos": self.dias_aguinaldo_minimos,
-            "suma_cargas_sociales": float(self.suma_cargas_sociales),
+            "prima_vacacional_porcentaje": float(self.prima_vacacional_porcentaje),
+            "dias_festivos_obligatorios": float(self.dias_festivos_obligatorios),
+            "dias_festivos_costumbre": float(self.dias_festivos_costumbre),
+            "dias_mal_tiempo": float(self.dias_mal_tiempo),
+            "dias_riesgo_trabajo_promedio": float(self.dias_riesgo_trabajo_promedio),
+            "dias_permisos_sindicales": float(self.dias_permisos_sindicales),
+            "prima_riesgo_trabajo_patronal": float(self.prima_riesgo_trabajo_patronal),
+            "impuesto_sobre_nomina": float(self.impuesto_sobre_nomina),
         }
 
 
@@ -206,22 +227,71 @@ class ManoObra(db.Model):
     fecha_actualizacion = db.Column(db.Date, default=date.today, nullable=False)
 
     def refresh_fasar(self):
-        # Inline logic to break dependency cycle
-        constantes = ConstantesFASAR.get_singleton()
-        dias_pagados = (
-            Decimal(constantes.dias_del_anio)
-            + Decimal(constantes.dias_aguinaldo_minimos)
-            + Decimal(constantes.dias_vacaciones_minimos) * Decimal(constantes.prima_vacacional_porcentaje)
-        )
-        dias_trabajados = (
-            Decimal(constantes.dias_del_anio)
-            - Decimal(constantes.dias_festivos_obligatorios)
-            - Decimal(constantes.dias_vacaciones_minimos)
-            - Decimal(constantes.dias_riesgo_trabajo_promedio)
-        )
-        factor_dias = dias_pagados / dias_trabajados if dias_trabajados > 0 else Decimal("1.0")
-        factor_cargas = Decimal("1.0") + Decimal(constantes.suma_cargas_sociales)
-        self.fasar = factor_dias * factor_cargas
+        """Calcula el FASAR individual profesional basado en la Ley del IMSS e INFONAVIT."""
+        c = ConstantesFASAR.get_singleton()
+        
+        # 1. Determinación de Vacaciones según Antigüedad (Ley 2023)
+        # 1 año: 12d, 2: 14d, 3: 16d, 4: 18d, 5: 20d, etc.
+        if self.antiguedad_anios <= 1: vac = 12
+        elif self.antiguedad_anios == 2: vac = 14
+        elif self.antiguedad_anios == 3: vac = 16
+        elif self.antiguedad_anios == 4: vac = 18
+        elif self.antiguedad_anios <= 5: vac = 20
+        elif self.antiguedad_anios <= 10: vac = 22
+        elif self.antiguedad_anios <= 15: vac = 24
+        elif self.antiguedad_anios <= 20: vac = 26
+        else: vac = 30
+        
+        # 2. Factor de Integración Salarial (FSB)
+        # (365 + Aguinaldo + Prima Vacacional) / 365
+        dias_pagados_anio = Decimal(c.dias_del_anio) + Decimal(c.dias_aguinaldo_minimos) + (Decimal(vac) * Decimal(c.prima_vacacional_porcentaje))
+        factor_integracion = dias_pagados_anio / Decimal(c.dias_del_anio)
+        
+        sbc = Decimal(self.salario_base) * factor_integracion # Salario Base de Cotización
+        
+        # 3. Días Realmente Trabajados al año (TI)
+        ti = (Decimal(c.dias_del_anio) 
+              - 52 # Domingos
+              - Decimal(vac) 
+              - Decimal(c.dias_festivos_obligatorios) 
+              - Decimal(c.dias_festivos_costumbre) 
+              - Decimal(c.dias_mal_tiempo) 
+              - Decimal(c.dias_riesgo_trabajo_promedio) 
+              - Decimal(c.dias_permisos_sindicales))
+        
+        # 4. Cálculo de Cuotas Patronales (Simplificado pero realista)
+        # PS = Cuota Fija + Excedente + Prestaciones Dinero + Gastos Médicos + Invalidez/Vida + Riesgo + Guardería + Retiro + Vejez + Infonavit
+        uma = Decimal(c.valor_uma)
+        
+        # Cuota Fija (20.40% de la UMA)
+        cuota_fija = uma * Decimal("0.204")
+        
+        # Excedente (1.10% de lo que exceda 3 UMAs)
+        exc = Decimal("0")
+        if sbc > (uma * 3):
+            exc = (sbc - (uma * 3)) * Decimal("0.011")
+            
+        # Otros % sobre SBC
+        prest_dinero = sbc * Decimal("0.007")
+        gastos_med = sbc * Decimal("0.0105")
+        riesgo = sbc * (Decimal(c.prima_riesgo_trabajo_patronal) / 100)
+        invalidez = sbc * Decimal("0.0175")
+        guarderia = sbc * Decimal("0.01")
+        infonavit = sbc * Decimal("0.05")
+        sar = sbc * Decimal("0.02")
+        vejez = sbc * Decimal("0.0315") # Variable según salario, promedio
+        isn = Decimal(self.salario_base) * Decimal(c.impuesto_sobre_nomina)
+        
+        cargas_sociales_dia = cuota_fija + exc + prest_dinero + gastos_med + riesgo + invalidez + guarderia + infonavit + sar + vejez + isn
+        
+        # 5. Factor de Salario Real Final
+        # FSR = (Tp/Ti) + (CargasSocialesDia / (Ti/365 * SBC))
+        # Una forma más directa usada en México:
+        # FSR = (CargasSocialesDia / SalarioBase) + (DíasPagados / DíasTrabajados)
+        tp_ti = dias_pagados_anio / ti if ti > 0 else Decimal("1.0")
+        fsr = (cargas_sociales_dia / Decimal(self.salario_base)) + tp_ti
+        
+        self.fasar = fsr.quantize(Decimal("0.0001"))
 
     def to_dict(self) -> Dict:
         return {

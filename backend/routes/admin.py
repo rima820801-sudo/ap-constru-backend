@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from backend.models import User, Proyecto, Feedback, db
+from backend.models import User, Proyecto, Feedback, ConstantesFASAR, db
 from backend.routes.auth import trial_required
 from backend.services.notification_service import send_admin_notification
 from functools import wraps
@@ -91,3 +91,45 @@ def resolve_feedback(fb_id):
     fb.estado = "resuelto"
     db.session.commit()
     return jsonify({"message": "Estado actualizado"})
+
+@bp.route("/fasar", methods=["GET"])
+@admin_required
+def get_fasar_config():
+    config = ConstantesFASAR.get_singleton()
+    return jsonify(config.to_dict())
+
+@bp.route("/fasar", methods=["POST"])
+@admin_required
+def update_fasar_config():
+    data = request.get_json()
+    config = ConstantesFASAR.get_singleton()
+    
+    # Update fields if present in data
+    # Numerical fields
+    fields = [
+        'valor_uma', 'salario_minimo_general', 'dias_del_anio', 
+        'dias_aguinaldo_minimos', 'prima_vacacional_porcentaje',
+        'dias_festivos_obligatorios', 'dias_festivos_costumbre',
+        'dias_mal_tiempo', 'dias_riesgo_trabajo_promedio',
+        'dias_permisos_sindicales', 'prima_riesgo_trabajo_patronal',
+        'impuesto_sobre_nomina'
+    ]
+    
+    from decimal import Decimal
+    for field in fields:
+        if field in data:
+            setattr(config, field, Decimal(str(data[field])))
+            
+    db.session.commit()
+    
+    # Recalcular FASAR para todos los trabajadores con las nuevas constantes
+    from backend.models import ManoObra
+    try:
+        trabajadores = ManoObra.query.all()
+        for t in trabajadores:
+            t.refresh_fasar()
+        db.session.commit()
+    except Exception as e:
+        print(f"Error recalculando FASAR masivo: {e}")
+        
+    return jsonify({"message": "Configuración de FASAR actualizada y salarios recalculados", "config": config.to_dict()})

@@ -10,6 +10,7 @@ import { TrialWall } from './components/auth/TrialWall';
 import { FeedbackModal } from './components/ui/FeedbackModal';
 import { GuiaUsoPage } from './pages/GuiaUsoPage';
 import { ChangelogPage } from './pages/ChangelogPage';
+import { FasarConfigPage } from './pages/FasarConfigPage';
 import { UserProvider, useUser } from './context/user';
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
@@ -47,6 +48,10 @@ const AppRoutes = () => {
             <Route
                 path="/comparador"
                 element={<ProtectedRoute><TrialWall><ComparadorPage /></TrialWall></ProtectedRoute>}
+            />
+            <Route
+                path="/admin/fasar"
+                element={<ProtectedRoute adminOnly><FasarConfigPage /></ProtectedRoute>}
             />
             <Route
                 path="/admin"

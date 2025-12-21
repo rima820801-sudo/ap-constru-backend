@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Users, PieChart, MessageSquare, CheckCircle, XCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Loader2, Users, PieChart, MessageSquare, CheckCircle, XCircle, ShieldCheck, ShieldAlert, Calculator, ExternalLink } from 'lucide-react';
 import { API_BASE_URL, apiFetch } from '../api/client';
 
 interface AdminRequest {
@@ -139,6 +139,40 @@ export default function AdminDashboard() {
                                     <span className="text-3xl font-bold text-slate-900">{stat.value.toLocaleString('es-MX')}</span>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Atajos Rápidos */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <a
+                                href="/admin/fasar"
+                                className="group bg-indigo-50 border border-indigo-100 p-8 rounded-3xl hover:bg-white hover:border-indigo-300 transition-all duration-300"
+                            >
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200">
+                                        <Calculator className="w-8 h-8" />
+                                    </div>
+                                    <ExternalLink className="w-5 h-5 text-indigo-300 group-hover:text-indigo-600 transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-bold text-indigo-900 mb-2">Configuración FASAR</h3>
+                                <p className="text-indigo-600/70 text-sm font-medium">
+                                    Ajusta los valores de UMA, Salario Mínimo y prestaciones de ley para el cálculo automático de mano de obra.
+                                </p>
+                            </a>
+
+                            <div className="bg-slate-900 p-8 rounded-3xl text-white relative overflow-hidden">
+                                <h3 className="text-xl font-bold mb-2 z-10 relative">Estado del Sistema</h3>
+                                <p className="text-slate-400 text-sm mb-4 z-10 relative">Servidor activo y base de datos sincronizada.</p>
+                                <div className="flex items-center gap-2 z-10 relative">
+                                    <span className="flex h-3 w-3 relative">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400">Online</span>
+                                </div>
+                                <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                                    <ShieldCheck className="w-48 h-48" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

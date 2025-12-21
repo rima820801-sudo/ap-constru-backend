@@ -106,8 +106,17 @@ def _migrate_database():
         
         # Columnas a verificar/añadir
         migrations = [
-            ("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT 0", "is_premium"),
-            ("ALTER TABLE users ADD COLUMN trial_ends_at DATETIME", "trial_ends_at")
+            ("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT 0", "users.is_premium"),
+            ("ALTER TABLE users ADD COLUMN trial_ends_at DATETIME", "users.trial_ends_at"),
+            
+            # Columnas para ConstantesFASAR
+            ("ALTER TABLE constantes_fasar ADD COLUMN valor_uma NUMERIC(10, 2) DEFAULT 108.57", "constantes_fasar.valor_uma"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN salario_minimo_general NUMERIC(10, 2) DEFAULT 248.93", "constantes_fasar.salario_minimo_general"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN dias_festivos_costumbre NUMERIC(6, 2) DEFAULT 3.0", "constantes_fasar.dias_festivos_costumbre"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN dias_mal_tiempo NUMERIC(6, 2) DEFAULT 2.0", "constantes_fasar.dias_mal_tiempo"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN dias_permisos_sindicales NUMERIC(6, 2) DEFAULT 2.0", "constantes_fasar.dias_permisos_sindicales"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN prima_riesgo_trabajo_patronal NUMERIC(10, 6) DEFAULT 7.58875", "constantes_fasar.prima_riesgo_trabajo_patronal"),
+            ("ALTER TABLE constantes_fasar ADD COLUMN impuesto_sobre_nomina NUMERIC(6, 4) DEFAULT 0.03", "constantes_fasar.impuesto_sobre_nomina"),
         ]
         
         for sql, col_name in migrations:
