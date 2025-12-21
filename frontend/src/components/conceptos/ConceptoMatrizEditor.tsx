@@ -1,7 +1,6 @@
 ﻿import { useEffect, useMemo, useState, useId, type FormEvent } from "react";
 import { apiFetch } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
-import { PresupuestoPdfModal } from "./PresupuestoPdfModal";
 
 export type MatrizRow = {
     id?: number;
@@ -140,7 +139,6 @@ export function ConceptoMatrizEditor({
     const [puResumen, setPuResumen] = useState<PuResponse>({ costo_directo: 0, precio_unitario: 0 });
     const [calculando, setCalculando] = useState(false);
     const [guardando, setGuardando] = useState(false);
-    const [showPdfModal, setShowPdfModal] = useState(false);
     const [draftRow, setDraftRow] = useState<MatrizRow>(() => crearDraftRow(conceptoId));
     const [catalogModal, setCatalogModal] = useState<CatalogModalState | null>(null);
     const [loadingPriceForRow, setLoadingPriceForRow] = useState<number | null>(null);
@@ -465,47 +463,7 @@ export function ConceptoMatrizEditor({
         }
     }
 
-    // Función para actualizar todos los precios desde el catálogo
-    async function actualizarPreciosDesdeCatalogo() {
-        const updatedRows = [...rows];
 
-        for (let i = 0; i < updatedRows.length; i++) {
-            const row = updatedRows[i];
-            if (!row || !row.id_insumo) continue;
-
-            try {
-                const nombre = obtenerNombre(row);
-                const unidad = obtenerUnidad(row);
-
-                const response = await apiFetch<{
-                    precio_sugerido: number;
-                    fuente: string;
-                }>(`/catalogos/sugerir_precio_mercado`, {
-                    method: "POST",
-                    body: { nombre, unidad },
-                });
-
-                if (response.precio_sugerido && response.precio_sugerido > 0) {
-                    if (row.tipo_insumo === "Material") {
-                        updatedRows[i] = { ...row, precio_flete_unitario: response.precio_sugerido };
-                    } else if (row.tipo_insumo === "ManoObra") {
-                        const mano = catalogos?.manoObra[Number(row.id_insumo)];
-                        if (mano) {
-                            updatedRows[i] = {
-                                ...row,
-                                rendimiento_jornada: mano.salario_base * mano.fasar / response.precio_sugerido
-                            };
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error(`Error obteniendo precio para el insumo ${row.nombre_sugerido || row.id_insumo}:`, error);
-                // Continuar con el siguiente insumo en caso de error
-            }
-        }
-
-        setRows(updatedRows);
-    }
 
     function abrirCatalogoDesdeRow(rowIndex: number) {
         const row = rows[rowIndex];
@@ -795,27 +753,7 @@ export function ConceptoMatrizEditor({
         }
     }
 
-    function handleExportarComparador() {
-        // Filter materials that are not in catalog OR have old prices (logic for old prices requires 'fecha_actualizacion' which we have in DTOs)
-        const materialesParaExportar = rows.filter(r =>
-            r.tipo_insumo === "Material" &&
-            (!r.existe_en_catalogo || !r.id_insumo) // New materials
-            // TODO: Add logic for old prices if needed, using catalogos.materiales[r.id_insumo].fecha_actualizacion
-        ).map(r => ({
-            nombre: r.nombre_sugerido || obtenerNombre(r),
-            unidad: obtenerUnidad(r),
-            cantidad: r.cantidad
-        }));
 
-        if (materialesParaExportar.length === 0) {
-            addToast("No hay materiales nuevos para cotizar.", "info");
-            return;
-        }
-
-        localStorage.setItem("comparador_import_items", JSON.stringify(materialesParaExportar));
-        // Navigate to Comparador (assuming we have a way to navigate, or just tell user)
-        window.location.href = "/comparador";
-    }
 
     async function handleQuickAdd(rowIndex: number) {
         const row = rows[rowIndex];
@@ -1088,33 +1026,10 @@ export function ConceptoMatrizEditor({
                         <span className="text-xs font-medium text-indigo-600">Calculando...</span>
                     </div>
                 )}
-                <div className="absolute top-8 right-4"> {/* Posición mejorada para evitar superposición */}
-                    <button
-                        onClick={actualizarPreciosDesdeCatalogo}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow-sm transition-colors"
-                        title="Actualizar precios desde catálogo"
-                    >
-                        Actualizar Precios
-                    </button>
+                <div className="absolute top-8 right-4">
+                    {/* Espacios de botones removidos para moverlos a la barra superior del padre */}
                 </div>
-                {/* Botón para enviar faltantes al comparador */}
-                <div className="absolute top-8 right-40 mr-2 flex gap-2">
-                    <button
-                        onClick={handleExportarComparador}
-                        className="bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded text-xs shadow-sm transition-colors"
-                        title="Enviar materiales sin costo al comparador"
-                    >
-                        Buscar Precios
-                    </button>
-                    <button
-                        onClick={() => setShowPdfModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs shadow-sm transition-colors flex items-center gap-1"
-                        title="Generar PDF del presupuesto"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                        Exportar PDF
-                    </button>
-                </div>
+
             </header>
 
             {/* AI Explanation Area */}
@@ -1348,17 +1263,8 @@ export function ConceptoMatrizEditor({
                     </div>
                 </div>
             )}
-            <PresupuestoPdfModal
-                open={showPdfModal}
-                onClose={() => setShowPdfModal(false)}
-                rows={rows.map(r => ({
-                    ...r,
-                    // Inyectamos el precio unitario calculado para que el modal no tenga que saber las reglas de negocio
-                    precio_unitario_temp: obtenerCostoUnitario(r)
-                }))}
-                resumen={puResumen}
-                conceptoNombre={conceptoInfo?.clave || "Sin Título"}
-            />
+
+
         </section>
     );
 

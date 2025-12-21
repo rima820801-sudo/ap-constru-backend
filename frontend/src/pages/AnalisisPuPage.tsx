@@ -8,7 +8,7 @@ import {
     type FactorToggleKey,
     mapearSugerenciasDesdeIA,
 } from "../components/conceptos/ConceptoMatrizEditor";
-import { NotaVentaModalFixed as NotaVentaModal, type NotaVenta } from "../components/conceptos/NotaVentaModalFixed";
+import { PresupuestoPdfModal } from "../components/conceptos/PresupuestoPdfModal";
 import { Navbar } from "../components/layout/Navbar";
 import { GeminiLoader } from "../components/ui/GeminiLoader";
 import { ConceptoSelectorModal } from "../components/conceptos/ConceptoSelectorModal";
@@ -135,13 +135,12 @@ export function AnalisisPuPage() {
         const saved = localStorage.getItem("apu_draft_matriz");
         return saved ? JSON.parse(saved) : [];
     });
-    const [notaVentaData, setNotaVentaData] = useState<NotaVenta | null>(null);
-    const [matrizNotaVenta, setMatrizNotaVenta] = useState<MatrizRow[]>([]);
-    const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => {
+    const [iaExplanation, setIaExplanation] = useState<string>(() => {
         const saved = localStorage.getItem("apu_draft_sobrecostos");
         return saved ? JSON.parse(saved) : initialSobrecostos();
     });
     const [showSelector, setShowSelector] = useState(false);
+    const [showPdfModal, setShowPdfModal] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [showOpenModal, setShowOpenModal] = useState(false);
     const [savedProjects, setSavedProjects] = useState<SavedProjectRecord[]>(() => loadSavedProjects());
@@ -274,6 +273,28 @@ export function AnalisisPuPage() {
         if (typeof window === "undefined") return;
         localStorage.setItem(CLARIFICATION_LAST_DESCRIPTION_STORAGE_KEY, lastClarificationDescription);
     }, [lastClarificationDescription]);
+
+    const hayConceptoGuardado = Boolean(conceptoForm.id);
+    const modoLocal = !hayConceptoGuardado;
+
+    function handleBuscarPrecios() {
+        const materialesParaExportar = matrizDraft.filter(r =>
+            r.tipo_insumo === "Material" &&
+            (!r.existe_en_catalogo || !r.id_insumo)
+        ).map(r => ({
+            nombre: r.nombre_sugerido,
+            unidad: r.unidad || "pza",
+            cantidad: r.cantidad
+        }));
+
+        if (materialesParaExportar.length === 0) {
+            addToast("No hay materiales nuevos para cotizar.", "info");
+            return;
+        }
+
+        localStorage.setItem("comparador_import_items", JSON.stringify(materialesParaExportar));
+        window.location.href = "/comparador";
+    }
 
     const handleCerrarPreguntas = () => {
         setShowPreguntasClarificadoras(false);
@@ -611,46 +632,7 @@ export function AnalisisPuPage() {
         }
     }
 
-    async function handleGenerarNotaVenta() {
-        if (!conceptoForm.id || matrizDraft.length === 0 && !selectedConceptId) {
-            addToast("Guarda el concepto y su matriz de insumos antes de generar una nota de venta.", "warning");
-            return;
-        }
 
-        const matrizParaEnviar = hayConceptoGuardado
-            ? await apiFetch<MatrizRow[]>(`/conceptos/${conceptoForm.id}/matriz`)
-            : matrizDraft;
-
-        if (matrizParaEnviar.length === 0) {
-            addToast("La matriz de insumos esta vacia. No se puede generar una nota de venta.", "warning");
-            return;
-        }
-
-        // Asegurarnos de que el concepto esté guardado antes de generar la nota
-        if (!hayConceptoGuardado) {
-            addToast("Por favor guarda el concepto antes de generar la nota de venta.", "info");
-            return;
-        }
-
-        const payload: any = {
-            descripcion: conceptoForm.descripcion,
-            unidad: calcularPorMetro ? "m2" : "proyecto",
-            matriz: matrizParaEnviar,
-            concepto_id: conceptoForm.id,
-        };
-
-        try {
-            const notaVenta = await apiFetch<NotaVenta>("/ventas/crear_nota_venta", {
-                method: "POST",
-                body: payload,
-            });
-            setNotaVentaData(notaVenta);
-            setMatrizNotaVenta(matrizParaEnviar);
-        } catch (error) {
-            console.error("Error al generar la nota de venta:", error);
-            addToast("Hubo un error al generar la nota de venta. Revisa la consola.", "error");
-        }
-    }
 
     const hayConceptoGuardado = Boolean(conceptoForm.id);
 
@@ -693,19 +675,7 @@ export function AnalisisPuPage() {
                                     placeholder="Describe la actividad y especificaciones"
                                 />
                             </div>
-                            <div className="flex items-start gap-3">
-                                <input
-                                    id={`${idPrefix}-cost-m2`}
-                                    type="checkbox"
-                                    checked={calcularPorMetro}
-                                    onChange={(event) => handleCalculoPorMetroChange(event.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                />
-                                <div>
-                                    <label htmlFor={`${idPrefix}-cost-m2`} className="text-sm font-medium text-gray-700">Calcular por el costo de m² de construcción</label>
-                                    <p className="text-xs text-gray-500">Si no está marcado, el proyecto se calculará por el costo total de la obra.</p>
-                                </div>
-                            </div>
+
                         </div>
                         <div className="mt-4 space-y-2">
                             <div className="flex justify-end">
@@ -746,7 +716,7 @@ export function AnalisisPuPage() {
                                         Construcción Estimada
                                     </span>
                                     <div className="flex items-baseline gap-1">
-                                        <strong className="text-2xl text-gray-800 font-bold tracking-tight">
+                                        <strong className="text-2xl text-gray-800 font-bold">
                                             {metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}
                                         </strong>
                                         <span className="text-xs text-gray-500 font-medium">m²</span>
@@ -763,7 +733,7 @@ export function AnalisisPuPage() {
                                     <span className="block text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-1">
                                         Costo Total de la Obra
                                     </span>
-                                    <strong className="text-2xl text-indigo-700 tracking-tight">
+                                    <strong className="text-2xl text-indigo-700">
                                         ${resumen.precio_unitario.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </strong>
                                     <p className="text-[10px] text-indigo-400 mt-1">Incluye indirectos y utilidad</p>
@@ -779,7 +749,7 @@ export function AnalisisPuPage() {
                                     <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">
                                         Costo por m²
                                     </span>
-                                    <strong className="text-2xl text-emerald-700 tracking-tight">
+                                    <strong className="text-2xl text-emerald-700">
                                         ${(metrosCuadrados > 0 ? (resumen.precio_unitario / metrosCuadrados) : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </strong>
                                     <p className="text-[10px] text-emerald-500 mt-1">Costo unitario paramétrico</p>
@@ -855,6 +825,15 @@ export function AnalisisPuPage() {
                         </button>
                         <button
                             type="button"
+                            onClick={handleBuscarPrecios}
+                            className="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                            title="Buscar precios de materiales faltantes en el Comparador"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                            Buscar Precios
+                        </button>
+                        <button
+                            type="button"
                             onClick={handleAbrirGuardarProyecto}
                             className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
                         >
@@ -870,12 +849,11 @@ export function AnalisisPuPage() {
                         </button>
                         <button
                             type="button"
-                            disabled={!hayConceptoGuardado}
-                            onClick={handleGenerarNotaVenta}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                            onClick={() => setShowPdfModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" /><polyline points="14 2" /><path d="M14 2v6h6" /><path d="M3 15h6" /><path d="M3 18h6" /><path d="M3 12h6" /></svg>
-                            Nota de Venta
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                            Exportar PDF
                         </button>
                     </div>
 
@@ -891,9 +869,9 @@ export function AnalisisPuPage() {
                             iaExplanation={iaExplanation}
                             guardarTrigger={guardarTrigger}
                             onResumenChange={setResumen}
-                            modoLocal={!hayConceptoGuardado}
-                            externalRows={!hayConceptoGuardado ? matrizDraft : undefined}
-                            onRowsChange={!hayConceptoGuardado ? setMatrizDraft : undefined}
+                            modoLocal={modoLocal}
+                            externalRows={modoLocal ? matrizDraft : undefined}
+                            onRowsChange={setMatrizDraft}
                             factoresSobrecosto={sobrecostos}
                         />
                     )}
@@ -929,17 +907,21 @@ export function AnalisisPuPage() {
                 onSelect={handleProyectoSeleccionado}
             />
 
-            <NotaVentaModal nota={notaVentaData} matriz={matrizNotaVenta} onClose={() => setNotaVentaData(null)} />
+            {showSelector && (
+                <ConceptoSelectorModal
+                    onSelect={handleConceptoSeleccionado}
+                    onClose={() => setShowSelector(false)}
+                />
+            )}
 
-            {
-                showSelector && (
-                    <ConceptoSelectorModal
-                        onSelect={handleConceptoSeleccionado}
-                        onClose={() => setShowSelector(false)}
-                    />
-                )
-            }
-        </div >
+            <PresupuestoPdfModal
+                open={showPdfModal}
+                onClose={() => setShowPdfModal(false)}
+                rows={matrizDraft}
+                resumen={resumen}
+                conceptoNombre={conceptoForm.clave || "Sin Título"}
+            />
+        </div>
     );
 }
 
