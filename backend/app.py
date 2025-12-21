@@ -71,7 +71,7 @@ def create_app(config_class=Config):
         db.create_all()
         _migrate_database() # Auto-fix for existing databases
         _create_default_admin()
-        ConstantesFASAR.get_singleton()
+        # FASAR configs are now created per-user on demand
 
     return app
 
