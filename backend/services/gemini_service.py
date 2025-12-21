@@ -517,38 +517,54 @@ def cotizar_multiples_con_gemini(materiales: List[str]) -> List[Dict]:
     lista_str = ", ".join([f'"{m}"' for m in materiales])
     
     prompt = f"""
-    Actúa como un experto en costos de construcción en México.
-    Cotiza los siguientes materiales en 3 tiendas conocidas de materiales en México.
-    
-    Lista de materiales: [{lista_str}]
+Cotiza RÁPIDAMENTE estos materiales en México (Home Depot, Coppel, Construrama).
 
-    Para CADA material debes incluir:
-    - El nombre exacto de la tienda.
-    - El precio actual del artículo (en MXN).
-    - La URL directa del producto.
+Materiales: [{lista_str}]
 
-    Responde EXCLUSIVAMENTE en un JSON que sea una LISTA de objetos. Ejemplo:
-    [
-      {{
-        "material": "Nombre Material 1",
-        "tienda1": "Nombre Tienda 1", "precio1": 100.00, "tienda1_url": "...",
-        "tienda2": "Nombre Tienda 2", "precio2": 105.00, "tienda2_url": "...",
-        "tienda3": "Nombre Tienda 3", "precio3": 95.00, "tienda3_url": "..."
-      }},
-      ...
-    ]
-    """
+Responde SOLO JSON (sin explicaciones):
+[
+  {{
+    "material": "Nombre Material",
+    "tienda1": "Home Depot", "precio1": 100.00, "tienda1_url": "https://...",
+    "tienda2": "Coppel", "precio2": 105.00, "tienda2_url": "https://...",
+    "tienda3": "Construrama", "precio3": 95.00, "tienda3_url": "https://..."
+  }}
+]
+
+Si no encuentras precios exactos, usa precios aproximados del mercado mexicano.
+"""
 
     client = _get_genai_client()
     if not client:
         return [_generar_precio_simulado(m) for m in materiales]
 
     try:
+        # Timeout de 30 segundos para evitar esperas largas
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Gemini tardó demasiado")
+        
+        # Solo en sistemas Unix (no funciona en Windows)
+        try:
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(30)  # 30 segundos
+        except AttributeError:
+            pass  # Windows no soporta SIGALRM
+        
         respuesta = client.models.generate_content(
             model=Config.GEMINI_MODEL,
             contents=prompt,
-            config={"temperature": 0.2},
+            config={
+                "temperature": 0.1,  # Más determinístico = más rápido
+                "max_output_tokens": 2048,  # Limitar respuesta
+            },
         )
+        
+        try:
+            signal.alarm(0)  # Cancelar alarma
+        except AttributeError:
+            pass
 
         contenido = getattr(respuesta, "text", "") or ""
         bloque = extraer_json_de_texto(contenido)

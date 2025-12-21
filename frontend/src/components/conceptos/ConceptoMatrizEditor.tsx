@@ -263,8 +263,13 @@ export function ConceptoMatrizEditor({
         });
     }, [externalRows, modoLocal]);
 
+    // Debounce para evitar cálculos excesivos (espera 800ms después del último cambio)
     useEffect(() => {
-        void calcularPuRemoto();
+        const timeoutId = setTimeout(() => {
+            void calcularPuRemoto();
+        }, 800); // Espera 800ms de inactividad antes de calcular
+
+        return () => clearTimeout(timeoutId); // Cancela el timeout si hay un nuevo cambio
     }, [conceptoId, rows, modoLocal, factoresSobrecosto]);
 
     useEffect(() => {
