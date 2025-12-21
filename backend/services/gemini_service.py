@@ -517,21 +517,28 @@ def cotizar_multiples_con_gemini(materiales: List[str]) -> List[Dict]:
     lista_str = ", ".join([f'"{m}"' for m in materiales])
     
     prompt = f"""
-Cotiza RÁPIDAMENTE estos materiales en México (Home Depot, Coppel, Construrama).
+Eres un experto en costos de construcción en México.
 
-Materiales: [{lista_str}]
+Dame el PRECIO PROMEDIO de mercado (2024-2025) para estos materiales:
+{lista_str}
 
-Responde SOLO JSON (sin explicaciones):
+Responde SOLO con este JSON (sin explicaciones):
 [
   {{
-    "material": "Nombre Material",
-    "tienda1": "Home Depot", "precio1": 100.00, "tienda1_url": "https://...",
-    "tienda2": "Coppel", "precio2": 105.00, "tienda2_url": "https://...",
-    "tienda3": "Construrama", "precio3": 95.00, "tienda3_url": "https://..."
+    "material": "Nombre del material",
+    "precio_promedio": 150.50,
+    "unidad": "m2|pza|kg|lt|ml",
+    "rango_min": 120.00,
+    "rango_max": 180.00,
+    "referencia": "Precio promedio en tiendas mexicanas (Home Depot, Coppel, Construrama)"
   }}
 ]
 
-Si no encuentras precios exactos, usa precios aproximados del mercado mexicano.
+IMPORTANTE:
+- Usa precios REALES del mercado mexicano actual
+- Incluye el rango de precios (mínimo y máximo)
+- Especifica la unidad correcta
+- Sé RÁPIDO, no busques URLs ni tiendas específicas
 """
 
     client = _get_genai_client()
@@ -539,16 +546,15 @@ Si no encuentras precios exactos, usa precios aproximados del mercado mexicano.
         return [_generar_precio_simulado(m) for m in materiales]
 
     try:
-        # Timeout de 30 segundos para evitar esperas largas
+        # Timeout de 20 segundos (reducido de 30)
         import signal
         
         def timeout_handler(signum, frame):
             raise TimeoutError("Gemini tardó demasiado")
         
-        # Solo en sistemas Unix (no funciona en Windows)
         try:
             signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)  # 30 segundos
+            signal.alarm(20)  # 20 segundos
         except AttributeError:
             pass  # Windows no soporta SIGALRM
         
@@ -556,13 +562,13 @@ Si no encuentras precios exactos, usa precios aproximados del mercado mexicano.
             model=Config.GEMINI_MODEL,
             contents=prompt,
             config={
-                "temperature": 0.1,  # Más determinístico = más rápido
-                "max_output_tokens": 2048,  # Limitar respuesta
+                "temperature": 0.1,
+                "max_output_tokens": 1500,  # Reducido aún más
             },
         )
         
         try:
-            signal.alarm(0)  # Cancelar alarma
+            signal.alarm(0)
         except AttributeError:
             pass
 
@@ -591,30 +597,34 @@ Si no encuentras precios exactos, usa precios aproximados del mercado mexicano.
                         break
 
             if hit:
-                # Normalizar
-                p1 = hit.get("precio1") or 0
-                p2 = hit.get("precio2") or 0
-                p3 = hit.get("precio3") or 0
+                # Nuevo formato: precio_promedio con rango
+                precio_prom = hit.get("precio_promedio") or 0
+                rango_min = hit.get("rango_min") or 0
+                rango_max = hit.get("rango_max") or 0
+                unidad = hit.get("unidad") or ""
+                referencia = hit.get("referencia") or "Precio promedio de mercado"
                 
-                # Fix numeric types
-                try: p1 = float(p1) 
-                except: p1 = 0.0
-                try: p2 = float(p2)
-                except: p2 = 0.0
-                try: p3 = float(p3)
-                except: p3 = 0.0
+                # Convertir a float
+                try: precio_prom = float(precio_prom)
+                except: precio_prom = 0.0
+                try: rango_min = float(rango_min)
+                except: rango_min = precio_prom * 0.8
+                try: rango_max = float(rango_max)
+                except: rango_max = precio_prom * 1.2
 
+                # Formato compatible con frontend (simula 3 tiendas con el rango)
                 resultados.append({
-                    "material": mat, # Keep original name
-                    "tienda1": hit.get("tienda1") or "Generico A", 
-                    "precio1": p1,
-                    "tienda1_url": hit.get("tienda1_url") or "",
-                    "tienda2": hit.get("tienda2") or "Generico B", 
-                    "precio2": p2,
-                    "tienda2_url": hit.get("tienda2_url") or "",
-                    "tienda3": hit.get("tienda3") or "Generico C", 
-                    "precio3": p3,
-                    "tienda3_url": hit.get("tienda3_url") or ""
+                    "material": mat,
+                    "tienda1": f"Precio Mínimo ({unidad})",
+                    "precio1": rango_min,
+                    "tienda1_url": "",
+                    "tienda2": f"Precio Promedio ({unidad})",
+                    "precio2": precio_prom,
+                    "tienda2_url": "",
+                    "tienda3": f"Precio Máximo ({unidad})",
+                    "precio3": rango_max,
+                    "tienda3_url": "",
+                    "referencia": referencia
                 })
             else:
                 resultados.append(_generar_precio_simulado(mat))
