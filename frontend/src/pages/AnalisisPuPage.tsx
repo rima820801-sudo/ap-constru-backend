@@ -738,37 +738,55 @@ export function AnalisisPuPage() {
                             {cargandoIA && <span className="text-xs text-indigo-500 animate-pulse font-medium">Actualizando...</span>}
                         </header>
 
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300">
-                                <span className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Costo Directo</span>
-                                <strong className="text-xl text-gray-900 tracking-tight">${resumen.costo_directo.toFixed(2)}</strong>
-                            </div>
-                            <div className="p-4 bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md transition-shadow duration-300">
-                                <span className="block text-[10px] font-semibold text-indigo-400 uppercase tracking-wide mb-1">Precio Unitario</span>
-                                <strong className="text-xl text-indigo-600 tracking-tight">${resumen.precio_unitario.toFixed(2)}</strong>
-                            </div>
-                        </div>
-
-                        {/* Metros Cuadrados de Construcción (Rediseñado) */}
-                        <div className="mb-8 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between group hover:bg-blue-50 transition-colors duration-300">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">Construcción Estimada</span>
-                                    <div className="relative group/tooltip">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 cursor-help"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 14a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm1-4.5V12a1 1 0 0 0-2 0v-1.5a2.5 2.5 0 1 1 2.5 2.5z" /></svg>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                            Calculado por Gemini basado en la descripción
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            {/* 1. Construcción Estimada */}
+                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex flex-col justify-between h-full relative overflow-hidden">
+                                <div className="z-10 relative">
+                                    <span className="block text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">
+                                        Construcción Estimada
+                                    </span>
+                                    <div className="flex items-baseline gap-1">
+                                        <strong className="text-2xl text-gray-800 font-bold tracking-tight">
+                                            {metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}
+                                        </strong>
+                                        <span className="text-xs text-gray-500 font-medium">m²</span>
                                     </div>
                                 </div>
-                                <div className="flex items-baseline gap-1">
-                                    <strong className="text-2xl text-gray-800 font-bold tracking-tight">{metrosCuadrados > 0 ? metrosCuadrados.toFixed(2) : "--"}</strong>
-                                    <span className="text-xs text-gray-500 font-medium">m²</span>
+                                <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z" /></svg>
                                 </div>
                             </div>
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4 8 4v14" /><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21" /></svg>
+
+                            {/* 2. Costo Total de la Obra */}
+                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col justify-between h-full relative overflow-hidden">
+                                <div className="z-10 relative">
+                                    <span className="block text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-1">
+                                        Costo Total de la Obra
+                                    </span>
+                                    <strong className="text-2xl text-indigo-700 tracking-tight">
+                                        ${resumen.precio_unitario.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </strong>
+                                    <p className="text-[10px] text-indigo-400 mt-1">Incluye indirectos y utilidad</p>
+                                </div>
+                                <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.48 2.61 1.48 1.55 0 2.22-.57 2.22-1.34 0-.89-.69-1.31-2.47-1.73-2.13-.51-3.69-1.28-3.69-3.24 0-2.02 1.5-3.17 3.32-3.46V4.37h2.67v1.9c1.43.33 2.65 1.25 2.8 3.1h-1.98c-.1-1.01-1.03-1.46-2.41-1.46-1.35 0-2.17.65-2.17 1.39 0 .96.79 1.34 2.62 1.77 2.15.51 3.52 1.41 3.52 3.25 0 2.15-1.57 3.28-3.52 3.56z" /></svg>
+                                </div>
+                            </div>
+
+                            {/* 3. Costo por m² */}
+                            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col justify-between h-full relative overflow-hidden">
+                                <div className="z-10 relative">
+                                    <span className="block text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-1">
+                                        Costo por m²
+                                    </span>
+                                    <strong className="text-2xl text-emerald-700 tracking-tight">
+                                        ${(metrosCuadrados > 0 ? (resumen.precio_unitario / metrosCuadrados) : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </strong>
+                                    <p className="text-[10px] text-emerald-500 mt-1">Costo unitario paramétrico</p>
+                                </div>
+                                <div className="absolute right-[-10px] bottom-[-10px] opacity-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17h18v2H3zm0-7h18v5H3zm0-4h18v2H3z" /></svg>
+                                </div>
                             </div>
                         </div>
 

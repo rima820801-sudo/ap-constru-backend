@@ -1156,6 +1156,7 @@ export function ConceptoMatrizEditor({
                                             handleRowChange(index, {
                                                 tipo_insumo: nextType,
                                                 id_insumo: "",
+                                                existe_en_catalogo: false, // Reset this to allow auto-match to run again
                                                 porcentaje_merma: nextType === "Material" ? row.porcentaje_merma : "",
                                                 precio_flete_unitario: nextType === "Material" ? row.precio_flete_unitario : "",
                                                 rendimiento_jornada: nextType === "ManoObra" ? row.rendimiento_jornada : "",
@@ -1439,7 +1440,23 @@ function mapFactoresParaApi(factores?: FactorToggleMap): FactoresApiPayload | un
 
 export function mapearSugerenciasDesdeIA(insumos: IASugerencia[] = [], conceptoId: number): MatrizRow[] {
     return insumos.map((item) => {
-        const tipo = normalizarTipoIA(item.tipo_insumo);
+        let tipo = normalizarTipoIA(item.tipo_insumo);
+        const nombre = item.nombre ?? "";
+
+        // Auto-detect Labor based on common keywords if the AI flagged it as Material
+        if (tipo === "Material" && nombre) {
+            const laborKeywords = [
+                'albañil', 'peon', 'ayudante', 'cabo', 'maestro', 'residente',
+                'topografo', 'oficial', 'yesero', 'pintor', 'carpintero',
+                'fierrero', 'soldador', 'electricista', 'plomero', 'obrero',
+                'jornal', 'cuadrilla', 'mano de obra'
+            ];
+            const normalizedName = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (laborKeywords.some(kw => normalizedName.includes(kw))) {
+                tipo = "ManoObra";
+            }
+        }
+
         const idInsumo = (item.id_insumo ?? item.insumo_id) ?? "";
         const merma = item.merma ?? item.porcentaje_merma ?? null;
         const flete = item.flete_unitario ?? item.precio_flete_unitario ?? null;
