@@ -68,33 +68,34 @@ class User(db.Model):
 class ConstantesFASAR(db.Model):
     __tablename__ = "constantes_fasar"
 
-    id = db.Column(db.Integer, primary_key=True, default=1)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True) # Solo null para migraciones iniciales
     
     # Valores de Referencia Nacional
-    valor_uma = db.Column(db.Numeric(10, 2), default=Decimal("108.57"))  # Valor 2024
-    salario_minimo_general = db.Column(db.Numeric(10, 2), default=Decimal("248.93")) # Valor 2024
+    valor_uma = db.Column(db.Numeric(10, 2), default=Decimal("108.57"))
+    salario_minimo_general = db.Column(db.Numeric(10, 2), default=Decimal("248.93"))
     
     # Calendario y Prestaciones
     dias_del_anio = db.Column(db.Integer, default=365)
     dias_aguinaldo_minimos = db.Column(db.Integer, default=15)
     prima_vacacional_porcentaje = db.Column(db.Numeric(4, 2), default=Decimal("0.25"))
     
-    # Días No Laborables (Incapacidad/Calendario)
+    # Días No Laborables
     dias_festivos_obligatorios = db.Column(db.Numeric(6, 2), default=Decimal("7.0"))
-    dias_festivos_costumbre = db.Column(db.Numeric(6, 2), default=Decimal("3.0")) # Jueves/Viernes santo, etc.
+    dias_festivos_costumbre = db.Column(db.Numeric(6, 2), default=Decimal("3.0"))
     dias_mal_tiempo = db.Column(db.Numeric(6, 2), default=Decimal("2.0"))
-    dias_riesgo_trabajo_promedio = db.Column(db.Numeric(6, 2), default=Decimal("1.5")) # Incapacidades
+    dias_riesgo_trabajo_promedio = db.Column(db.Numeric(6, 2), default=Decimal("1.5"))
     dias_permisos_sindicales = db.Column(db.Numeric(6, 2), default=Decimal("2.0"))
     
-    # Factores Patronales (IMSS/INFONAVIT)
-    prima_riesgo_trabajo_patronal = db.Column(db.Numeric(10, 6), default=Decimal("7.58875")) # Varía por empresa (Clase V usualmente)
-    impuesto_sobre_nomina = db.Column(db.Numeric(6, 4), default=Decimal("0.03")) # Varía por estado
+    # Factores Patronales
+    prima_riesgo_trabajo_patronal = db.Column(db.Numeric(10, 6), default=Decimal("7.58875"))
+    impuesto_sobre_nomina = db.Column(db.Numeric(6, 4), default=Decimal("0.03"))
     
     @classmethod
-    def get_singleton(cls) -> "ConstantesFASAR":
-        instancia = cls.query.get(1)
+    def get_for_user(cls, user_id: int) -> "ConstantesFASAR":
+        instancia = cls.query.filter_by(user_id=user_id).first()
         if not instancia:
-            instancia = cls(id=1)
+            instancia = cls(user_id=user_id)
             db.session.add(instancia)
             try:
                 db.session.commit()
@@ -105,6 +106,7 @@ class ConstantesFASAR(db.Model):
     def to_dict(self) -> Dict:
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "valor_uma": float(self.valor_uma),
             "salario_minimo_general": float(self.salario_minimo_general),
             "dias_del_anio": self.dias_del_anio,
@@ -124,6 +126,7 @@ class Material(db.Model):
     __tablename__ = "materiales"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     nombre = db.Column(db.String(255), unique=True, nullable=False)
     unidad = db.Column(db.String(50), nullable=False)
     precio_unitario = db.Column(db.Numeric(12, 4), nullable=False)
@@ -152,6 +155,7 @@ class Equipo(db.Model):
     __tablename__ = "equipos"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     nombre = db.Column(db.String(255), nullable=False)
     unidad = db.Column(db.String(50), nullable=False)
     disciplina = db.Column(db.String(100), nullable=True)
@@ -176,6 +180,7 @@ class Maquinaria(db.Model):
     __tablename__ = "maquinaria"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     nombre = db.Column(db.String(255), nullable=False)
     costo_adquisicion = db.Column(db.Numeric(14, 2), nullable=False)
     vida_util_horas = db.Column(db.Numeric(14, 2), nullable=False)
@@ -217,6 +222,7 @@ class ManoObra(db.Model):
     __tablename__ = "mano_obra"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     puesto = db.Column(db.String(255), nullable=False)
     salario_base = db.Column(db.Numeric(12, 2), nullable=False)
     antiguedad_anios = db.Column(db.Integer, default=1, nullable=False)
@@ -228,7 +234,11 @@ class ManoObra(db.Model):
 
     def refresh_fasar(self):
         """Calcula el FASAR individual profesional basado en la Ley del IMSS e INFONAVIT."""
-        c = ConstantesFASAR.get_singleton()
+        if not self.user_id:
+            # Si no hay usuario (migración), usar singleton de admin
+            c = ConstantesFASAR.get_for_user(None)
+        else:
+            c = ConstantesFASAR.get_for_user(self.user_id)
         
         # 1. Determinación de Vacaciones según Antigüedad (Ley 2023)
         # 1 año: 12d, 2: 14d, 3: 16d, 4: 18d, 5: 20d, etc.
@@ -312,6 +322,7 @@ class Concepto(db.Model):
     __tablename__ = "conceptos"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     clave = db.Column(db.String(50), unique=True, nullable=False)
     descripcion = db.Column(db.Text, nullable=False)
     unidad_concepto = db.Column(db.String(50), nullable=False)
@@ -354,6 +365,7 @@ class Proyecto(db.Model):
     __tablename__ = "proyectos"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
     ubicacion = db.Column(db.String(255), nullable=True, default="")
     descripcion = db.Column(db.Text, nullable=True, default="")

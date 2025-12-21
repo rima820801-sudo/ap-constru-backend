@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, BoxSelect, ShieldCheck, HelpCircle, Rocket } from 'lucide-react';
+import { Menu, X, Search, BoxSelect, ShieldCheck, HelpCircle, Rocket, Calculator } from 'lucide-react';
 import { useUser } from '../../context/user';
 
 export function Navbar() {
@@ -40,6 +40,9 @@ export function Navbar() {
                             </Link>
                             <Link to="/changelog" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/changelog') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
                                 <Rocket className="w-4 h-4" /> Novedades
+                            </Link>
+                            <Link to="/config/fasar" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/config/fasar') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
+                                <Calculator className="w-4 h-4" /> FASAR
                             </Link>
                             {user?.is_admin && (
                                 <Link to="/admin" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/admin') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
@@ -97,6 +100,9 @@ export function Navbar() {
                         </Link>
                         <Link to="/changelog" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/changelog') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
                             Novedades
+                        </Link>
+                        <Link to="/config/fasar" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/config/fasar') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
+                            <Calculator className="w-4 h-4 inline mr-2" /> Configurar FASAR
                         </Link>
                         {user?.is_admin && (
                             <Link to="/admin" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/admin') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from backend.routes.auth import trial_required
 from backend.services.gemini_service import (
     generar_apu_con_gemini, 
@@ -45,17 +45,18 @@ def chat_apu():
 
     # Verificar si vienen respuestas a preguntas clarificadoras
     respuestas_clarificadoras = data.get("respuestas_clarificadoras", [])
+    user_id = session.get("user_id")
 
     data_gemini = generar_apu_con_gemini(descripcion, unidad, calcular_por_m2)
 
     metros_cuadrados = 0.0
     if data_gemini:
-        sugerencias = construir_matriz_desde_gemini(data_gemini)
+        sugerencias = construir_matriz_desde_gemini(data_gemini, user_id)
         explicacion = data_gemini.get("explicacion", "")
         metros_cuadrados = data_gemini.get("metros_cuadrados_construccion", 0.0)
     else:
         # Fallback to local heuristics
-        sugerencias = construir_sugerencia_apu(descripcion, concepto_id)
+        sugerencias = construir_sugerencia_apu(descripcion, user_id, concepto_id)
         explicacion = construir_explicacion_para_chat(descripcion, sugerencias)
 
     return jsonify({
@@ -107,11 +108,12 @@ def cotizar_multiples_materiales():
 def explicar_sugerencia():
     concepto_id = request.args.get("concepto_id", type=int)
     descripcion = request.args.get("descripcion_concepto", "")
+    user_id = session.get("user_id")
     if concepto_id and not descripcion:
-        concepto = Concepto.query.get(concepto_id)
+        concepto = Concepto.query.filter_by(id=concepto_id, user_id=user_id).first()
         if concepto:
             descripcion = concepto.descripcion
 
-    sugerencias = construir_sugerencia_apu(descripcion, concepto_id)
+    sugerencias = construir_sugerencia_apu(descripcion, user_id, concepto_id)
     explicacion = construir_explicacion_para_chat(descripcion, sugerencias)
     return jsonify({"explicacion": explicacion})

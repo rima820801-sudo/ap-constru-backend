@@ -21,8 +21,8 @@ def decimal_field(value) -> Decimal:
         return Decimal("0")
     return Decimal(str(value))
 
-def calcular_fasar_valor() -> Decimal:
-    constantes = ConstantesFASAR.get_singleton()
+def calcular_fasar_valor(user_id: int) -> Decimal:
+    constantes = ConstantesFASAR.get_for_user(user_id)
     dias_pagados = (
         Decimal(constantes.dias_del_anio)
         + Decimal(constantes.dias_aguinaldo_minimos)

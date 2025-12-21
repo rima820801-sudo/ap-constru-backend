@@ -30,7 +30,7 @@ export const FasarConfigPage = () => {
 
     const fetchConfig = async () => {
         try {
-            const data = await apiFetch<FasarConfig>('/admin/fasar');
+            const data = await apiFetch<FasarConfig>('/fasar');
             setConfig(data);
         } catch (err) {
             console.error(err);
@@ -46,7 +46,7 @@ export const FasarConfigPage = () => {
         setSaving(true);
         setMessage('');
         try {
-            await apiFetch('/admin/fasar', {
+            await apiFetch('/fasar', {
                 method: 'POST',
                 body: config
             });

@@ -50,8 +50,8 @@ const AppRoutes = () => {
                 element={<ProtectedRoute><TrialWall><ComparadorPage /></TrialWall></ProtectedRoute>}
             />
             <Route
-                path="/admin/fasar"
-                element={<ProtectedRoute adminOnly><FasarConfigPage /></ProtectedRoute>}
+                path="/config/fasar"
+                element={<ProtectedRoute><TrialWall><FasarConfigPage /></TrialWall></ProtectedRoute>}
             />
             <Route
                 path="/admin"

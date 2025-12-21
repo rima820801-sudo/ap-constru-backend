@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from backend.routes.auth import trial_required
 from datetime import date
 from backend.models import Proyecto, Partida, DetallePresupuesto
@@ -10,12 +10,14 @@ bp = Blueprint('proyectos', __name__, url_prefix='/api')
 @bp.route("/proyectos", methods=["GET", "POST"])
 @trial_required
 def proyectos_collection():
+    user_id = session.get("user_id")
     if request.method == "GET":
-        proyectos = Proyecto.query.order_by(Proyecto.fecha_creacion.desc()).all()
+        proyectos = Proyecto.query.filter_by(user_id=user_id).order_by(Proyecto.fecha_creacion.desc()).all()
         return jsonify([proy.to_dict() for proy in proyectos])
 
     payload = request.get_json(force=True)
     proyecto = Proyecto(
+        user_id=user_id,
         nombre_proyecto=payload["nombre_proyecto"],
         ubicacion=payload.get("ubicacion"),
         descripcion=payload.get("descripcion", ""),
@@ -29,7 +31,8 @@ def proyectos_collection():
 @bp.route("/proyectos/<int:proyecto_id>", methods=["GET", "PUT", "DELETE"])
 @trial_required
 def proyecto_detail(proyecto_id: int):
-    proyecto = Proyecto.query.get_or_404(proyecto_id)
+    user_id = session.get("user_id")
+    proyecto = Proyecto.query.filter_by(id=proyecto_id, user_id=user_id).first_or_404()
     if request.method == "GET":
         return jsonify(proyecto.to_dict())
     if request.method == "DELETE":
@@ -48,8 +51,11 @@ def proyecto_detail(proyecto_id: int):
     return jsonify(proyecto.to_dict())
 
 @bp.route("/proyectos/<int:proyecto_id>/partidas", methods=["GET"])
+@trial_required
 def partidas_por_proyecto(proyecto_id: int):
-    partidas = Partida.query.filter_by(proyecto_id=proyecto_id).all()
+    user_id = session.get("user_id")
+    proyecto = Proyecto.query.filter_by(id=proyecto_id, user_id=user_id).first_or_404()
+    partidas = Partida.query.filter_by(proyecto_id=proyecto.id).all()
     return jsonify([p.to_dict() for p in partidas])
 
 @bp.route("/partidas", methods=["POST"])

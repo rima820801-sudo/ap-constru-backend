@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from backend.routes.auth import trial_required
 from datetime import date
 from decimal import Decimal
-from backend.models import Material, Equipo, Maquinaria, ManoObra
+from backend.models import Material, Equipo, Maquinaria, ManoObra, ConstantesFASAR
 from backend.extensions import db
 from backend.services.calculation_service import decimal_field
 
@@ -12,12 +12,14 @@ bp = Blueprint('catalogos', __name__, url_prefix='/api')
 @bp.route("/materiales", methods=["GET", "POST"])
 @trial_required
 def materiales_collection():
+    user_id = session.get("user_id")
     if request.method == "GET":
-        materiales = Material.query.order_by(Material.nombre).all()
+        materiales = Material.query.filter((Material.user_id == user_id) | (Material.user_id == None)).order_by(Material.nombre).all()
         return jsonify([mat.to_dict() for mat in materiales])
 
     payload = request.get_json(force=True)
     material = Material(
+        user_id=user_id,
         nombre=payload["nombre"],
         unidad=payload["unidad"],
         precio_unitario=decimal_field(payload["precio_unitario"]),
@@ -32,8 +34,10 @@ def materiales_collection():
     return jsonify(material.to_dict()), 201
 
 @bp.route("/materiales/<int:material_id>", methods=["GET", "PUT", "DELETE"])
+@trial_required
 def material_detail(material_id: int):
-    material = Material.query.get_or_404(material_id)
+    user_id = session.get("user_id")
+    material = Material.query.filter(Material.id == material_id, (Material.user_id == user_id) | (Material.user_id == None)).first_or_404()
     if request.method == "GET":
         return jsonify(material.to_dict())
 
@@ -64,12 +68,14 @@ def material_detail(material_id: int):
 @bp.route("/manoobra", methods=["GET", "POST"])
 @trial_required
 def manoobra_collection():
+    user_id = session.get("user_id")
     if request.method == "GET":
-        mano_obra = ManoObra.query.order_by(ManoObra.puesto).all()
+        mano_obra = ManoObra.query.filter((ManoObra.user_id == user_id) | (ManoObra.user_id == None)).order_by(ManoObra.puesto).all()
         return jsonify([mano.to_dict() for mano in mano_obra])
 
     payload = request.get_json(force=True)
     mano = ManoObra(
+        user_id=user_id,
         puesto=payload["puesto"],
         salario_base=decimal_field(payload["salario_base"]),
         antiguedad_anios=payload.get("antiguedad_anios", 1),
@@ -84,8 +90,10 @@ def manoobra_collection():
     return jsonify(mano.to_dict()), 201
 
 @bp.route("/manoobra/<int:mano_id>", methods=["GET", "PUT", "DELETE"])
+@trial_required
 def manoobra_detail(mano_id: int):
-    mano = ManoObra.query.get_or_404(mano_id)
+    user_id = session.get("user_id")
+    mano = ManoObra.query.filter(ManoObra.id == mano_id, (ManoObra.user_id == user_id) | (ManoObra.user_id == None)).first_or_404()
     if request.method == "GET":
         return jsonify(mano.to_dict())
 
@@ -337,3 +345,41 @@ def actualizar_precios_masivo():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+# --- Rutas de FASAR por Usuario ---
+@bp.route("/fasar", methods=["GET"])
+@trial_required
+def get_user_fasar():
+    user_id = session.get("user_id")
+    config = ConstantesFASAR.get_for_user(user_id)
+    return jsonify(config.to_dict())
+
+@bp.route("/fasar", methods=["POST"])
+@trial_required
+def update_user_fasar():
+    user_id = session.get("user_id")
+    data = request.get_json(force=True)
+    config = ConstantesFASAR.get_for_user(user_id)
+    
+    fields = [
+        'valor_uma', 'salario_minimo_general', 'dias_del_anio', 
+        'dias_aguinaldo_minimos', 'prima_vacacional_porcentaje',
+        'dias_festivos_obligatorios', 'dias_festivos_costumbre',
+        'dias_mal_tiempo', 'dias_riesgo_trabajo_promedio',
+        'dias_permisos_sindicales', 'prima_riesgo_trabajo_patronal',
+        'impuesto_sobre_nomina'
+    ]
+    
+    for field in fields:
+        if field in data:
+            setattr(config, field, Decimal(str(data[field])))
+            
+    db.session.commit()
+    
+    # Recalcular FASAR para los trabajadores de ESTE usuario
+    trabajadores = ManoObra.query.filter_by(user_id=user_id).all()
+    for t in trabajadores:
+        t.refresh_fasar()
+    db.session.commit()
+    
+    return jsonify({"message": "FASAR actualizado correctamente", "config": config.to_dict()})

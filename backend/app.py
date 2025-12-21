@@ -110,6 +110,7 @@ def _migrate_database():
             ("ALTER TABLE users ADD COLUMN trial_ends_at DATETIME", "users.trial_ends_at"),
             
             # Columnas para ConstantesFASAR
+            ("ALTER TABLE constantes_fasar ADD COLUMN user_id INTEGER REFERENCES users(id)", "constantes_fasar.user_id"),
             ("ALTER TABLE constantes_fasar ADD COLUMN valor_uma NUMERIC(10, 2) DEFAULT 108.57", "constantes_fasar.valor_uma"),
             ("ALTER TABLE constantes_fasar ADD COLUMN salario_minimo_general NUMERIC(10, 2) DEFAULT 248.93", "constantes_fasar.salario_minimo_general"),
             ("ALTER TABLE constantes_fasar ADD COLUMN dias_festivos_costumbre NUMERIC(6, 2) DEFAULT 3.0", "constantes_fasar.dias_festivos_costumbre"),
@@ -117,6 +118,14 @@ def _migrate_database():
             ("ALTER TABLE constantes_fasar ADD COLUMN dias_permisos_sindicales NUMERIC(6, 2) DEFAULT 2.0", "constantes_fasar.dias_permisos_sindicales"),
             ("ALTER TABLE constantes_fasar ADD COLUMN prima_riesgo_trabajo_patronal NUMERIC(10, 6) DEFAULT 7.58875", "constantes_fasar.prima_riesgo_trabajo_patronal"),
             ("ALTER TABLE constantes_fasar ADD COLUMN impuesto_sobre_nomina NUMERIC(6, 4) DEFAULT 0.03", "constantes_fasar.impuesto_sobre_nomina"),
+
+            # Aislamiento por usuario
+            ("ALTER TABLE materiales ADD COLUMN user_id INTEGER REFERENCES users(id)", "materiales.user_id"),
+            ("ALTER TABLE mano_obra ADD COLUMN user_id INTEGER REFERENCES users(id)", "mano_obra.user_id"),
+            ("ALTER TABLE equipos ADD COLUMN user_id INTEGER REFERENCES users(id)", "equipos.user_id"),
+            ("ALTER TABLE maquinaria ADD COLUMN user_id INTEGER REFERENCES users(id)", "maquinaria.user_id"),
+            ("ALTER TABLE conceptos ADD COLUMN user_id INTEGER REFERENCES users(id)", "conceptos.user_id"),
+            ("ALTER TABLE proyectos ADD COLUMN user_id INTEGER REFERENCES users(id)", "proyectos.user_id"),
         ]
         
         for sql, col_name in migrations:

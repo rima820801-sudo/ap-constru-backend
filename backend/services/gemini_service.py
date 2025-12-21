@@ -275,7 +275,7 @@ def _normalizar_cotizacion(data: Dict) -> Dict:
     return resultado
 
 
-def construir_sugerencia_apu(descripcion: str, concepto_id: Optional[int] = None) -> List[Dict]:
+def construir_sugerencia_apu(descripcion: str, user_id: int, concepto_id: Optional[int] = None) -> List[Dict]:
     # This logic was huge in app.py.
     # For now, I'll simplify the fallback logic or copy the heuristic part.
     # To keep it "Excellent", I should probably keep the heuristic but move it here.
@@ -284,10 +284,10 @@ def construir_sugerencia_apu(descripcion: str, concepto_id: Optional[int] = None
     texto = descripcion_original.lower()
     sugerencias: List[Dict] = []
 
-    materiales = list(Material.query.all())
-    mano_obra = list(ManoObra.query.all())
-    equipo = list(Equipo.query.all())
-    maquinaria = list(Maquinaria.query.all())
+    materiales = list(Material.query.filter((Material.user_id == user_id) | (Material.user_id == None)).all())
+    mano_obra = list(ManoObra.query.filter((ManoObra.user_id == user_id) | (ManoObra.user_id == None)).all())
+    equipo = list(Equipo.query.filter((Equipo.user_id == user_id) | (Equipo.user_id == None)).all())
+    maquinaria = list(Maquinaria.query.filter((Maquinaria.user_id == user_id) | (Maquinaria.user_id == None)).all())
 
     # Helper functions within scope
     def match_material(keyword: str) -> Optional[Material]:
@@ -362,12 +362,12 @@ def _make_sugerencia(tipo, obj, cantidad, justificacion, rendimiento=None):
         "existe_en_catalogo": True
     }
 
-def construir_matriz_desde_gemini(data_gemini: Dict) -> List[Dict]:
+def construir_matriz_desde_gemini(data_gemini: Dict, user_id: int) -> List[Dict]:
     # Adapt Gemini output to internal suggestion format
     insumos_ia = data_gemini.get("insumos") or []
     sugerencias = []
 
-    materiales = list(Material.query.all())
+    materiales = list(Material.query.filter((Material.user_id == user_id) | (Material.user_id == None)).all())
     # ... load others ...
 
     # Logic to fuzzy match existing catalog items to Gemini's suggestion
