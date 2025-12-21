@@ -34,7 +34,9 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    is_premium = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    trial_ends_at = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -42,11 +44,24 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def is_trial_active(self):
+        if self.is_admin or self.is_premium:
+            return True
+        if not self.trial_ends_at:
+            return False
+        from datetime import datetime
+        return datetime.utcnow() < self.trial_ends_at
+
     def to_dict(self):
+        from datetime import datetime
         return {
             "id": self.id,
             "username": self.username,
             "is_admin": self.is_admin,
+            "is_premium": self.is_premium,
+            "trial_active": self.is_trial_active(),
+            "trial_ends_at": self.trial_ends_at.isoformat() if self.trial_ends_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -359,8 +374,26 @@ class DetallePresupuesto(db.Model):
             "cantidad_obra": float(self.cantidad_obra),
             "precio_unitario_calculado": float(self.precio_unitario_calculado),
             "costo_directo": float(self.costo_directo or 0),
-            "concepto_detalle": {
-                "clave": self.concepto.clave,
-                "descripcion": self.concepto.descripcion,
-            },
+        }
+
+class Feedback(db.Model):
+    __tablename__ = "feedbacks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    tipo = db.Column(db.String(50), nullable=False) # 'fallo', 'sugerencia', 'otro'
+    mensaje = db.Column(db.Text, nullable=False)
+    estado = db.Column(db.String(20), default="pendiente") # 'pendiente', 'leído', 'resuelto'
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    user = db.relationship("User")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.user.username if self.user else "Anónimo",
+            "tipo": self.tipo,
+            "mensaje": self.mensaje,
+            "estado": self.estado,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }

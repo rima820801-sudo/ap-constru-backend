@@ -16,7 +16,7 @@ from backend.extensions import db, cors
 from backend.models import User, ConstantesFASAR
 
 # Import blueprints
-from backend.routes import auth, catalogos, conceptos, proyectos, ia
+from backend.routes import auth, catalogos, conceptos, proyectos, ia, admin
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -44,6 +44,7 @@ def create_app(config_class=Config):
     app.register_blueprint(conceptos.bp)
     app.register_blueprint(proyectos.bp)
     app.register_blueprint(ia.bp)
+    app.register_blueprint(admin.bp)
 
     # Health Check Endpoint
     @app.route("/api/health", methods=["GET"])
@@ -61,11 +62,11 @@ def create_app(config_class=Config):
 
 def _create_default_admin():
     try:
-        admin = User.query.filter_by(username="admin").first()
-        if not admin:
-            admin = User(username="admin", is_admin=True)
-            admin.set_password("admin123")
-            db.session.add(admin)
+        admin_user = User.query.filter_by(username="admin").first()
+        if not admin_user:
+            admin_user = User(username="admin", is_admin=True)
+            admin_user.set_password("admin123")
+            db.session.add(admin_user)
             db.session.commit()
             print("Usuario 'admin' creado.")
     except Exception as e:

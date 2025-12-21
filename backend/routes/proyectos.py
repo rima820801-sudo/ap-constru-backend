@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.routes.auth import trial_required
 from datetime import date
 from backend.models import Proyecto, Partida, DetallePresupuesto
 from backend.extensions import db
@@ -7,6 +8,7 @@ from backend.services.calculation_service import decimal_field, obtener_factores
 bp = Blueprint('proyectos', __name__, url_prefix='/api')
 
 @bp.route("/proyectos", methods=["GET", "POST"])
+@trial_required
 def proyectos_collection():
     if request.method == "GET":
         proyectos = Proyecto.query.order_by(Proyecto.fecha_creacion.desc()).all()
@@ -25,6 +27,7 @@ def proyectos_collection():
     return jsonify(proyecto.to_dict()), 201
 
 @bp.route("/proyectos/<int:proyecto_id>", methods=["GET", "PUT", "DELETE"])
+@trial_required
 def proyecto_detail(proyecto_id: int):
     proyecto = Proyecto.query.get_or_404(proyecto_id)
     if request.method == "GET":
@@ -50,6 +53,7 @@ def partidas_por_proyecto(proyecto_id: int):
     return jsonify([p.to_dict() for p in partidas])
 
 @bp.route("/partidas", methods=["POST"])
+@trial_required
 def partidas_create():
     payload = request.get_json(force=True)
     partida = Partida(
@@ -66,6 +70,7 @@ def detalles_por_partida(partida_id: int):
     return jsonify([d.to_dict() for d in detalles])
 
 @bp.route("/detalles-presupuesto", methods=["POST"])
+@trial_required
 def detalle_create():
     payload = request.get_json(force=True)
     concepto_id = payload["concepto"]

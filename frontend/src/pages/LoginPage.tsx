@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/user';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export const LoginPage = () => {
   const { login } = useUser();
@@ -14,7 +14,7 @@ export const LoginPage = () => {
     setError('');
     const success = await login(username, password);
     if (success) {
-        navigate('/analisis');
+      navigate('/analisis');
     } else {
       setError('Credenciales inválidas');
     }
@@ -51,6 +51,13 @@ export const LoginPage = () => {
             Entrar
           </button>
         </form>
+
+        <p className="mt-6 text-center text-gray-400 text-sm">
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
+            Regístrate aquí
+          </Link>
+        </p>
       </div>
     </div>
   );

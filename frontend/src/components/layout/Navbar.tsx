@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, BoxSelect } from 'lucide-react';
+import { Menu, X, Search, BoxSelect, ShieldCheck, HelpCircle, Rocket } from 'lucide-react';
+import { useUser } from '../../context/user';
 
 export function Navbar() {
+    const { user } = useUser();
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
 
@@ -33,6 +35,17 @@ export function Navbar() {
                             <Link to="/comparador" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/comparador') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
                                 Comparador
                             </Link>
+                            <Link to="/guia" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/guia') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
+                                <HelpCircle className="w-4 h-4" /> Guía
+                            </Link>
+                            <Link to="/changelog" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/changelog') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
+                                <Rocket className="w-4 h-4" /> Novedades
+                            </Link>
+                            {user?.is_admin && (
+                                <Link to="/admin" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/admin') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'}`}>
+                                    <ShieldCheck className="w-4 h-4" /> Panel Admin
+                                </Link>
+                            )}
                         </div>
                     </div>
 
@@ -79,6 +92,17 @@ export function Navbar() {
                         <Link to="/comparador" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/comparador') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
                             Comparador
                         </Link>
+                        <Link to="/guia" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/guia') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
+                            Guía de Uso
+                        </Link>
+                        <Link to="/changelog" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/changelog') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
+                            Novedades
+                        </Link>
+                        {user?.is_admin && (
+                            <Link to="/admin" className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/admin') ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'}`} onClick={() => setIsOpen(false)}>
+                                Panel Administrativo
+                            </Link>
+                        )}
                     </div>
                     <div className="pt-4 pb-4 border-t border-gray-200">
                         <div className="px-2">

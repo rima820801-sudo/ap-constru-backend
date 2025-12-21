@@ -1,4 +1,6 @@
 import { useEffect, useState, useId } from "react";
+import { Link } from "react-router-dom";
+import { HelpCircle } from "lucide-react";
 
 import { apiFetch } from "../api/client";
 import {
@@ -678,7 +680,10 @@ export function AnalisisPuPage() {
 
                         </div>
                         <div className="mt-4 space-y-2">
-                            <div className="flex justify-end">
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                                <Link to="/guia" className="text-indigo-600 hover:text-indigo-700 text-xs font-bold flex items-center gap-1">
+                                    <HelpCircle className="w-4 h-4" /> Centro de Ayuda
+                                </Link>
                                 <button
                                     type="button"
                                     onClick={prepararPreguntasClarificadoras}

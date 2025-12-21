@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.routes.auth import trial_required
 from datetime import date
 from decimal import Decimal
 from backend.models import Material, Equipo, Maquinaria, ManoObra
@@ -9,6 +10,7 @@ bp = Blueprint('catalogos', __name__, url_prefix='/api')
 
 # --- Materiales ---
 @bp.route("/materiales", methods=["GET", "POST"])
+@trial_required
 def materiales_collection():
     if request.method == "GET":
         materiales = Material.query.order_by(Material.nombre).all()
@@ -60,6 +62,7 @@ def material_detail(material_id: int):
 
 # --- Mano Obra ---
 @bp.route("/manoobra", methods=["GET", "POST"])
+@trial_required
 def manoobra_collection():
     if request.method == "GET":
         mano_obra = ManoObra.query.order_by(ManoObra.puesto).all()
@@ -111,6 +114,7 @@ def manoobra_detail(mano_id: int):
 
 # --- Equipo ---
 @bp.route("/equipo", methods=["GET", "POST"])
+@trial_required
 def equipo_collection():
     if request.method == "GET":
         equipos = Equipo.query.order_by(Equipo.nombre).all()
@@ -156,6 +160,7 @@ def equipo_detail(equipo_id: int):
 
 # --- Maquinaria ---
 @bp.route("/maquinaria", methods=["GET", "POST"])
+@trial_required
 def maquinaria_collection():
     if request.method == "GET":
         maquinas = Maquinaria.query.order_by(Maquinaria.nombre).all()
@@ -209,6 +214,7 @@ def maquinaria_detail(maquinaria_id: int):
     return jsonify(maquinaria.to_dict())
 
 @bp.route("/catalogos/sugerir_precio_mercado", methods=["POST"])
+@trial_required
 def sugerir_precio_mercado():
     """
     Sugiere un precio de mercado para un insumo basado en nombre y unidad
@@ -294,6 +300,7 @@ def sugerir_precio_mercado():
 
 
 @bp.route("/catalogos/actualizar_precios_masivo", methods=["POST"])
+@trial_required
 def actualizar_precios_masivo():
     updates = request.get_json(force=True)
     if not isinstance(updates, list):

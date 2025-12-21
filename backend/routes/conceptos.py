@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.routes.auth import trial_required
 from backend.models import Concepto, MatrizInsumo
 from backend.extensions import db
 from backend.services.calculation_service import decimal_field, calcular_precio_unitario, normalizar_factores
@@ -6,6 +7,7 @@ from backend.services.calculation_service import decimal_field, calcular_precio_
 bp = Blueprint('conceptos', __name__, url_prefix='/api')
 
 @bp.route("/conceptos", methods=["GET", "POST"])
+@trial_required
 def conceptos_collection():
     if request.method == "GET":
         conceptos = Concepto.query.order_by(Concepto.clave).all()
@@ -22,6 +24,7 @@ def conceptos_collection():
     return jsonify(concepto.to_dict()), 201
 
 @bp.route("/conceptos/<int:concepto_id>", methods=["GET", "PUT", "DELETE"])
+@trial_required
 def concepto_detail(concepto_id: int):
     concepto = Concepto.query.get_or_404(concepto_id)
     if request.method == "GET":
@@ -45,6 +48,7 @@ def concepto_matriz(concepto_id: int):
     return jsonify([registro.to_dict() for registro in registros])
 
 @bp.route("/matriz", methods=["POST"])
+@trial_required
 def matriz_create():
     payload = request.get_json(force=True)
     registro = MatrizInsumo(
@@ -58,6 +62,7 @@ def matriz_create():
     return jsonify(registro.to_dict()), 201
 
 @bp.route("/matriz/<int:registro_id>", methods=["PUT", "DELETE"])
+@trial_required
 def matriz_update(registro_id: int):
     registro = MatrizInsumo.query.get_or_404(registro_id)
     if request.method == "DELETE":
@@ -68,6 +73,7 @@ def matriz_update(registro_id: int):
     return jsonify(registro.to_dict())
 
 @bp.route("/conceptos/calcular_pu", methods=["POST"])
+@trial_required
 def calcular_pu_endpoint():
     payload = request.get_json(force=True)
     concepto_id = payload.get("concepto_id")

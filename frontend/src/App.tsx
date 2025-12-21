@@ -5,6 +5,11 @@ import CatalogoPage from './pages/CatalogoPage';
 import ComparadorPage from './pages/ComparadorPage';
 import AdminDashboard from './pages/AdminDashboard';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { TrialWall } from './components/auth/TrialWall';
+import { FeedbackModal } from './components/ui/FeedbackModal';
+import { GuiaUsoPage } from './pages/GuiaUsoPage';
+import { ChangelogPage } from './pages/ChangelogPage';
 import { UserProvider, useUser } from './context/user';
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
@@ -27,18 +32,21 @@ const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/guia" element={<ProtectedRoute><GuiaUsoPage /></ProtectedRoute>} />
+            <Route path="/changelog" element={<ProtectedRoute><ChangelogPage /></ProtectedRoute>} />
 
             <Route
                 path="/analisis"
-                element={<ProtectedRoute><AnalisisPuPage /></ProtectedRoute>}
+                element={<ProtectedRoute><TrialWall><AnalisisPuPage /></TrialWall></ProtectedRoute>}
             />
             <Route
                 path="/catalogo"
-                element={<ProtectedRoute><CatalogoPage /></ProtectedRoute>}
+                element={<ProtectedRoute><TrialWall><CatalogoPage /></TrialWall></ProtectedRoute>}
             />
             <Route
                 path="/comparador"
-                element={<ProtectedRoute><ComparadorPage /></ProtectedRoute>}
+                element={<ProtectedRoute><TrialWall><ComparadorPage /></TrialWall></ProtectedRoute>}
             />
             <Route
                 path="/admin"
@@ -53,7 +61,10 @@ const AppRoutes = () => {
 function App() {
     return (
         <UserProvider>
-            <AppRoutes />
+            <div className="min-h-screen bg-gray-900">
+                <AppRoutes />
+                <FeedbackModal />
+            </div>
         </UserProvider>
     );
 }

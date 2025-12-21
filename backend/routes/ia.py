@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.routes.auth import trial_required
 from backend.services.gemini_service import (
     generar_apu_con_gemini, 
     cotizar_con_gemini, 
@@ -14,6 +15,7 @@ bp = Blueprint('ia', __name__, url_prefix='/api/ia')
 
 
 @bp.route("/preguntas_clarificadoras", methods=["POST"])
+@trial_required
 def preguntas_clarificadoras():
     """
     Genera preguntas clarificadoras antes de generar el APU
@@ -30,6 +32,7 @@ def preguntas_clarificadoras():
     })
 
 @bp.route("/chat_apu", methods=["POST"])
+@trial_required
 def chat_apu():
     data = request.get_json() or {}
     descripcion = data.get("descripcion", "")
@@ -63,6 +66,7 @@ def chat_apu():
     })
 
 @bp.route("/cotizar", methods=["POST"])
+@trial_required
 def cotizar_material():
     data = request.get_json()
     material = data.get("material")
@@ -85,6 +89,7 @@ def cotizar_material():
 
 
 @bp.route("/cotizar_multiples", methods=["POST"])
+@trial_required
 def cotizar_multiples_materiales():
     data = request.get_json()
     materiales = data.get("materiales", [])
@@ -98,6 +103,7 @@ def cotizar_multiples_materiales():
     return jsonify({"resultados": resultados}), 200
 
 @bp.route("/explicar_sugerencia", methods=["GET"])
+@trial_required
 def explicar_sugerencia():
     concepto_id = request.args.get("concepto_id", type=int)
     descripcion = request.args.get("descripcion_concepto", "")

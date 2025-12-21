@@ -5,12 +5,16 @@ export interface UserInfo {
   id: number;
   username: string;
   is_admin: boolean;
+  is_premium: boolean;
+  trial_active: boolean;
+  trial_ends_at: string | null;
 }
 
 interface UserContextType {
   user: UserInfo | null;
   loading: boolean;
   login: (u: string, p: string) => Promise<boolean>;
+  register: (u: string, p: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -38,6 +42,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     try {
       const res = await apiFetch<{ user: UserInfo }>('/auth/login', {
+        method: 'POST',
+        body: { username, password }
+      });
+      setUser(res.user);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const register = async (username: string, password: string) => {
+    try {
+      const res = await apiFetch<{ user: UserInfo }>('/auth/register', {
         method: 'POST',
         body: { username, password }
       });
