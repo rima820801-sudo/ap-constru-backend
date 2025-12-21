@@ -69,24 +69,80 @@ def generar_apu_con_gemini(descripcion: str, unidad: str, calcular_por_m2: bool 
     )
 
     prompt_completo = f"""
-Eres un ingeniero civil especializado en análisis de precios unitarios (APU) para construcción en México.
-Tu trabajo es generar un APU PROFESIONAL y DETALLADO con cálculos precisos y explicaciones claras.
+Eres un INGENIERO CIVIL MEXICANO con 15 años de experiencia en análisis de precios unitarios (APU).
+Tienes conocimientos profundos de:
+- Normas Técnicas Complementarias del Reglamento de Construcción
+- Prácticas constructivas estándar en México
+- Rendimientos reales de mano de obra mexicana
+- Materiales y especificaciones del mercado nacional
+
+Tu especialidad es generar APU PROFESIONALES, PRECISOS y EDUCATIVOS.
 
 DESCRIPCIÓN DEL PROYECTO: "{texto}"
 UNIDAD DE MEDIDA: "{unidad}"
 
 ═══════════════════════════════════════════════════════════════════════════════
+📚 TUS CONOCIMIENTOS TÉCNICOS ESPECÍFICOS
+═══════════════════════════════════════════════════════════════════════════════
+
+🧱 MUROS DE TABLARROCA:
+• Placas estándar México: 1.22m × 2.44m
+• Cálculo placas: Área × 2 caras (muro doble) o × 1 cara (recubrimiento)
+• Perfiles metálicos (IMPORTANTE - EN METROS LINEALES):
+  - Canales horizontales: 2 × longitud del muro
+  - Montantes verticales: (longitud ÷ 0.40m) × altura
+  - Ejemplo: Muro 6m × 2.80m con separación 40cm
+    * Canales: 2 × 6m = 12 ml
+    * Montantes: (6m ÷ 0.40m) × 2.80m = 15 × 2.80m = 42 ml
+    * TOTAL: 54 ml (NO confundir con m²)
+• Tornillos: 25-30 piezas/m²
+• Pasta para juntas: 0.5-0.7 kg/m²
+• Rendimiento: 8-12 m²/jornada (oficial + ayudante)
+
+🧱 MUROS DE BLOCK:
+• Block 15×20×40cm: 12.5 piezas/m²
+• Mortero: 0.025-0.03 m³/m² (proporción 1:4)
+• Castillos: Cada 3-4 metros (4 varillas #3 + estribos #2 @ 20cm)
+• Dalas: Perímetro superior (4 varillas #3 + estribos #2 @ 20cm)
+• Rendimiento: 6-8 m²/jornada
+
+🏗️ LOSAS MACIZAS:
+• Espesor según claro: 10cm (hasta 3.5m), 12cm (3.5-5m), 15cm (5-6m)
+• Concreto: Área × espesor (f'c=250 kg/cm²)
+• Acero: 15-20 kg/m² (varilla #3 @ 20cm)
+• Cimbra: Área × 1.2 (incluye desperdicios)
+• Puntales: 1 cada 1.5 m²
+
+🚪 DIMENSIONES ESTÁNDAR MÉXICO:
+• Puerta interior: 2.10m × 0.90m = 1.89 m²
+• Puerta baño: 2.10m × 0.70m = 1.47 m²
+• Ventana mediana: 1.20m × 1.20m = 1.44 m²
+• SIEMPRE RESTAR del área total del muro
+
+🎨 ACABADOS:
+• Pintura vinílica: 10-12 m²/litro (2 manos)
+• Loseta 30×30cm: 11 piezas/m² + 10% merma
+• Adhesivo: 5-6 kg/m²
+
+⚠️ MERMAS REALISTAS:
+• Concreto: 5%
+• Tablarroca: 10-15%
+• Block: 3-5%
+• Cerámica: 10%
+• Madera/cortes: 15-20%
+
+═══════════════════════════════════════════════════════════════════════════════
 📐 INSTRUCCIONES PARA ANÁLISIS DIMENSIONAL
 ═══════════════════════════════════════════════════════════════════════════════
 
-1. EXTRAE las dimensiones del proyecto (alto, largo, ancho, diámetro, etc.)
-2. CALCULA el área o volumen principal del proyecto
-3. IDENTIFICA elementos secundarios (puertas, ventanas, aberturas) y RESTA su área
-4. ESTABLECE "metros_cuadrados_construccion" como el ÁREA NETA del proyecto
+1. EXTRAE dimensiones (alto, largo, ancho, diámetro)
+2. CALCULA área o volumen principal
+3. IDENTIFICA y RESTA elementos (puertas, ventanas, aberturas)
+4. ESTABLECE "metros_cuadrados_construccion" como ÁREA NETA
 
-Ejemplo: "Pared de 2.80m x 6.36m con puerta de 2.10m x 0.90m"
+Ejemplo: "Pared 2.80m × 6.36m con puerta"
 - Área total: 2.80 × 6.36 = 17.808 m²
-- Área puerta: 2.10 × 0.90 = 1.89 m²
+- Puerta estándar: 2.10 × 0.90 = 1.89 m²
 - Área neta: 17.808 - 1.89 = 15.918 m²
 - metros_cuadrados_construccion = 15.918
 
@@ -95,76 +151,57 @@ Ejemplo: "Pared de 2.80m x 6.36m con puerta de 2.10m x 0.90m"
 ═══════════════════════════════════════════════════════════════════════════════
 
 REGLA GENERAL:
-- Si unidad es "m2", "m3", "ml", "kg", "ton" → Calcula para UNA UNIDAD
-- Si unidad es "Pieza", "Lote", "Global", "Proyecto" → Calcula TOTAL del proyecto
+- Unidad "m2", "m3", "ml", "kg", "ton" → Calcula para UNA UNIDAD
+- Unidad "Pieza", "Lote", "Global", "Proyecto" → Calcula TOTAL
 
-EJEMPLOS ESPECÍFICOS POR TIPO DE OBRA:
-
-🧱 MUROS DE TABLARROCA:
-- Placas de yeso: Área × 2 caras (ambos lados del muro)
-- Perfiles metálicos:
-  * Canales horizontales: 2 × largo (superior + inferior)
-  * Montantes verticales: (largo ÷ 0.40m) × altura
-  * Total = Canales + Montantes
-- Tornillos: ~25 piezas/m² × área total
-- Cinta y pasta: ~0.5 kg/m² × área total
-
-🧱 MUROS DE BLOCK:
-- Block: ~12.5 piezas/m² (para block de 15×20×40cm)
-- Mortero: ~0.03 m³/m²
-- Castillos: Cada 3-4 metros lineales
-- Dalas: Perímetro superior
-
-🏗️ LOSAS DE CONCRETO:
-- Concreto: Área × espesor (ej. 0.10m)
-- Acero de refuerzo: ~15 kg/m² (varilla #3 @ 20cm)
-- Cimbra: Área × 1.2 (incluye desperdicios)
-- Puntales: 1 puntal cada 1.5 m²
+CRÍTICO - UNIDADES CORRECTAS:
+✅ Perfiles metálicos = METROS LINEALES (ml), NUNCA m²
+✅ Área de muro ≠ Cantidad de perfiles
+✅ Diferenciar: m² (área), ml (longitud), m³ (volumen), pza (piezas)
 
 ═══════════════════════════════════════════════════════════════════════════════
-📝 INSTRUCCIONES PARA LA EXPLICACIÓN
+📝 FORMATO DE EXPLICACIÓN PROFESIONAL
 ═══════════════════════════════════════════════════════════════════════════════
 
-La explicación debe ser DETALLADA y PROFESIONAL, siguiendo este formato:
+Usa EXACTAMENTE este formato:
 
 📐 ANÁLISIS DIMENSIONAL:
-- Dimensiones del proyecto: [alto] × [largo] = [área] m²
+- Dimensiones: [alto] × [largo] = [área] m²
 - Elementos a restar: [descripción] = [área] m²
-- Área neta de trabajo: [cálculo] = [resultado] m²
+- Área neta: [cálculo] = [resultado] m²
 
 🔢 CÁLCULO DE MATERIALES:
 
-1. [Nombre del material]:
-   - Fórmula: [explicación del cálculo]
+1. [Material]:
+   - Fórmula: [explicación técnica]
    - Operación: [números específicos]
-   - Cantidad base: [resultado]
+   - Cantidad base: [resultado] [unidad]
    - Merma [%]: [cantidad con merma]
    - TOTAL: [cantidad final] [unidad]
 
-2. [Siguiente material]:
-   [mismo formato]
+[Repetir para cada material]
 
 👷 MANO DE OBRA:
-- [Descripción del trabajo]
-- Rendimiento estimado: [cantidad] [unidad]/jornada
-- Cuadrilla sugerida: [composición]
+- Descripción: [trabajo específico]
+- Rendimiento: [cantidad] [unidad]/jornada
+- Cuadrilla: [composición]
 
-⚠️ CONSIDERACIONES TÉCNICAS:
-- [Puntos importantes sobre el proyecto]
+⚠️ CONSIDERACIONES:
+- [Puntos técnicos importantes]
 - [Recomendaciones profesionales]
 
 ═══════════════════════════════════════════════════════════════════════════════
 
 {enfoque}
 
-RESPONDE EXCLUSIVAMENTE en JSON con esta estructura:
+RESPONDE EXCLUSIVAMENTE en JSON:
 
 {{
-  "explicacion": "AQUÍ VA LA EXPLICACIÓN DETALLADA SIGUIENDO EL FORMATO DE ARRIBA",
+  "explicacion": "EXPLICACIÓN DETALLADA SIGUIENDO EL FORMATO DE ARRIBA",
   "metros_cuadrados_construccion": 0.0,
   "insumos": [
     {{
-      "tipo_insumo": "Material",
+      "tipo_insumo": "Material|ManoObra|Equipo|Maquinaria",
       "nombre": "Nombre específico del insumo",
       "unidad": "m2|ml|pza|kg|m3|lt",
       "cantidad": 0.0,
@@ -176,16 +213,17 @@ RESPONDE EXCLUSIVAMENTE en JSON con esta estructura:
 }}
 
 REGLAS ESTRICTAS:
-✅ Usa cantidades REALISTAS basadas en prácticas constructivas mexicanas
-✅ Diferencia correctamente entre m² (área), ml (longitud), pza (piezas)
-✅ Incluye TODOS los materiales necesarios (no solo los principales)
-✅ Calcula perfiles metálicos como METROS LINEALES, no m²
-✅ Considera merma realista: 5-10% materiales, 15-20% cortes
-✅ La explicación debe ser EDUCATIVA y mostrar TODOS los cálculos
-✅ NO repitas la descripción del usuario, ANALIZA y CALCULA
-✅ Tipo insumo: "Material", "ManoObra", "Equipo" o "Maquinaria"
-❌ NO incluyas comentarios fuera del JSON
-❌ NO uses cantidades genéricas sin justificación
+✅ Usa conocimientos técnicos reales de construcción mexicana
+✅ Calcula perfiles metálicos en METROS LINEALES (ml)
+✅ Diferencia correctamente m², ml, m³, pza, kg
+✅ Incluye TODOS los materiales (principales y auxiliares)
+✅ Mermas realistas según tipo de material
+✅ Explica TODOS los cálculos paso a paso
+✅ Resta puertas/ventanas del área
+✅ Usa rendimientos reales de mano de obra
+❌ NO repitas la descripción del usuario
+❌ NO uses cantidades sin justificación técnica
+❌ NO confundas unidades (ml ≠ m²)
 """
 
     client = _get_genai_client()
