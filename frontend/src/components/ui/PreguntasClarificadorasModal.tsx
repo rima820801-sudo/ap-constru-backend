@@ -58,6 +58,10 @@ export function PreguntasClarificadorasModal({
     const handleSubmit = async () => {
         setSubmitError(null);
         setSubmitting(true);
+
+        // Cerrar el modal inmediatamente para ver la animación
+        onClose();
+
         const error = await onSubmit(cleanedRespuestas);
         if (error) {
             setSubmitError(error);
@@ -65,7 +69,6 @@ export function PreguntasClarificadorasModal({
             return;
         }
         setSubmitting(false);
-        onClose();
     };
 
     return (
