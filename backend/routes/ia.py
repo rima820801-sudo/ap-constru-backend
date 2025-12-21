@@ -1,5 +1,12 @@
 from flask import Blueprint, request, jsonify
-from backend.services.gemini_service import generar_apu_con_gemini, cotizar_con_gemini, construir_sugerencia_apu, construir_explicacion_para_chat, construir_matriz_desde_gemini
+from backend.services.gemini_service import (
+    generar_apu_con_gemini, 
+    cotizar_con_gemini, 
+    construir_sugerencia_apu, 
+    construir_explicacion_para_chat, 
+    construir_matriz_desde_gemini,
+    cotizar_multiples_con_gemini
+)
 from backend.services.clarification_service import generar_preguntas_clarificadoras
 from backend.models import Concepto
 
@@ -85,50 +92,8 @@ def cotizar_multiples_materiales():
     if not materiales:
         return jsonify({"error": "Falta la lista de materiales"}), 400
 
-    resultados = []
-    for material in materiales:
-        resultado_original = cotizar_con_gemini(material)
-
-        # Crear el resultado con el formato adecuado
-        resultado = {
-            "material": material,
-            "tienda1": "Generico A",
-            "precio1": 0.0,
-            "tienda1_url": "",
-            "tienda2": "Generico B",
-            "precio2": 0.0,
-            "tienda2_url": "",
-            "tienda3": "Generico C",
-            "precio3": 0.0,
-            "tienda3_url": ""
-        }
-
-        # Si se obtuvo una respuesta de la IA, usarla
-        if resultado_original:
-            # Copiar los valores de la respuesta original
-            for key, value in resultado_original.items():
-                if key in resultado:
-                    resultado[key] = value
-
-        # Asegurar que tengamos 3 precios válidos
-        precio1 = resultado.get("precio1", 0)
-        precio2 = resultado.get("precio2", 0)
-        precio3 = resultado.get("precio3", 0)
-
-        if precio1 and precio1 > 0:
-            # Si solo precio1 es válido, generar variaciones para precio2 y precio3
-            if not precio2 or precio2 <= 0:
-                resultado["precio2"] = round(precio1 * 1.05, 2)  # 5% más
-            if not precio3 or precio3 <= 0:
-                resultado["precio3"] = round(precio1 * 0.95, 2)  # 5% menos
-        else:
-            # Si precio1 no es válido, usar valores por defecto basados en el material
-            base_precio = 100.0 + (abs(hash(material)) % 100)
-            resultado["precio1"] = round(base_precio, 2)
-            resultado["precio2"] = round(base_precio * 1.05, 2)
-            resultado["precio3"] = round(base_precio * 0.95, 2)
-
-        resultados.append(resultado)
+    # Usar el servicio optimizado de una sola llamada
+    resultados = cotizar_multiples_con_gemini(materiales)
 
     return jsonify({"resultados": resultados}), 200
 

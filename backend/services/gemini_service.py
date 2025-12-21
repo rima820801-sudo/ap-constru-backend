@@ -20,50 +20,40 @@ def extraer_json_de_texto(contenido: str) -> Optional[str]:
     if not texto:
         return None
 
-    # Eliminar formato markdown ```json ... ``` y similares
-    # Buscar bloques de código markdown
-    markdown_patterns = [
-        r"```(?:json)?\s*\n?(.*?)\n?\s*```",  # Bloque ```json ... ``` o ``` ... ```
-        r"`{3}.*?\n(.*?)\n`{3}",  # Variante
+    # 1. Intentar extraer de bloques de código Markdown (```json ... ```)
+    # Usamos re.IGNORECASE y permitimos que no haya salto de línea inmediato
+    patterns = [
+        r"```(?:json)?\s*(.*?)\s*```", 
+        r"`{3}.*?\n(.*?)\n`{3}"
     ]
-
-    for pattern in markdown_patterns:
-        match = re.search(pattern, texto, re.DOTALL)
+    for p in patterns:
+        match = re.search(p, texto, re.DOTALL | re.IGNORECASE)
         if match:
-            extracted = match.group(1).strip()
-            try:
-                # Validar si es JSON válido
-                json.loads(extracted)
-                return extracted
-            except json.JSONDecodeError:
-                continue
+             candidate = match.group(1).strip()
+             try:
+                 json.loads(candidate)
+                 return candidate
+             except: pass
 
-    try:
-        # Si el texto completo es JSON válido
-        json.loads(texto)
-        return texto
-    except json.JSONDecodeError:
-        pass
-
-    # Buscar objeto JSON dentro del texto
-    obj_match = re.search(r'\{.*\}', texto, re.DOTALL)
-    if obj_match:
-        posible = obj_match.group(0).strip()
+    # 2. Estrategia bruta: buscar el primer '{' y el último '}'
+    first_brace = texto.find('{')
+    last_brace = texto.rfind('}')
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        candidate = texto[first_brace : last_brace + 1]
         try:
-            json.loads(posible)
-            return posible
-        except json.JSONDecodeError:
-            pass
+            json.loads(candidate)
+            return candidate
+        except: pass
 
-    # Buscar array JSON dentro del texto
-    arr_match = re.search(r'\[.*\]', texto, re.DOTALL)
-    if arr_match:
-        posible = arr_match.group(0).strip()
+    # 3. Estrategia bruta Array: buscar el primer '[' y el último ']'
+    first_bracket = texto.find('[')
+    last_bracket = texto.rfind(']')
+    if first_bracket != -1 and last_bracket != -1 and last_bracket > first_bracket:
+        candidate = texto[first_bracket : last_bracket + 1]
         try:
-            json.loads(posible)
-            return posible
-        except json.JSONDecodeError:
-            pass
+            json.loads(candidate)
+            return candidate
+        except: pass
 
     return None
 
@@ -398,3 +388,123 @@ def construir_matriz_desde_gemini(data_gemini: Dict) -> List[Dict]:
 
 def construir_explicacion_para_chat(descripcion: str, sugerencias: List[Dict]) -> str:
     return f"Basado en '{descripcion}', se sugieren {len(sugerencias)} elementos."
+
+def cotizar_multiples_con_gemini(materiales: List[str]) -> List[Dict]:
+    if not materiales:
+        return []
+
+    if not Config.GEMINI_API_KEY:
+        print("Advertencia: GEMINI_API_KEY no configurada. Generando precios simulados para múltiples.", file=sys.stderr)
+        return [_generar_precio_simulado(m) for m in materiales]
+
+    # Limit batch size to avoid token limits or timeouts, though 20 should be fine.
+    # We'll do them all in one go.
+    lista_str = ", ".join([f'"{m}"' for m in materiales])
+    
+    prompt = f"""
+    Actúa como un experto en costos de construcción en México.
+    Cotiza los siguientes materiales en 3 tiendas conocidas de materiales en México.
+    
+    Lista de materiales: [{lista_str}]
+
+    Para CADA material debes incluir:
+    - El nombre exacto de la tienda.
+    - El precio actual del artículo (en MXN).
+    - La URL directa del producto.
+
+    Responde EXCLUSIVAMENTE en un JSON que sea una LISTA de objetos. Ejemplo:
+    [
+      {{
+        "material": "Nombre Material 1",
+        "tienda1": "Nombre Tienda 1", "precio1": 100.00, "tienda1_url": "...",
+        "tienda2": "Nombre Tienda 2", "precio2": 105.00, "tienda2_url": "...",
+        "tienda3": "Nombre Tienda 3", "precio3": 95.00, "tienda3_url": "..."
+      }},
+      ...
+    ]
+    """
+
+    client = _get_genai_client()
+    if not client:
+        return [_generar_precio_simulado(m) for m in materiales]
+
+    try:
+        respuesta = client.models.generate_content(
+            model=Config.GEMINI_MODEL,
+            contents=prompt,
+            config={"temperature": 0.2},
+        )
+
+        contenido = getattr(respuesta, "text", "") or ""
+        bloque = extraer_json_de_texto(contenido)
+        if not bloque:
+            print(f"Error Gemini Cotizar Multiples: No se pudo extraer JSON: {contenido[:100]}...", file=sys.stderr)
+            return [_generar_precio_simulado(m) for m in materiales]
+
+        data = json.loads(bloque)
+        if not isinstance(data, list):
+            print("Error Gemini Cotizar Multiples: El JSON no es una lista.", file=sys.stderr)
+            return [_generar_precio_simulado(m) for m in materiales]
+
+        resultados = []
+        mapa_resultados = { item.get("material", "").lower(): item for item in data }
+
+        for mat in materiales:
+            # Buscar en la respuesta de la IA (case insensitive)
+            hit = mapa_resultados.get(mat.lower())
+            if not hit:
+                # Fallback fuzzy match if exact fails
+                for k, v in mapa_resultados.items():
+                    if k in mat.lower() or mat.lower() in k:
+                        hit = v
+                        break
+
+            if hit:
+                # Normalizar
+                p1 = hit.get("precio1") or 0
+                p2 = hit.get("precio2") or 0
+                p3 = hit.get("precio3") or 0
+                
+                # Fix numeric types
+                try: p1 = float(p1) 
+                except: p1 = 0.0
+                try: p2 = float(p2)
+                except: p2 = 0.0
+                try: p3 = float(p3)
+                except: p3 = 0.0
+
+                resultados.append({
+                    "material": mat, # Keep original name
+                    "tienda1": hit.get("tienda1") or "Generico A", 
+                    "precio1": p1,
+                    "tienda1_url": hit.get("tienda1_url") or "",
+                    "tienda2": hit.get("tienda2") or "Generico B", 
+                    "precio2": p2,
+                    "tienda2_url": hit.get("tienda2_url") or "",
+                    "tienda3": hit.get("tienda3") or "Generico C", 
+                    "precio3": p3,
+                    "tienda3_url": hit.get("tienda3_url") or ""
+                })
+            else:
+                resultados.append(_generar_precio_simulado(mat))
+        
+        return resultados
+
+    except Exception as e:
+        print(f"Error Gemini Cotizar Multiples Excepcion: {e}", file=sys.stderr)
+        return [_generar_precio_simulado(m) for m in materiales]
+
+def _generar_precio_simulado(material: str) -> Dict:
+    base_precio = 100.0 + (abs(hash(material)) % 100)
+    return {
+        "material": material,
+        "tienda1": f"Proveedor A - {material}",
+        "precio1": round(base_precio, 2),
+        "tienda1_url": "",
+        "tienda2": f"Proveedor B - {material}",
+        "precio2": round(base_precio * 1.05, 2),
+        "tienda2_url": "",
+        "tienda3": f"Proveedor C - {material}",
+        "precio3": round(base_precio * 0.95, 2),
+        "tienda3_url": ""
+    }

@@ -60,6 +60,9 @@ def obtener_costo_insumo(
     maquinaria_cache: Dict[int, Maquinaria],
 ) -> Decimal:
     # If no ID or invalid ID, check for custom price
+    tipo = registro.get("tipo_insumo")
+    insumo_id = registro.get("id_insumo")
+    
     if not insumo_id:
         custom_base = decimal_field(registro.get("precio_custom"))
         if tipo == "Material":

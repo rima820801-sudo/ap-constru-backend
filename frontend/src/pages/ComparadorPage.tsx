@@ -544,6 +544,7 @@ export default function ComparadorPage() {
                     id: crypto.randomUUID(),
                     nombre,
                     unidad,
+                    isLoading: true, // Mostrar spinner de carga inmediatamente
                     cotizaciones: createBlankCotizacion()
                 };
             });
@@ -557,12 +558,9 @@ export default function ComparadorPage() {
         setTituloComparacion(`Comparativa: ${proyecto.nombre}`);
         setShowImportModal(false);
 
-        // Iniciar búsqueda de precios para todos los materiales importados
+        // Iniciar búsqueda de precios para todos los materiales importados de forma directa y fiable
         if (materialesFiltrados.length > 0) {
-            // Usar setTimeout para permitir que se actualice el estado antes de iniciar la búsqueda
-            setTimeout(() => {
-                void buscarPreciosParaTodos();
-            }, 500); // Pequeño retraso para asegurar la actualización del estado
+            void buscarPreciosParaLista(materialesFiltrados);
         }
     };
 
@@ -594,6 +592,7 @@ export default function ComparadorPage() {
                 id: crypto.randomUUID(),
                 nombre: item.nombre,
                 unidad: item.unidad || 'pza',
+                isLoading: true,
                 cotizaciones: createBlankCotizacion()
             }));
 
@@ -601,12 +600,9 @@ export default function ComparadorPage() {
         setTituloComparacion(`Comparativa: ${proyecto.nombre}`);
         setShowImportModal(false);
 
-        // Iniciar búsqueda de precios para todos los materiales importados
+        // Iniciar búsqueda de precios para todos los materiales importados de forma directa y fiable
         if (nuevosItems.length > 0) {
-            // Usar setTimeout para permitir que se actualice el estado antes de iniciar la búsqueda
-            setTimeout(() => {
-                void buscarPreciosParaTodos();
-            }, 500); // Pequeño retraso para asegurar la actualización del estado
+            void buscarPreciosParaLista(nuevosItems);
         }
     };
 
