@@ -137,7 +137,7 @@ export function AnalisisPuPage() {
         const saved = localStorage.getItem("apu_draft_matriz");
         return saved ? JSON.parse(saved) : [];
     });
-    const [iaExplanation, setIaExplanation] = useState<string>(() => {
+    const [sobrecostos, setSobrecostos] = useState<FactorToggleMap>(() => {
         const saved = localStorage.getItem("apu_draft_sobrecostos");
         return saved ? JSON.parse(saved) : initialSobrecostos();
     });
@@ -634,9 +634,6 @@ export function AnalisisPuPage() {
         }
     }
 
-
-
-    const hayConceptoGuardado = Boolean(conceptoForm.id);
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
