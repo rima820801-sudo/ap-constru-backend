@@ -51,10 +51,11 @@ def create_app(config_class=Config):
     def health_check():
         return {"status": "ok", "db": "connected"}, 200
 
-    # Ensure DB is created
+    # Ensure DB is created and migrated
     with app.app_context():
         import backend.models  # Import all models to ensure they are registered
         db.create_all()
+        _migrate_database() # Auto-fix for existing databases
         _create_default_admin()
         ConstantesFASAR.get_singleton()
 
@@ -71,6 +72,42 @@ def _create_default_admin():
             print("Usuario 'admin' creado.")
     except Exception as e:
         print(f"Error creando admin: {e}")
+
+def _migrate_database():
+    """Ejecuta migraciones manuales para SQLite para añadir columnas faltantes."""
+    import sqlite3
+    # Extraer la ruta del archivo desde la URI de SQLAlchemy
+    db_uri = Config.SQLALCHEMY_DATABASE_URI
+    if not db_uri.startswith("sqlite:///"):
+        return
+    
+    db_path = db_uri.replace("sqlite:///", "")
+    
+    if not os.path.exists(db_path):
+        return
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Columnas a verificar/añadir
+        migrations = [
+            ("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT 0", "is_premium"),
+            ("ALTER TABLE users ADD COLUMN trial_ends_at DATETIME", "trial_ends_at")
+        ]
+        
+        for sql, col_name in migrations:
+            try:
+                cursor.execute(sql)
+                print(f"✅ Migración: Columna '{col_name}' añadida.")
+            except sqlite3.OperationalError:
+                # Si falla es porque probablemente ya existe
+                pass
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error en auto-migración: {e}")
 
 # Create app instance for Gunicorn
 app = create_app()
