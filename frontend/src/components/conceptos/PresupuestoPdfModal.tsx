@@ -152,7 +152,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nombre Comercial</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.nombre}
                                     onChange={e => setEmisor({ ...emisor, nombre: e.target.value })}
                                 />
@@ -160,7 +160,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Teléfono</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.telefono}
                                     onChange={e => setEmisor({ ...emisor, telefono: e.target.value })}
                                 />
@@ -168,7 +168,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Correo Electrónico</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.mail}
                                     onChange={e => setEmisor({ ...emisor, mail: e.target.value })}
                                 />
@@ -176,7 +176,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Dirección</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.direccion}
                                     onChange={e => setEmisor({ ...emisor, direccion: e.target.value })}
                                 />
@@ -191,7 +191,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nombre del Cliente</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.nombre}
                                     onChange={e => setReceptor({ ...receptor, nombre: e.target.value })}
                                 />
@@ -199,7 +199,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Teléfono</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.telefono}
                                     onChange={e => setReceptor({ ...receptor, telefono: e.target.value })}
                                 />
@@ -207,7 +207,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Correo Electrónico</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.mail}
                                     onChange={e => setReceptor({ ...receptor, mail: e.target.value })}
                                 />
@@ -215,7 +215,7 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Dirección</label>
                                 <input
-                                    className="w-full text-sm border-gray-200 rounded-xl focus:ring-indigo-500"
+                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.direccion}
                                     onChange={e => setReceptor({ ...receptor, direccion: e.target.value })}
                                 />
