@@ -21,13 +21,13 @@ export const RegisterPage = () => {
         }
 
         setLoading(true);
-        const success = await register(username, password);
+        const result = await register(username, password);
         setLoading(false);
 
-        if (success) {
+        if (result.success) {
             navigate('/analisis');
         } else {
-            setError('Error al registrar. El usuario podría ya existir.');
+            setError(result.error || 'Error al registrar. El usuario podría ya existir.');
         }
     };
 

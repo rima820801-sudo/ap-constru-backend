@@ -12,11 +12,11 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(username, password);
-    if (success) {
+    const result = await login(username, password);
+    if (result.success) {
       navigate('/analisis');
     } else {
-      setError('Credenciales inválidas');
+      setError(result.error || 'Credenciales inválidas');
     }
   };
 

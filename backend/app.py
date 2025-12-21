@@ -77,13 +77,24 @@ def create_app(config_class=Config):
 
 def _create_default_admin():
     try:
-        admin_user = User.query.filter_by(username="admin").first()
+        # Buscamos el nuevo administrador
+        admin_user = User.query.filter_by(username="sarsjs88").first()
         if not admin_user:
-            admin_user = User(username="admin", is_admin=True)
-            admin_user.set_password("admin123")
+            admin_user = User(username="sarsjs88", is_admin=True)
+            admin_user.set_password("Bryjasa10")
             db.session.add(admin_user)
             db.session.commit()
-            print("Usuario 'admin' creado.")
+            print("🚀 Usuario administrador 'sarsjs88' creado con éxito.")
+        
+        # Opcional: Si existía el 'admin' genérico anterior, podrías desactivarlo o dejarlo.
+        # Por seguridad mejor lo buscamos y le cambiamos la contraseña o lo borramos si es el de default.
+        old_admin = User.query.filter_by(username="admin").first()
+        if old_admin and old_admin.check_password("admin123"):
+            # Si tiene la clave de fábrica, lo actualizamos por seguridad
+            old_admin.username = "sarsjs88_legacy"
+            old_admin.set_password("Bryjasa10_Safe_" + str(os.urandom(4).hex()))
+            db.session.commit()
+
     except Exception as e:
         print(f"Error creando admin: {e}")
 

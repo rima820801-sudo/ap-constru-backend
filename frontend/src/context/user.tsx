@@ -13,8 +13,8 @@ export interface UserInfo {
 interface UserContextType {
   user: UserInfo | null;
   loading: boolean;
-  login: (u: string, p: string) => Promise<boolean>;
-  register: (u: string, p: string) => Promise<boolean>;
+  login: (u: string, p: string) => Promise<{ success: boolean; error?: string }>;
+  register: (u: string, p: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -46,9 +46,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: { username, password }
       });
       setUser(res.user);
-      return true;
-    } catch (e) {
-      return false;
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.response?.data?.error || "Error al iniciar sesión" };
     }
   };
 
@@ -59,9 +59,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: { username, password }
       });
       setUser(res.user);
-      return true;
-    } catch (e) {
-      return false;
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.response?.data?.error || "Error al registrar" };
     }
   };
 
@@ -74,7 +74,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, login, logout }}>
+    <UserContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </UserContext.Provider>
   );
