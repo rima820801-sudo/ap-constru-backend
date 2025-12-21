@@ -69,34 +69,104 @@ def generar_apu_con_gemini(descripcion: str, unidad: str, calcular_por_m2: bool 
     )
 
     prompt_completo = f"""
-Eres un ingeniero de costos experto en analisis de precios unitarios (APU) para construccion en Mexico.
-Genera un Analisis de Precio Unitario (APU) para el siguiente concepto de construccion.
+Eres un ingeniero civil especializado en análisis de precios unitarios (APU) para construcción en México.
+Tu trabajo es generar un APU PROFESIONAL y DETALLADO con cálculos precisos y explicaciones claras.
 
-Descripcion del concepto: "{texto}"
-Unidad del concepto: "{unidad}"
+DESCRIPCIÓN DEL PROYECTO: "{texto}"
+UNIDAD DE MEDIDA: "{unidad}"
 
-Instrucciones CRITICAS para cantidades y volumetria:
-1. Analiza las dimensiones en la descripcion (largo, alto, ancho) para calcular la volumetria total.
-   - SIEMPRE calcula "metros_cuadrados_construccion" si la descripcion tiene dimensiones.
-   - IMPORTANTE: Este valor debe ser el AREA PRINCIPAL del concepto (ej. area de la losa, area del muro), NO la suma de cimbra ni otros elementos.
-   - Ejemplo: "Losa de 8m x 10m", metros_cuadrados_construccion = 80.0.
-2. Si la 'Unidad del concepto' es "m2", "m3", "ml", "kg", "ton", calcula la cantidad de insumos necesaria para UNA sola unidad de esa medida (Unitario).
-   - Ejemplo: Para "Muro de block" unidad "m2", la cantidad de block es ~12.5 piezas.
-3. Si la 'Unidad del concepto' es "Pieza", "Lote", "Partida", "Global", "Proyecto" o esta vacia, calcula los materiales TOTALES.
-4. Si la descripcion tiene dimensiones especificas (ej. 22m x 16m), USALAS para validar si se pide un precio unitario o un costo total segun la unidad.
+═══════════════════════════════════════════════════════════════════════════════
+📐 INSTRUCCIONES PARA ANÁLISIS DIMENSIONAL
+═══════════════════════════════════════════════════════════════════════════════
+
+1. EXTRAE las dimensiones del proyecto (alto, largo, ancho, diámetro, etc.)
+2. CALCULA el área o volumen principal del proyecto
+3. IDENTIFICA elementos secundarios (puertas, ventanas, aberturas) y RESTA su área
+4. ESTABLECE "metros_cuadrados_construccion" como el ÁREA NETA del proyecto
+
+Ejemplo: "Pared de 2.80m x 6.36m con puerta de 2.10m x 0.90m"
+- Área total: 2.80 × 6.36 = 17.808 m²
+- Área puerta: 2.10 × 0.90 = 1.89 m²
+- Área neta: 17.808 - 1.89 = 15.918 m²
+- metros_cuadrados_construccion = 15.918
+
+═══════════════════════════════════════════════════════════════════════════════
+🔢 INSTRUCCIONES PARA CÁLCULO DE CANTIDADES
+═══════════════════════════════════════════════════════════════════════════════
+
+REGLA GENERAL:
+- Si unidad es "m2", "m3", "ml", "kg", "ton" → Calcula para UNA UNIDAD
+- Si unidad es "Pieza", "Lote", "Global", "Proyecto" → Calcula TOTAL del proyecto
+
+EJEMPLOS ESPECÍFICOS POR TIPO DE OBRA:
+
+🧱 MUROS DE TABLARROCA:
+- Placas de yeso: Área × 2 caras (ambos lados del muro)
+- Perfiles metálicos:
+  * Canales horizontales: 2 × largo (superior + inferior)
+  * Montantes verticales: (largo ÷ 0.40m) × altura
+  * Total = Canales + Montantes
+- Tornillos: ~25 piezas/m² × área total
+- Cinta y pasta: ~0.5 kg/m² × área total
+
+🧱 MUROS DE BLOCK:
+- Block: ~12.5 piezas/m² (para block de 15×20×40cm)
+- Mortero: ~0.03 m³/m²
+- Castillos: Cada 3-4 metros lineales
+- Dalas: Perímetro superior
+
+🏗️ LOSAS DE CONCRETO:
+- Concreto: Área × espesor (ej. 0.10m)
+- Acero de refuerzo: ~15 kg/m² (varilla #3 @ 20cm)
+- Cimbra: Área × 1.2 (incluye desperdicios)
+- Puntales: 1 puntal cada 1.5 m²
+
+═══════════════════════════════════════════════════════════════════════════════
+📝 INSTRUCCIONES PARA LA EXPLICACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+La explicación debe ser DETALLADA y PROFESIONAL, siguiendo este formato:
+
+📐 ANÁLISIS DIMENSIONAL:
+- Dimensiones del proyecto: [alto] × [largo] = [área] m²
+- Elementos a restar: [descripción] = [área] m²
+- Área neta de trabajo: [cálculo] = [resultado] m²
+
+🔢 CÁLCULO DE MATERIALES:
+
+1. [Nombre del material]:
+   - Fórmula: [explicación del cálculo]
+   - Operación: [números específicos]
+   - Cantidad base: [resultado]
+   - Merma [%]: [cantidad con merma]
+   - TOTAL: [cantidad final] [unidad]
+
+2. [Siguiente material]:
+   [mismo formato]
+
+👷 MANO DE OBRA:
+- [Descripción del trabajo]
+- Rendimiento estimado: [cantidad] [unidad]/jornada
+- Cuadrilla sugerida: [composición]
+
+⚠️ CONSIDERACIONES TÉCNICAS:
+- [Puntos importantes sobre el proyecto]
+- [Recomendaciones profesionales]
+
+═══════════════════════════════════════════════════════════════════════════════
 
 {enfoque}
 
-Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
+RESPONDE EXCLUSIVAMENTE en JSON con esta estructura:
 
 {{
-  "explicacion": "Breve justificacion tecnica.",
+  "explicacion": "AQUÍ VA LA EXPLICACIÓN DETALLADA SIGUIENDO EL FORMATO DE ARRIBA",
   "metros_cuadrados_construccion": 0.0,
   "insumos": [
     {{
       "tipo_insumo": "Material",
-      "nombre": "Nombre del insumo",
-      "unidad": "unidad",
+      "nombre": "Nombre específico del insumo",
+      "unidad": "m2|ml|pza|kg|m3|lt",
       "cantidad": 0.0,
       "merma": 0.0,
       "flete_unitario": 0.0,
@@ -105,10 +175,17 @@ Responde EXCLUSIVAMENTE en JSON con la siguiente estructura:
   ]
 }}
 
-Reglas:
-- Usa cantidades y rendimientos REALISTAS.
-- Tipo insumo debe ser: "Material", "ManoObra", "Equipo" o "Maquinaria".
-- NO incluyas ningun comentario fuera del JSON.
+REGLAS ESTRICTAS:
+✅ Usa cantidades REALISTAS basadas en prácticas constructivas mexicanas
+✅ Diferencia correctamente entre m² (área), ml (longitud), pza (piezas)
+✅ Incluye TODOS los materiales necesarios (no solo los principales)
+✅ Calcula perfiles metálicos como METROS LINEALES, no m²
+✅ Considera merma realista: 5-10% materiales, 15-20% cortes
+✅ La explicación debe ser EDUCATIVA y mostrar TODOS los cálculos
+✅ NO repitas la descripción del usuario, ANALIZA y CALCULA
+✅ Tipo insumo: "Material", "ManoObra", "Equipo" o "Maquinaria"
+❌ NO incluyas comentarios fuera del JSON
+❌ NO uses cantidades genéricas sin justificación
 """
 
     client = _get_genai_client()

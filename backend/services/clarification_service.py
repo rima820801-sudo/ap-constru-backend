@@ -35,26 +35,87 @@ def generar_preguntas_clarificadoras(descripcion: str) -> List[ClarifyingQuestio
 
 def _generar_con_gemini(descripcion: str) -> List[ClarifyingQuestion]:
     prompt = f"""
-Eres un especialista en análisis de precios unitarios (APU) y necesitas pedir más detalles
-sobre la descripción que te da un cliente. Genera entre 3 y 5 preguntas específicas y
-concretas que permitan entender mejor el proyecto descrito a continuación.
+Eres un ingeniero civil especializado en análisis de precios unitarios (APU) para construcción en México.
+Tu objetivo es hacer preguntas TÉCNICAS e INTELIGENTES que ayuden a calcular correctamente el proyecto.
 
-Descripción:
+DESCRIPCIÓN DEL PROYECTO:
 "{descripcion}"
 
-Responde solamente con un arreglo JSON de objetos. Cada objeto debe tener:
-1. "pregunta": texto de la pregunta.
-2. "opciones": arreglo opcional de respuestas abiertas sugeridas.
-3. "contexto": una frase corta que indique por qué se pregunta.
+═══════════════════════════════════════════════════════════════════════════════
+🎯 OBJETIVO DE LAS PREGUNTAS
+═══════════════════════════════════════════════════════════════════════════════
 
-Ejemplo:
+Las preguntas deben ayudar a:
+1. ACLARAR dimensiones faltantes o ambiguas
+2. IDENTIFICAR elementos a restar (puertas, ventanas, aberturas)
+3. DEFINIR especificaciones técnicas que afectan cantidades
+4. DETERMINAR el alcance exacto del trabajo
+
+═══════════════════════════════════════════════════════════════════════════════
+❌ NO PREGUNTES SOBRE:
+═══════════════════════════════════════════════════════════════════════════════
+
+- Materiales genéricos ("¿De qué material quieres la puerta?")
+- Acabados estéticos ("¿Qué color prefieres?")
+- Preferencias personales sin impacto en cantidades
+- Cosas que ya están claras en la descripción
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ SÍ PREGUNTA SOBRE:
+═══════════════════════════════════════════════════════════════════════════════
+
+📐 DIMENSIONES FALTANTES:
+- "¿Cuál es el espesor de la pared?" (afecta volumen de concreto/mortero)
+- "¿Cuántas caras de la pared llevarán tablarroca?" (1 o 2 caras)
+- "¿A qué distancia se colocarán los montantes verticales?" (40cm, 60cm)
+
+🚪 ELEMENTOS A RESTAR:
+- "¿Cuántas puertas/ventanas tiene el muro y de qué dimensiones?"
+- "¿El área mencionada ya descuenta las aberturas o es área bruta?"
+
+🔧 ESPECIFICACIONES TÉCNICAS:
+- "¿Los perfiles metálicos son calibre 26 o 20?" (afecta precio)
+- "¿La losa es maciza o aligerada?" (cambia completamente el cálculo)
+- "¿Requiere cimbra aparente o común?" (afecta costo)
+
+📏 ALCANCE DEL TRABAJO:
+- "¿El precio incluye cimentación o solo el muro visible?"
+- "¿Se requiere instalación eléctrica dentro de la pared?"
+- "¿Cuántos castillos y dalas se necesitan?" (cada cuántos metros)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Genera entre 3 y 5 preguntas TÉCNICAS siguiendo estos criterios.
+
+RESPONDE EXCLUSIVAMENTE con un arreglo JSON:
+
 [
   {{
-    "pregunta": "¿Qué tipo de acabado prefieres para la superficie?",
-    "opciones": ["Block a la vista", "Concreto pulido", "Cubierta metálica"],
-    "contexto": "Esto ayuda a definir materiales y mano de obra."
+    "pregunta": "Pregunta técnica específica",
+    "opciones": ["Opción 1 con valores específicos", "Opción 2 con valores específicos"],
+    "contexto": "Por qué esta pregunta afecta el cálculo de cantidades"
   }}
 ]
+
+EJEMPLOS DE BUENAS PREGUNTAS:
+
+Para "Pared de tablarroca de 2.80m x 6.36m con puerta":
+✅ "¿La pared lleva tablarroca en una sola cara o en ambas caras?"
+   Opciones: ["Una cara (8.9 m²)", "Ambas caras (17.8 m²)"]
+   Contexto: "Esto duplica la cantidad de placas de yeso necesarias"
+
+✅ "¿Cuáles son las dimensiones exactas de la puerta a descontar?"
+   Opciones: ["2.10m x 0.90m (estándar)", "2.40m x 1.20m (doble)"]
+   Contexto: "Se restará esta área del total de tablarroca"
+
+✅ "¿A qué separación se colocarán los montantes verticales?"
+   Opciones: ["40 cm (más resistente)", "60 cm (económico)"]
+   Contexto: "Esto determina la cantidad de perfiles metálicos en metros lineales"
+
+EJEMPLOS DE MALAS PREGUNTAS (NO HAGAS ESTO):
+❌ "¿De qué material quieres la puerta?" (no afecta el cálculo de la pared)
+❌ "¿Qué color de pintura prefieres?" (no es relevante para el APU)
+❌ "¿Quieres acabado liso o texturizado?" (muy genérico, sin valores)
 """
 
     try:
