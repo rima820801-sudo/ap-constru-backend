@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Sparkles, Database, FileText, CheckCircle, ArrowRight } from 'lucide-react';
+import { BookOpen, Sparkles, Database, FileText, CheckCircle } from 'lucide-react';
 
 export const GuiaUsoPage = () => {
     const steps = [
