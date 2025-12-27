@@ -203,8 +203,9 @@ RESPONDE EXCLUSIVAMENTE en JSON:
     {{
       "tipo_insumo": "Material|ManoObra|Equipo|Maquinaria",
       "nombre": "Nombre específico del insumo",
-      "unidad": "m2|ml|pza|kg|m3|lt",
+      "unidad": "m2|ml|pza|kg|m3|lt|bto",
       "cantidad": 0.0,
+      "precio_sugerido": 0.0,
       "merma": 0.0,
       "flete_unitario": 0.0,
       "rendimiento_diario": null
@@ -215,13 +216,21 @@ RESPONDE EXCLUSIVAMENTE en JSON:
 REGLAS ESTRICTAS:
 ✅ Usa conocimientos técnicos reales de construcción mexicana
 ✅ Calcula perfiles metálicos en METROS LINEALES (ml)
-✅ Diferencia correctamente m², ml, m³, pza, kg
+✅ CONVIERTE A UNIDADES COMERCIALES:
+   - Tablarroca: NO entregues m2, entrega 'pza' (Divide el área total entre 2.97 m² y redondea al superior).
+   - Blocks: NO entregues m2, entrega 'pza' (Multiplica m2 por 12.5 y redondea al superior).
+   - Cemento/Mortero/Pegazulejo: NO entregues toneladas o kg, entrega 'bto' (bultos de 50kg, 25kg o 20kg según corresponda).
+   - Pintura: NO entregues m2, entrega 'lt' o 'cubeta' (19lt).
+✅ Ejemplo de Conversión: Si el área neta es 16m² de muro de tablarroca doble cara:
+   - Área total placas = 32m² + 15% merma = 36.8m²
+   - Piezas = 36.8 / 2.97 = 12.38 → Reportar "cantidad": 13, "unidad": "pza"
+✅ Diferencia correctamente m², ml, m³, pza, bto, kg
 ✅ Incluye TODOS los materiales (principales y auxiliares)
 ✅ Mermas realistas según tipo de material
-✅ Explica TODOS los cálculos paso a paso
+✅ Explica TODOS los cálculos paso a paso en la 'explicacion', incluyendo la división/multiplicación para llegar a piezas o bultos.
 ✅ Resta puertas/ventanas del área
 ✅ Usa rendimientos reales de mano de obra
-❌ NO repitas la descripción del usuario
+❌ NO repitas la descripción del usuario en la explicación
 ❌ NO uses cantidades sin justificación técnica
 ❌ NO confundas unidades (ml ≠ m²)
 """
@@ -495,7 +504,7 @@ def construir_matriz_desde_gemini(data_gemini: Dict, user_id: int) -> List[Dict]
             "nombre": item.get("nombre"),
             "unidad": item.get("unidad"),
             "cantidad": item.get("cantidad"),
-            "costo_unitario": 0, # Gemini doesn't give price usually, or we don't trust it yet
+            "precio_unitario_temp": item.get("precio_sugerido") or 0,
             "justificacion_breve": "Sugerido por IA"
         })
 

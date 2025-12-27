@@ -118,6 +118,7 @@ type IASugerencia = {
     nombre?: string | null;
     justificacion_breve?: string | null;
     unidad?: string | null;
+    precio_unitario_temp?: number | null;
 };
 
 export function ConceptoMatrizEditor({
@@ -1434,6 +1435,7 @@ export function mapearSugerenciasDesdeIA(insumos: IASugerencia[] = [], conceptoI
             nombre_sugerido: item.nombre ?? undefined,
             justificacion_breve: item.justificacion_breve ?? undefined,
             unidad: item.unidad ?? undefined,
+            precio_unitario_temp: item.precio_unitario_temp ?? undefined,
         };
     });
 }
