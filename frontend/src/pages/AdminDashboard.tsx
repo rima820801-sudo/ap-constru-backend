@@ -80,6 +80,19 @@ export default function AdminDashboard() {
         }
     };
 
+    const deleteUser = async (userId: number, username: string) => {
+        if (!confirm(`¿Estás seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+        try {
+            await apiFetch(`/admin/users/${userId}`, { method: 'DELETE' });
+            // Remover de la lista local
+            setUsers(prev => prev.filter(u => u.id !== userId));
+        } catch (err) {
+            alert('Error al eliminar usuario');
+        }
+    };
+
     const resolveFeedback = async (id: number) => {
         try {
             await apiFetch(`/admin/feedback/${id}/resolver`, { method: 'POST' });
@@ -215,12 +228,21 @@ export default function AdminDashboard() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             {!u.is_admin && (
-                                                <button
-                                                    onClick={() => togglePremium(u.id)}
-                                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${u.is_premium ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
-                                                >
-                                                    {u.is_premium ? 'Revocar Pago' : 'Confirmar Pago'}
-                                                </button>
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => togglePremium(u.id)}
+                                                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${u.is_premium ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                                                    >
+                                                        {u.is_premium ? 'Revocar Pago' : 'Confirmar Pago'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteUser(u.id, u.username)}
+                                                        className="px-3 py-1 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-all"
+                                                        title="Eliminar usuario"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

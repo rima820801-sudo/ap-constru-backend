@@ -29,106 +29,112 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
     if (!open) return null;
 
     const handleExportarPDF = () => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
+        try {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
 
-        // Estilo y Colores (BORCELLE Blue)
-        const bluePrimary = [13, 110, 253]; // RGB
-        const blueDark = [10, 88, 202];
-        const grayText = [100, 116, 139];
+            // Estilo y Colores (BORCELLE Blue)
+            const bluePrimary = [13, 110, 253]; // RGB
+            const blueDark = [10, 88, 202];
+            const grayText = [100, 116, 139];
 
-        // 1. Header (Curvas decorativas simuladas con rectángulos y círculos si fuera posible, pero mantengamoslo profesional)
-        doc.setFillColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
-        doc.rect(0, 0, pageWidth, 40, 'F');
+            // 1. Header
+            doc.setFillColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
+            doc.rect(0, 0, pageWidth, 40, 'F');
 
-        // Logo Placeholder
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont("helvetica", "bold");
-        doc.text("G", 170, 20);
-        doc.setFontSize(12);
-        doc.text(emisor.nombre.split(' ')[0] || "EMPRESA", 160, 30);
+            // Logo Placeholder
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont("helvetica", "bold");
+            doc.text("G", 170, 20);
+            doc.setFontSize(12);
+            doc.text((emisor.nombre || "EMPRESA").split(' ')[0], 160, 30);
 
-        // 2. Información General
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(10);
+            // 2. Información General
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
 
-        // Datos del Cliente (Izquierda)
-        doc.setFont("helvetica", "bold");
-        doc.text("DATOS DEL CLIENTE", 20, 60);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(grayText[0], grayText[1], grayText[2]);
-        doc.text(`Nombre: ${receptor.nombre}`, 20, 67);
-        doc.text(`Dirección: ${receptor.direccion}`, 20, 73);
-        doc.text(`Mail: ${receptor.mail}`, 20, 79);
-        doc.text(`Teléfono: ${receptor.telefono}`, 20, 85);
+            // Datos del Cliente (Izquierda)
+            doc.setFont("helvetica", "bold");
+            doc.text("DATOS DEL CLIENTE", 20, 60);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+            doc.text(`Nombre: ${receptor.nombre || ""}`, 20, 67);
+            doc.text(`Dirección: ${receptor.direccion || ""}`, 20, 73);
+            doc.text(`Mail: ${receptor.mail || ""}`, 20, 79);
+            doc.text(`Teléfono: ${receptor.telefono || ""}`, 20, 85);
 
-        // Datos de la Empresa (Derecha)
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text("DATOS DE LA EMPRESA", pageWidth - 80, 60);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(grayText[0], grayText[1], grayText[2]);
-        doc.text(emisor.nombre, pageWidth - 80, 67);
-        doc.text(emisor.direccion, pageWidth - 80, 73);
-        doc.text(emisor.mail, pageWidth - 80, 79);
-        doc.text(emisor.telefono, pageWidth - 80, 85);
+            // Datos de la Empresa (Derecha)
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text("DATOS DE LA EMPRESA", pageWidth - 80, 60);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+            doc.text(emisor.nombre || "", pageWidth - 80, 67);
+            doc.text(emisor.direccion || "", pageWidth - 80, 73);
+            doc.text(emisor.mail || "", pageWidth - 80, 79);
+            doc.text(emisor.telefono || "", pageWidth - 80, 85);
 
-        // Fecha
-        const fecha = new Date().toLocaleDateString();
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Fecha: ${fecha}`, 20, 105);
+            // Fecha
+            const fecha = new Date().toLocaleDateString();
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Fecha: ${fecha}`, 20, 105);
 
-        // 3. Tabla de Conceptos
-        const tableBody = rows.map(row => {
-            const nombre = row.nombre_sugerido || `Insumo ${row.id_insumo || ''}`;
-            const precio = Number(row.precio_unitario_temp || 0); // Esto puede variar segun como se calculó
-            // Nota: En la matriz real de AnalisisPuPage, el precio unitario del insumo se saca de obtenerCostoUnitario
-            // Para simplicidad en este paso, usaremos lo que venga en la fila o 0.
-            // Idealmente AnalisisPuPage debería pasar las filas ya con el costo calculado si queremos exactitud.
-            return [
-                nombre,
-                Number(row.cantidad).toFixed(2) + " " + (row.unidad || ""),
-                "$" + precio.toLocaleString('en-US', { minimumFractionDigits: 2 }),
-                "$" + (Number(row.cantidad) * precio).toLocaleString('en-US', { minimumFractionDigits: 2 })
-            ];
-        });
+            // 3. Tabla de Conceptos
+            const tableBody = rows.map(row => {
+                const nombre = row.nombre_sugerido || `Insumo ${row.id_insumo || ''}`;
+                const precio = Number(row.precio_unitario_temp || 0);
+                return [
+                    nombre,
+                    Number(row.cantidad).toFixed(2) + " " + (row.unidad || ""),
+                    "$" + precio.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                    "$" + (Number(row.cantidad) * precio).toLocaleString('en-US', { minimumFractionDigits: 2 })
+                ];
+            });
 
-        (doc as any).autoTable({
-            startY: 115,
-            head: [['Concepto', 'Cantidad', 'Precio', 'Total']],
-            body: tableBody,
-            theme: 'grid',
-            headStyles: { fillColor: blueDark, textColor: [255, 255, 255], fontStyle: 'bold' },
-            styles: { fontSize: 9 },
-            columnStyles: {
-                0: { cellWidth: 80 },
-                1: { cellWidth: 30, halign: 'center' },
-                2: { cellWidth: 40, halign: 'right' },
-                3: { cellWidth: 40, halign: 'right' },
-            }
-        });
+            (doc as any).autoTable({
+                startY: 115,
+                head: [['Concepto', 'Cantidad', 'Precio', 'Total']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { fillColor: blueDark, textColor: [255, 255, 255], fontStyle: 'bold' },
+                styles: { fontSize: 9 },
+                columnStyles: {
+                    0: { cellWidth: 80 },
+                    1: { cellWidth: 30, halign: 'center' },
+                    2: { cellWidth: 40, halign: 'right' },
+                    3: { cellWidth: 40, halign: 'right' },
+                }
+            });
 
-        // 4. Totales
-        const finalY = (doc as any).lastAutoTable.finalY + 10;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text("Subtotal", pageWidth - 80, finalY);
-        doc.setFont("helvetica", "normal");
-        doc.text("$" + resumen.costo_directo.toLocaleString('en-US', { minimumFractionDigits: 2 }), pageWidth - 30, finalY, { align: 'right' });
+            // 4. Totales
+            const finalY = ((doc as any).lastAutoTable?.finalY || 150) + 10;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("Subtotal", pageWidth - 80, finalY);
+            doc.setFont("helvetica", "normal");
+            doc.text("$" + (resumen.costo_directo || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }), pageWidth - 30, finalY, { align: 'right' });
 
-        doc.setFont("helvetica", "bold");
-        doc.text("Total", pageWidth - 80, finalY + 15);
-        doc.setFontSize(12);
-        doc.setTextColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
-        doc.text("$" + resumen.precio_unitario.toLocaleString('en-US', { minimumFractionDigits: 2 }), pageWidth - 30, finalY + 15, { align: 'right' });
+            doc.setFont("helvetica", "bold");
+            doc.text("Total", pageWidth - 80, finalY + 15);
+            doc.setFontSize(12);
+            doc.setTextColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
+            doc.text("$" + (resumen.precio_unitario || 0).toLocaleString('en-US', { minimumFractionDigits: 2 }), pageWidth - 30, finalY + 15, { align: 'right' });
 
-        // Footer Decorativo
-        doc.setFillColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
-        doc.rect(0, 280, pageWidth, 20, 'F');
+            // Footer Decorativo
+            doc.setFillColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
+            doc.rect(0, 280, pageWidth, 20, 'F');
 
-        doc.save(`Presupuesto_${conceptoNombre.replace(/ /g, '_')}.pdf`);
+            const fileName = (conceptoNombre || "Presupuesto").replace(/ /g, '_');
+            doc.save(`Presupuesto_${fileName}.pdf`);
+
+            // Cerrar modal después de generar
+            onClose();
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Ocurrió un error al generar el PDF. Revisa la consola para más detalles.");
+        }
     };
 
     return (
@@ -152,7 +158,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nombre Comercial</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.nombre}
                                     onChange={e => setEmisor({ ...emisor, nombre: e.target.value })}
                                 />
@@ -160,7 +167,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Teléfono</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.telefono}
                                     onChange={e => setEmisor({ ...emisor, telefono: e.target.value })}
                                 />
@@ -168,7 +176,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Correo Electrónico</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.mail}
                                     onChange={e => setEmisor({ ...emisor, mail: e.target.value })}
                                 />
@@ -176,7 +185,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Dirección</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={emisor.direccion}
                                     onChange={e => setEmisor({ ...emisor, direccion: e.target.value })}
                                 />
@@ -191,7 +201,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Nombre del Cliente</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.nombre}
                                     onChange={e => setReceptor({ ...receptor, nombre: e.target.value })}
                                 />
@@ -199,7 +210,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Teléfono</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.telefono}
                                     onChange={e => setReceptor({ ...receptor, telefono: e.target.value })}
                                 />
@@ -207,7 +219,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Correo Electrónico</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.mail}
                                     onChange={e => setReceptor({ ...receptor, mail: e.target.value })}
                                 />
@@ -215,7 +228,8 @@ export function PresupuestoPdfModal({ open, onClose, rows, resumen, conceptoNomb
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1">Dirección</label>
                                 <input
-                                    className="w-full text-sm bg-white text-gray-900 border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500"
+                                    type="text"
+                                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     value={receptor.direccion}
                                     onChange={e => setReceptor({ ...receptor, direccion: e.target.value })}
                                 />

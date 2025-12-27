@@ -78,9 +78,17 @@ def submit_feedback():
     db.session.add(fb)
     db.session.commit()
     
-    # Enviar correo al admin
-    username = User.query.get(user_id).username if user_id else "Anónimo"
-    send_admin_notification(data.get("tipo", "sugerencia"), data.get("mensaje"), username)
+    # Enviar correo al admin en segundo plano para no bloquear la respuesta
+    try:
+        import threading
+        username = User.query.get(user_id).username if user_id else "Anónimo"
+        thread = threading.Thread(
+            target=send_admin_notification, 
+            args=(data.get("tipo", "sugerencia"), data.get("mensaje"), username)
+        )
+        thread.start()
+    except Exception as e:
+        print(f"Error al iniciar hilo de notificación: {e}")
 
     return jsonify({"message": "Feedback enviado con éxito"}), 201
 

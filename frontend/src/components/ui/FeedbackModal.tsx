@@ -95,7 +95,7 @@ export const FeedbackModal = () => {
                                     value={mensaje}
                                     onChange={(e) => setMensaje(e.target.value)}
                                     placeholder="Escribe aquí tu observación..."
-                                    className="w-full bg-slate-50 border border-gray-100 rounded-2xl p-4 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
+                                    className="w-full bg-slate-50 border border-gray-100 rounded-2xl p-4 text-sm text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
                                 ></textarea>
                             </div>
 

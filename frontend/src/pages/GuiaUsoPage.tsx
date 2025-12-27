@@ -1,5 +1,6 @@
 import React from 'react';
 import { BookOpen, Sparkles, Database, FileText, CheckCircle } from 'lucide-react';
+import { Navbar } from '../components/layout/Navbar';
 
 export const GuiaUsoPage = () => {
     const steps = [
@@ -24,7 +25,9 @@ export const GuiaUsoPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 px-4">
+        <div className="min-h-screen bg-slate-50 flex flex-col">
+            <Navbar />
+            <div className="py-12 px-4 flex-1">
             <div className="max-w-4xl mx-auto space-y-12">
                 <header className="text-center space-y-4">
                     <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider">

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useId, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, useId, useRef, type FormEvent } from "react";
 import { apiFetch } from "../../api/client";
 import { useToast } from "../../context/ToastContext";
 
@@ -135,6 +135,7 @@ export function ConceptoMatrizEditor({
 }: ConceptoMatrizEditorProps) {
     const modoLocal = modoLocalProp ?? !conceptoId;
     const [rows, setRows] = useState<MatrizRow[]>(() => externalRows ?? []);
+    const isUpdatingFromEffect = useRef(false);
     const [catalogos, setCatalogos] = useState<CatalogData | null>(null);
     const [puResumen, setPuResumen] = useState<PuResponse>({ costo_directo: 0, precio_unitario: 0 });
     const [calculando, setCalculando] = useState(false);
@@ -255,12 +256,14 @@ export function ConceptoMatrizEditor({
         if (!modoLocal) return;
         const newRows = externalRows ?? [];
 
-        setRows((prevRows) => {
-            if (JSON.stringify(newRows) === JSON.stringify(prevRows)) {
-                return prevRows;
-            }
-            return newRows;
-        });
+        if (JSON.stringify(newRows) !== JSON.stringify(rows)) {
+            isUpdatingFromEffect.current = true;
+            setRows(newRows);
+            // Reset the ref in the next tick
+            setTimeout(() => {
+                isUpdatingFromEffect.current = false;
+            }, 0);
+        }
     }, [externalRows, modoLocal]);
 
     // Debounce para evitar cálculos excesivos (espera 800ms después del último cambio)
@@ -278,7 +281,11 @@ export function ConceptoMatrizEditor({
 
     useEffect(() => {
         if (!iaRows || !iaRows.length) return;
+        isUpdatingFromEffect.current = true;
         setRows(iaRows);
+        setTimeout(() => {
+            isUpdatingFromEffect.current = false;
+        }, 0);
     }, [iaRows]);
 
     useEffect(() => {
@@ -291,7 +298,9 @@ export function ConceptoMatrizEditor({
     }, [conceptoId]);
 
     useEffect(() => {
-        onRowsChange?.(rows);
+        if (!isUpdatingFromEffect.current) {
+            onRowsChange?.(rows);
+        }
     }, [rows, onRowsChange]);
 
     async function loadMatriz() {
@@ -1401,7 +1410,7 @@ export function mapearSugerenciasDesdeIA(insumos: IASugerencia[] = [], conceptoI
                 'fierrero', 'soldador', 'electricista', 'plomero', 'obrero',
                 'jornal', 'cuadrilla', 'mano de obra', 'herrero', 'vidriero',
                 'azulejero', 'impermeabilizador', 'fontanero', 'tablaroquero',
-                'carpinteria', 'herreria', 'pintura', 'pintor', 'resanador'
+                'carpinteria', 'herreria', 'pintor', 'resanador'
             ];
             const normalizedName = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             if (laborKeywords.some(kw => normalizedName.includes(kw))) {
