@@ -50,5 +50,6 @@ export const ChangelogPage = () => {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+    );
 };
