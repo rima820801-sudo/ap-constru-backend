@@ -883,6 +883,8 @@ export function ConceptoMatrizEditor({
                 row.tipo_insumo === "ManoObra" && row.rendimiento_jornada !== ""
                     ? Number(row.rendimiento_jornada)
                     : null,
+            precio_custom: row.precio_unitario_temp !== "" ? Number(row.precio_unitario_temp) : null,
+            unidad_custom: row.unidad || null,
         };
     }
 
@@ -890,11 +892,7 @@ export function ConceptoMatrizEditor({
         ? iaExplanation.trim()
         : "Genera una sugerencia con el asistente para ver el detalle aqui.";
 
-    function obtenerUnidad(row: MatrizRow): string {
-        if (row.unidad && row.unidad.trim()) {
-            return row.unidad;
-        }
-        if (row.existe_en_catalogo === false) return "-";
+    function obtenerUnidadBase(row: MatrizRow): string {
         if (!catalogos || !row.id_insumo) return "-";
         const id = Number(row.id_insumo);
         switch (row.tipo_insumo) {
@@ -909,6 +907,14 @@ export function ConceptoMatrizEditor({
             default:
                 return "-";
         }
+    }
+
+    function obtenerUnidad(row: MatrizRow): string {
+        if (row.unidad && row.unidad.trim()) {
+            return row.unidad;
+        }
+        if (row.existe_en_catalogo === false) return "-";
+        return obtenerUnidadBase(row);
     }
 
     function obtenerNombre(row: MatrizRow): string {
@@ -930,6 +936,9 @@ export function ConceptoMatrizEditor({
     }
 
     function obtenerPrecioUnitarioBase(row: MatrizRow): number {
+        if (row.precio_unitario_temp !== undefined && row.precio_unitario_temp !== "") {
+            return Number(row.precio_unitario_temp);
+        }
         if (row.existe_en_catalogo === false) return 0;
         if (!catalogos || !row.id_insumo) return 0;
         const id = Number(row.id_insumo);
@@ -938,12 +947,10 @@ export function ConceptoMatrizEditor({
                 return catalogos.materiales[id]?.precio_unitario ?? 0;
             case "ManoObra":
                 const mano = catalogos.manoObra[id];
-                // Mostramos Salario Base * Fasar como "Precio Unitario" aproximado
                 return mano ? mano.salario_base * mano.fasar : 0;
             case "Equipo":
                 return catalogos.equipos[id]?.costo_hora_maq ?? 0;
             case "Maquinaria":
-                // Maquinaria costo posesion hora
                 return catalogos.maquinaria[id]?.costo_posesion_hora ?? 0;
             default:
                 return 0;
@@ -951,20 +958,16 @@ export function ConceptoMatrizEditor({
     }
 
     function obtenerCostoUnitario(row: MatrizRow): number {
-        if (row.existe_en_catalogo === false) {
-            // Logic for temporary items (not in catalog)
-            const precioBase = typeof row.precio_unitario_temp === 'number' ? row.precio_unitario_temp : 0;
-
+        if (row.existe_en_catalogo === false || (row.precio_unitario_temp !== undefined && row.precio_unitario_temp !== "")) {
+            const precioBase = obtenerPrecioUnitarioBase(row);
             if (row.tipo_insumo === "Material") {
                 const merma = row.porcentaje_merma !== "" && row.porcentaje_merma !== undefined ? Number(row.porcentaje_merma) : 0;
                 const flete = row.precio_flete_unitario !== "" && row.precio_flete_unitario !== undefined ? Number(row.precio_flete_unitario) : 0;
                 return precioBase * (1 + merma) + flete;
             } else if (row.tipo_insumo === "ManoObra") {
-                // For temp ManoObra, we treat 'precio_unitario_temp' as the base cost (salario base * fasar equivalent)
                 const rendimiento = row.rendimiento_jornada !== "" && row.rendimiento_jornada !== undefined ? Number(row.rendimiento_jornada) : 1;
                 return rendimiento > 0 ? precioBase / rendimiento : precioBase;
             } else {
-                // Maquinaria/Equipo
                 return precioBase;
             }
         }
@@ -1130,8 +1133,14 @@ export function ConceptoMatrizEditor({
                                 <td className="px-1 py-1 align-middle">
                                     {renderInsumoSelect(row, index)}
                                 </td>
-                                <td className="px-1 py-1 align-middle text-center text-[11px] text-gray-600 truncate">
-                                    {obtenerUnidad(row)}
+                                <td className="px-1 py-1 align-middle">
+                                    <input
+                                        type="text"
+                                        className="block w-full rounded border-gray-200 py-1 px-1 text-center text-[10px] focus:border-indigo-500 focus:ring-0 bg-transparent hover:bg-white transition-colors"
+                                        value={row.unidad ?? (row.existe_en_catalogo ? obtenerUnidadBase(row) : "")}
+                                        onChange={(e) => handleRowChange(index, { unidad: e.target.value })}
+                                        placeholder="unid"
+                                    />
                                 </td>
                                 <td className="px-1 py-1 align-middle">
                                     <input
@@ -1142,23 +1151,19 @@ export function ConceptoMatrizEditor({
                                     />
                                 </td>
                                 <td className="px-1 py-1 align-middle">
-                                    {row.existe_en_catalogo ? (
-                                        <div className="flex items-center gap-1 text-gray-600 bg-gray-50 px-2 py-1.5 rounded border border-gray-100">
-                                            <span className="text-xs text-gray-400">$</span>
-                                            <span>{obtenerPrecioUnitarioBase(row).toFixed(2)}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="relative">
-                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">$</span>
-                                            <input
-                                                type="number"
-                                                className="block w-full rounded border-gray-300 py-1 pl-5 pr-2 text-right text-[11px] focus:border-indigo-500 focus:ring-indigo-500"
-                                                placeholder="0.00"
-                                                value={row.precio_unitario_temp ?? ""}
-                                                onChange={(e) => handleRowChange(index, { precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value) })}
-                                            />
-                                        </div>
-                                    )}
+                                    <div className="relative group">
+                                        <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[10px] ${row.precio_unitario_temp ? 'text-indigo-500 font-bold' : 'text-gray-400'}`}>$</span>
+                                        <input
+                                            type="number"
+                                            className={`block w-full rounded py-1 pl-4 pr-1 text-right text-[11px] focus:ring-0 transition-colors ${row.precio_unitario_temp
+                                                    ? 'border-indigo-200 bg-indigo-50/30 text-indigo-700'
+                                                    : 'border-gray-200 bg-transparent hover:bg-white text-gray-600'
+                                                }`}
+                                            placeholder={row.existe_en_catalogo ? obtenerPrecioUnitarioBase({ ...row, precio_unitario_temp: "" }).toFixed(2) : "0.00"}
+                                            value={row.precio_unitario_temp ?? ""}
+                                            onChange={(e) => handleRowChange(index, { precio_unitario_temp: e.target.value === "" ? "" : Number(e.target.value) })}
+                                        />
+                                    </div>
                                 </td>
                                 <td className="px-1 py-1 align-middle">
                                     {row.tipo_insumo === "Material" ? (

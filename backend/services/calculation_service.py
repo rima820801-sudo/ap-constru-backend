@@ -51,7 +51,6 @@ def calcular_costo_posesion(maquinaria: Maquinaria) -> Decimal:
     interes = (costo * tasa) / vida
     return depreciacion + interes
 
-
 def obtener_costo_insumo(
     registro: Dict,
     material_cache: Dict[int, Material],
@@ -59,28 +58,26 @@ def obtener_costo_insumo(
     equipo_cache: Dict[int, Equipo],
     maquinaria_cache: Dict[int, Maquinaria],
 ) -> Decimal:
-    # If no ID or invalid ID, check for custom price
     tipo = registro.get("tipo_insumo")
     insumo_id = registro.get("id_insumo")
+    precio_override = decimal_field(registro.get("precio_custom") or registro.get("precio_unitario_temp")) # Support both names
     
-    if not insumo_id:
-        custom_base = decimal_field(registro.get("precio_custom"))
+    # If a custom override is provided, use it as the base price
+    if precio_override > 0:
         if tipo == "Material":
             merma = decimal_field(registro.get("porcentaje_merma"))
             flete = decimal_field(registro.get("precio_flete_unitario"))
-            return custom_base * (Decimal("1.0") + merma) + flete
+            return precio_override * (Decimal("1.0") + merma) + flete
         elif tipo == "ManoObra":
-            # For temporary ManoObra, we assume custom_base is the daily cost (salario_base * fasar)
-            # or the user enters the direct unit price.
-            # Usually users enter the Costo Directo Unitario directly or the Salario Base.
-            # Let's assume they enter the base price and we apply rendimiento.
             rendimiento = decimal_field(registro.get("rendimiento_jornada"))
             if rendimiento <= 0:
                 rendimiento = Decimal("1.0")
-            return custom_base / rendimiento
+            return precio_override / rendimiento
         elif tipo in ["Equipo", "Maquinaria"]:
-            # For machine/equipment, custom price is hourly cost
-            return custom_base
+            return precio_override
+    
+    # If no ID and no override, return 0
+    if not insumo_id:
         return Decimal("0")
 
     if tipo == "Material":

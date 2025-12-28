@@ -56,6 +56,12 @@ def matriz_create():
         tipo_insumo=payload["tipo_insumo"],
         id_insumo=payload["id_insumo"],
         cantidad=decimal_field(payload["cantidad"]),
+        porcentaje_merma=decimal_field(payload.get("porcentaje_merma")) if payload.get("porcentaje_merma") is not None else None,
+        precio_flete_unitario=decimal_field(payload.get("precio_flete_unitario")) if payload.get("precio_flete_unitario") is not None else None,
+        rendimiento_jornada=decimal_field(payload.get("rendimiento_jornada")) if payload.get("rendimiento_jornada") is not None else None,
+        factor_uso=decimal_field(payload.get("factor_uso")) if payload.get("factor_uso") is not None else None,
+        precio_custom=decimal_field(payload.get("precio_custom")) if payload.get("precio_custom") is not None else None,
+        unidad_custom=payload.get("unidad_custom"),
     )
     db.session.add(registro)
     db.session.commit()
@@ -69,7 +75,23 @@ def matriz_update(registro_id: int):
         db.session.delete(registro)
         db.session.commit()
         return "", 204
-    # PUT logic
+    payload = request.get_json(force=True)
+    registro.cantidad = decimal_field(payload.get("cantidad", registro.cantidad))
+    
+    if "porcentaje_merma" in payload:
+        registro.porcentaje_merma = decimal_field(payload["porcentaje_merma"]) if payload["porcentaje_merma"] is not None else None
+    if "precio_flete_unitario" in payload:
+        registro.precio_flete_unitario = decimal_field(payload["precio_flete_unitario"]) if payload["precio_flete_unitario"] is not None else None
+    if "rendimiento_jornada" in payload:
+        registro.rendimiento_jornada = decimal_field(payload["rendimiento_jornada"]) if payload["rendimiento_jornada"] is not None else None
+    if "factor_uso" in payload:
+        registro.factor_uso = decimal_field(payload["factor_uso"]) if payload["factor_uso"] is not None else None
+    if "precio_custom" in payload:
+        registro.precio_custom = decimal_field(payload["precio_custom"]) if payload["precio_custom"] is not None else None
+    if "unidad_custom" in payload:
+        registro.unidad_custom = payload["unidad_custom"]
+
+    db.session.commit()
     return jsonify(registro.to_dict())
 
 @bp.route("/conceptos/calcular_pu", methods=["POST"])

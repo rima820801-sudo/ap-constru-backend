@@ -348,6 +348,10 @@ class MatrizInsumo(db.Model):
     cantidad = db.Column(db.Numeric(12, 4), nullable=False)
     porcentaje_merma = db.Column(db.Numeric(6, 4), nullable=True)
     precio_flete_unitario = db.Column(db.Numeric(12, 4), nullable=True)
+    rendimiento_jornada = db.Column(db.Numeric(10, 4), nullable=True)
+    factor_uso = db.Column(db.Numeric(10, 4), nullable=True)
+    precio_custom = db.Column(db.Numeric(12, 4), nullable=True)
+    unidad_custom = db.Column(db.String(50), nullable=True)
 
     def to_dict(self) -> Dict:
         return {
@@ -358,6 +362,10 @@ class MatrizInsumo(db.Model):
             "cantidad": float(self.cantidad),
             "porcentaje_merma": float(self.porcentaje_merma) if self.porcentaje_merma is not None else None,
             "precio_flete_unitario": float(self.precio_flete_unitario) if self.precio_flete_unitario is not None else None,
+            "rendimiento_jornada": float(self.rendimiento_jornada) if self.rendimiento_jornada is not None else None,
+            "factor_uso": float(self.factor_uso) if self.factor_uso is not None else None,
+            "precio_custom": float(self.precio_custom) if self.precio_custom is not None else None,
+            "unidad_custom": self.unidad_custom,
         }
 
 

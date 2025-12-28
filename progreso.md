@@ -25,6 +25,9 @@ Precios Unitarios es una plataforma full-stack que gestiona catálogos, matrices
 - **Mejora reciente**: Implementación de búsqueda difusa (Fuzzy Matching) para relacionar sugerencias de IA con items del catálogo que tienen nombres similares (e.g., "Block de concreto" vs "Block").
 - **Mejora reciente**: Flujo "Cotizar Faltantes": integración directa desde la tabla de Análisis al Comparador, con auto-ejecución inmediata de cotizaciones al llegar a la página.
 - **Mejora reciente**: Corrección en persistencia real del Catálogo: ahora los items creados manualmente se guardan en backend (API) y no solo en caché local.
+- **Mejora reciente**: Implementación de conversión de unidades comerciales en IA (e.g., de m² a placas/piezas, de kg a bultos).
+- **Mejora reciente**: Integración de precios sugeridos por IA para insumos fuera del catálogo, mejorando la estimación inicial.
+- **Mejora reciente**: Resolución de errores de sintaxis (etiquetas faltantes) en las páginas de Guía y Novedades.
 - **Mejora reciente**: Corrección de parpadeo (flickering) en la tabla de insumos al cambiar tipos manualmente.
 - **Mejora reciente**: Solución a la clasificación errónea de "pintura" como mano de obra; ahora se detecta correctamente como material.
 - **Mejora reciente**: Mejora de contraste en el modal de feedback y envío de notificaciones en segundo plano (no bloqueante).
