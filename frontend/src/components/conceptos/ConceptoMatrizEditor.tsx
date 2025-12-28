@@ -282,12 +282,16 @@ export function ConceptoMatrizEditor({
 
     useEffect(() => {
         if (!iaRows || !iaRows.length) return;
+        // Evitar sobreescritura si ya tenemos filas y estamos en modo local (borrador)
+        // ya que iaRows tiende a persistir en el localStorage del padre.
+        if (modoLocal && rows.length > 0) return;
+
         isUpdatingFromEffect.current = true;
         setRows(iaRows);
         setTimeout(() => {
             isUpdatingFromEffect.current = false;
         }, 0);
-    }, [iaRows]);
+    }, [iaRows, modoLocal]);
 
     useEffect(() => {
         if (!guardarTrigger) return;
@@ -309,13 +313,15 @@ export function ConceptoMatrizEditor({
             setRows([]);
             return;
         }
-        const data = await apiFetch<MatrizRow[]>(`/conceptos/${conceptoId}/matriz`);
+        const data = await apiFetch<any[]>(`/conceptos/${conceptoId}/matriz`);
         const normalizados = data.map((row) => ({
             ...row,
             cantidad: Number(row.cantidad),
             porcentaje_merma: row.porcentaje_merma ?? "",
             precio_flete_unitario: row.precio_flete_unitario ?? "",
             rendimiento_jornada: row.rendimiento_jornada ?? "",
+            precio_unitario_temp: row.precio_custom ?? "",
+            unidad: row.unidad_custom ?? row.unidad ?? "",
             existe_en_catalogo: true,
         }));
         setRows(normalizados);
@@ -1156,8 +1162,8 @@ export function ConceptoMatrizEditor({
                                         <input
                                             type="number"
                                             className={`block w-full rounded py-1 pl-4 pr-1 text-right text-[11px] focus:ring-0 transition-colors ${row.precio_unitario_temp
-                                                    ? 'border-indigo-200 bg-indigo-50/30 text-indigo-700'
-                                                    : 'border-gray-200 bg-transparent hover:bg-white text-gray-600'
+                                                ? 'border-indigo-200 bg-indigo-50/30 text-indigo-700'
+                                                : 'border-gray-200 bg-transparent hover:bg-white text-gray-600'
                                                 }`}
                                             placeholder={row.existe_en_catalogo ? obtenerPrecioUnitarioBase({ ...row, precio_unitario_temp: "" }).toFixed(2) : "0.00"}
                                             value={row.precio_unitario_temp ?? ""}

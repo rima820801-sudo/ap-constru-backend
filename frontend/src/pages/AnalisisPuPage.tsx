@@ -504,7 +504,8 @@ export function AnalisisPuPage() {
     }
 
     const rowsParaGuardar = (): MatrizRow[] => {
-        const sourceRows = iaRows ?? matrizDraft;
+        // Priorizar matrizDraft porque contiene los cambios manuales del usuario
+        const sourceRows = matrizDraft.length > 0 ? matrizDraft : (iaRows ?? []);
         return sourceRows.map((row) => ({ ...row }));
     };
 
@@ -576,6 +577,7 @@ export function AnalisisPuPage() {
             });
             const mappedRows = mapearSugerenciasDesdeIA(data.insumos ?? [], conceptoForm.id ?? 0);
             setIaRows(mappedRows);
+            setMatrizDraft(mappedRows);
             const explicacion = data.explicacion ?? "";
             setIaExplanation(explicacion);
             setTextoDetalles(explicacion);
@@ -625,6 +627,8 @@ export function AnalisisPuPage() {
                     row.tipo_insumo === "ManoObra" && row.rendimiento_jornada !== ""
                         ? Number(row.rendimiento_jornada)
                         : null,
+                precio_custom: row.precio_unitario_temp !== "" ? Number(row.precio_unitario_temp) : null,
+                unidad_custom: row.unidad || null,
             };
             if (row.id) {
                 await apiFetch(`/matriz/${row.id}`, { method: "PUT", body: payload });
